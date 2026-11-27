@@ -24,7 +24,7 @@ export function WatchConsole({
   canManage: boolean;
 }) {
   const router = useRouter();
-  const [running, setRunning] = useState(false);
+  const [runningTarget, setRunningTarget] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [ingestPending, setIngestPending] = useState(false);
   const [url, setUrl] = useState("");
@@ -33,8 +33,10 @@ export function WatchConsole({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const running = runningTarget !== null;
+
   async function handleRunWatch(sourceId?: string) {
-    setRunning(true);
+    setRunningTarget(sourceId ?? "all");
     setError(null);
     setStatusMessage(null);
     try {
@@ -55,7 +57,7 @@ export function WatchConsole({
     } catch {
       setError("The server did not respond. Retry.");
     } finally {
-      setRunning(false);
+      setRunningTarget(null);
     }
   }
 
@@ -212,7 +214,8 @@ export function WatchConsole({
             {canRun && overview.sources.length > 0 ? (
               <Button
                 size="sm"
-                pending={running}
+                pending={runningTarget === "all"}
+                disabled={running}
                 pendingLabel="Running..."
                 onClick={() => void handleRunWatch()}
               >
@@ -241,9 +244,9 @@ export function WatchConsole({
               {overview.sources.map((source) => (
                 <li
                   key={source.id}
-                  className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"
+                  className="flex flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center sm:gap-4"
                 >
-                  <div className="min-w-0 space-y-1">
+                  <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge tone="brand">{source.regulator}</Badge>
                       <span className="text-sm font-semibold text-fg">{source.name}</span>
@@ -257,12 +260,14 @@ export function WatchConsole({
                     </p>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
                     {canManage ? (
                       <Button
                         variant="secondary"
                         size="sm"
+                        disabled={running}
                         pending={togglingId === source.id}
+                        pendingLabel="Saving..."
                         onClick={() => void handleToggle(source.id, !source.enabled)}
                       >
                         {source.enabled ? "Disable" : "Enable"}
@@ -272,6 +277,8 @@ export function WatchConsole({
                       <Button
                         variant="ghost"
                         size="sm"
+                        pending={runningTarget === source.id}
+                        pendingLabel="Checking..."
                         disabled={running}
                         onClick={() => void handleRunWatch(source.id)}
                       >

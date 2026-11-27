@@ -46,6 +46,7 @@ export function ReviewForm({
   const [comments, setComments] = useState("");
   const [wording, setWording] = useState(defaultWording);
   const [pending, setPending] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit() {
@@ -82,6 +83,7 @@ export function ReviewForm({
         return;
       }
 
+      setSubmitted(true);
       router.refresh();
     } catch {
       setError("The server did not respond. Check the connection and retry.");
@@ -113,19 +115,25 @@ export function ReviewForm({
                 key={option.value}
                 type="button"
                 aria-pressed={selected}
+                disabled={pending || submitted}
                 onClick={() => {
                   setAction(option.value);
                   setError(null);
                 }}
                 className={cn(
-                  "rounded-xl border px-3.5 py-3 text-left transition-colors",
+                  "rounded-xl border px-3.5 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
                   selected
-                    ? "border-brand bg-brand/10"
+                    ? "border-brand bg-brand/10 dark:border-support dark:bg-support/15"
                     : "border-line bg-surface hover:border-muted/40 hover:bg-surface-2/60",
                 )}
               >
                 <span className="flex items-center justify-between gap-2">
-                  <span className={cn("text-sm font-medium", selected ? "text-brand" : "text-fg")}>
+                  <span
+                    className={cn(
+                      "text-sm font-medium",
+                      selected ? "text-brand dark:text-support" : "text-fg",
+                    )}
+                  >
                     {option.label}
                   </span>
                   <span
@@ -174,13 +182,14 @@ export function ReviewForm({
           htmlFor="review-comments"
           hint={
             action === "REJECTED"
-              ? "Required, at least 10 characters. Stored with the review event."
+              ? `Required, at least 10 characters (${comments.trim().length}/10). Stored with the review event.`
               : "Optional context for the next reviewer and the audit trail."
           }
         >
           <Textarea
             id="review-comments"
             value={comments}
+            disabled={pending || submitted}
             onChange={(event) => setComments(event.target.value)}
             maxLength={2000}
             className="min-h-[92px] text-[13px]"
@@ -196,17 +205,39 @@ export function ReviewForm({
       {error ? (
         <div
           role="alert"
-          className="mt-3 flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-3 text-xs leading-relaxed text-danger"
+          className="mt-3 flex items-start gap-2 rounded-xl border border-danger/35 bg-danger/10 px-3.5 py-3 text-xs leading-relaxed text-fg"
         >
-          <WarningCircle size={15} weight="bold" aria-hidden="true" className="mt-0.5 shrink-0" />
-          <span>{error}</span>
+          <WarningCircle
+            size={15}
+            weight="fill"
+            aria-hidden="true"
+            className="mt-0.5 shrink-0 text-danger"
+          />
+          <span>
+            <span className="font-semibold">Error:</span> {error}
+          </span>
+        </div>
+      ) : null}
+
+      {submitted ? (
+        <div
+          role="status"
+          className="mt-3 flex items-center gap-2 rounded-xl border border-brand/30 bg-brand/10 px-3.5 py-3 text-xs text-fg dark:border-support/35 dark:bg-support/15"
+        >
+          <CheckCircle
+            size={15}
+            weight="bold"
+            aria-hidden="true"
+            className="shrink-0 text-brand dark:text-support"
+          />
+          <span>Decision recorded. Refreshing view...</span>
         </div>
       ) : null}
 
       <button
         type="button"
         onClick={submit}
-        disabled={pending}
+        disabled={pending || submitted}
         className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-5 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? (

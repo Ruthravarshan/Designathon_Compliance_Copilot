@@ -11,7 +11,9 @@ export default function GlobalError({
 }) {
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-[720px] flex-col justify-center px-5 py-16 sm:px-8">
-      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand">500</p>
+      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand dark:text-support">
+        500
+      </p>
       <h1 className="mt-4 text-4xl font-medium tracking-[-0.03em] sm:text-5xl">
         The workbench hit an error.
       </h1>

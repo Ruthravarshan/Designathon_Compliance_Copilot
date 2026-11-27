@@ -107,7 +107,9 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
                             {finding.document.reference}
                           </span>
                         </div>
-                        <p className="truncate text-xs text-fg">{finding.gapDescription}</p>
+                        <p className="line-clamp-2 text-xs leading-relaxed text-fg">
+                          {finding.gapDescription}
+                        </p>
                       </div>
                       <ArrowRight
                         size={14}

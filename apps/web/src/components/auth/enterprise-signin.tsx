@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   UserCheck,
   WarningCircle,
+  X,
 } from "@phosphor-icons/react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -190,15 +191,25 @@ export function EnterpriseSignIn({
       {ssoNotice ? (
         <div
           role="status"
-          className="flex items-start gap-2.5 rounded-2xl border border-brand/30 bg-brand/10 p-4 text-xs leading-relaxed text-fg dark:border-support/35 dark:bg-support/10"
+          className="flex items-start justify-between gap-2.5 rounded-2xl border border-brand/30 bg-brand/10 p-4 text-xs leading-relaxed text-fg dark:border-support/35 dark:bg-support/10"
         >
-          <Info
-            size={17}
-            weight="bold"
-            aria-hidden="true"
-            className="mt-0.5 shrink-0 text-brand dark:text-support"
-          />
-          <p>{ssoNotice}</p>
+          <div className="flex items-start gap-2.5">
+            <Info
+              size={17}
+              weight="bold"
+              aria-hidden="true"
+              className="mt-0.5 shrink-0 text-brand dark:text-support"
+            />
+            <p>{ssoNotice}</p>
+          </div>
+          <button
+            type="button"
+            aria-label="Dismiss notice"
+            onClick={() => setSsoNotice(null)}
+            className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+          >
+            <X size={13} weight="bold" aria-hidden="true" />
+          </button>
         </div>
       ) : null}
 
@@ -268,7 +279,13 @@ export function EnterpriseSignIn({
           </button>
 
           {samlExpanded ? (
-            <div className="mt-3 flex gap-2">
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleSsoClick("saml");
+              }}
+              className="mt-3 flex flex-col gap-2 sm:flex-row"
+            >
               <label htmlFor="sso-domain" className="sr-only">
                 Organization domain
               </label>
@@ -276,21 +293,22 @@ export function EnterpriseSignIn({
                 id="sso-domain"
                 type="text"
                 value={workDomain}
+                disabled={anyPending}
                 onChange={(event) => setWorkDomain(event.target.value)}
                 placeholder="company.com"
-                className="min-h-10 flex-1 rounded-xl border border-line bg-canvas px-3 text-sm text-fg placeholder:text-muted focus:border-brand focus:outline-none"
+                className="min-h-11 flex-1 rounded-xl border border-line bg-canvas px-3 text-sm text-fg placeholder:text-muted focus:border-brand focus:outline-none disabled:opacity-60 sm:min-h-10"
               />
               <Button
+                type="submit"
                 variant="primary"
                 pending={pendingProvider === "saml"}
                 pendingLabel="Checking..."
                 disabled={anyPending}
-                onClick={() => void handleSsoClick("saml")}
-                className="h-10 px-4"
+                className="h-11 px-4 sm:h-10"
               >
                 Continue
               </Button>
-            </div>
+            </form>
           ) : null}
         </div>
       </Card>
@@ -348,12 +366,12 @@ export function EnterpriseSignIn({
                         type="button"
                         disabled={anyPending}
                         onClick={() => void choosePersona(persona)}
-                        className="group flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2/80 disabled:cursor-not-allowed disabled:opacity-55"
+                        className="group flex min-h-14 w-full flex-col items-start justify-between gap-2.5 px-4 py-3 text-left transition-colors hover:bg-surface-2/80 disabled:cursor-not-allowed disabled:opacity-55 sm:flex-row sm:items-center sm:gap-3"
                       >
-                        <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:flex-1">
                           <Avatar name={persona.name} size="sm" />
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                               <span className="truncate text-sm font-semibold text-fg">
                                 {persona.name}
                               </span>
@@ -365,7 +383,7 @@ export function EnterpriseSignIn({
                           </div>
                         </div>
 
-                        <div className="flex shrink-0 items-center gap-2.5">
+                        <div className="flex shrink-0 items-center gap-2.5 pl-11 sm:pl-0">
                           <RoleBadge role={persona.role} />
                           {isPending ? (
                             <CircleNotch

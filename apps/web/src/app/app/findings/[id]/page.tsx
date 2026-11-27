@@ -15,6 +15,7 @@ import { GapStatusLabel, ReviewStatusBadge, SeverityBadge } from "@/components/s
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { CopyButton } from "@/components/ui/navigation-controls";
 import { AppError, ERROR_CODES } from "@/lib/errors";
 import { formatDate, formatDateTime, formatPercent, humanize } from "@/lib/format";
 import { actorCan, getActor } from "@/server/auth/actor";
@@ -52,9 +53,12 @@ export default async function FindingDetailPage({ params }: { params: Promise<{ 
           <ArrowLeft size={13} weight="bold" aria-hidden="true" />
           Findings
         </Link>
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
-          {finding.obligation.reference}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+            {finding.obligation.reference}
+          </span>
+          <CopyButton value={finding.obligation.reference} label="Copy ref" />
+        </div>
       </div>
 
       <header className="border-b border-line pb-6">
@@ -63,13 +67,13 @@ export default async function FindingDetailPage({ params }: { params: Promise<{ 
           <ReviewStatusBadge status={finding.reviewStatus} />
           <GapStatusLabel status={finding.status} />
           {finding.citationVerified ? (
-            <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.12em] text-brand">
+            <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.12em] text-brand dark:text-support">
               <CheckCircle size={11} weight="bold" aria-hidden="true" />
               Citation verified
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.12em] text-danger">
-              <WarningCircle size={11} weight="bold" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.12em] text-fg">
+              <WarningCircle size={11} weight="bold" aria-hidden="true" className="text-danger" />
               Citation flagged
             </span>
           )}
@@ -80,7 +84,7 @@ export default async function FindingDetailPage({ params }: { params: Promise<{ 
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted">
           <Link
             href={`/app/circulars/${finding.document.id}`}
-            className="inline-flex items-center gap-1.5 font-medium hover:text-brand"
+            className="inline-flex items-center gap-1.5 font-medium hover:text-brand dark:hover:text-support"
           >
             <FileText size={13} weight="bold" aria-hidden="true" />
             {finding.document.title}
@@ -114,7 +118,12 @@ export default async function FindingDetailPage({ params }: { params: Promise<{ 
               </blockquote>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3 text-xs text-muted">
                 <span className="inline-flex items-center gap-1.5">
-                  <SealCheck size={14} weight="bold" aria-hidden="true" className="text-brand" />
+                  <SealCheck
+                    size={14}
+                    weight="bold"
+                    aria-hidden="true"
+                    className="text-brand dark:text-support"
+                  />
                   Exact substring match · minimum 12 characters
                 </span>
                 <a
@@ -163,16 +172,19 @@ export default async function FindingDetailPage({ params }: { params: Promise<{ 
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {finding.policy ? (
-                <div className="rounded-xl bg-surface-2 p-4">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-brand">
+                <Link
+                  href={`/app/policies/${finding.policy.id}`}
+                  className="block rounded-xl bg-surface-2 p-4 transition-colors hover:bg-surface-2/70"
+                >
+                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-brand dark:text-support">
                     Policy
                   </p>
-                  <p className="mt-1.5 text-sm font-medium">{finding.policy.code}</p>
+                  <p className="mt-1.5 text-sm font-medium text-fg">{finding.policy.code}</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted">{finding.policy.title}</p>
                   <p className="mt-3 text-[11px] text-muted">
                     Owner · {finding.policy.ownerName} · {finding.policy.section}
                   </p>
-                </div>
+                </Link>
               ) : (
                 <div className="rounded-xl border border-dashed border-line p-4">
                   <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
@@ -187,7 +199,7 @@ export default async function FindingDetailPage({ params }: { params: Promise<{ 
 
               {finding.control ? (
                 <div className="rounded-xl bg-surface-2 p-4">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-brand">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-brand dark:text-support">
                     Control
                   </p>
                   <p className="mt-1.5 text-sm font-medium">{finding.control.code}</p>
@@ -225,6 +237,12 @@ export default async function FindingDetailPage({ params }: { params: Promise<{ 
                   <span aria-hidden="true" className="size-2 rounded-sm bg-brand/25" />
                   added
                 </span>
+                {hasRedline ? (
+                  <CopyButton
+                    value={finding.approvedWording ?? finding.redlineAfter}
+                    label="Copy wording"
+                  />
+                ) : null}
               </div>
             </div>
             <div className="p-5">
@@ -237,16 +255,17 @@ export default async function FindingDetailPage({ params }: { params: Promise<{ 
                     token.type === "equal" ? (
                       <span key={index}>{token.value} </span>
                     ) : token.type === "removed" ? (
-                      <del
-                        key={index}
-                        className="rounded bg-danger/10 px-1 text-muted line-through decoration-danger/60"
-                      >
-                        {token.value}
-                      </del>
+                      <span key={index}>
+                        <del className="rounded bg-danger/10 px-1 text-muted line-through decoration-danger/60">
+                          {token.value}
+                        </del>{" "}
+                      </span>
                     ) : (
-                      <ins key={index} className="rounded bg-brand/10 px-1 text-fg no-underline">
-                        {token.value}
-                      </ins>
+                      <span key={index}>
+                        <ins className="rounded bg-brand/10 px-1 text-fg no-underline dark:bg-support/20">
+                          {token.value}
+                        </ins>{" "}
+                      </span>
                     ),
                   )}
                 </p>
@@ -344,7 +363,7 @@ export default async function FindingDetailPage({ params }: { params: Promise<{ 
                   size={18}
                   weight="bold"
                   aria-hidden="true"
-                  className="mt-0.5 text-brand"
+                  className="mt-0.5 text-brand dark:text-support"
                 />
                 <div>
                   <p className="text-sm font-medium">Read-only review state</p>
@@ -404,7 +423,7 @@ export default async function FindingDetailPage({ params }: { params: Promise<{ 
                       {review.actorName}{" "}
                       <span className="font-normal text-muted">· {review.actorRole}</span>
                     </p>
-                    <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-brand">
+                    <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-brand dark:text-support">
                       {humanize(review.action)}
                     </p>
                     <p className="mt-1 text-[11px] text-muted">

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PersonalSettingsView } from "@/components/settings/personal-settings-view";
 import type { ThemeMode } from "@/components/theme/theme";
@@ -18,20 +17,20 @@ export function PersonalSettingsClient({
   initialTheme: ThemeMode;
 }) {
   const router = useRouter();
-  const [signedOutState] = useState(false);
 
   async function handleSignOut() {
-    await fetch("/api/auth/signout", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: "{}",
-    });
-    router.push("/signin");
-    router.refresh();
-  }
-
-  if (signedOutState) {
-    return null;
+    try {
+      await fetch("/api/auth/signout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      });
+    } catch {
+      // Redirect even if network call fails.
+    } finally {
+      router.push("/signin");
+      router.refresh();
+    }
   }
 
   return (
@@ -40,7 +39,9 @@ export function PersonalSettingsClient({
         name: actor.name,
         email: actor.email,
         role: actor.role,
-        authMethodLabel: "Authenticated workspace session",
+        authMethodLabel: actor.isDemo
+          ? "Evaluation session · HMAC signed cookie"
+          : "Authenticated workspace session",
         isDemo: actor.isDemo,
         isGuest: false,
         canEditName: false,

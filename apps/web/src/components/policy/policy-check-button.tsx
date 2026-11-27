@@ -58,7 +58,7 @@ export function PolicyCheckButton({
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div className="flex flex-col items-start gap-1.5 lg:items-end">
       <Button
         variant={compact ? "secondary" : "primary"}
         size={compact ? "sm" : "default"}
@@ -74,12 +74,12 @@ export function PolicyCheckButton({
           role={feedback.kind === "err" ? "alert" : "status"}
           className={
             feedback.kind === "err"
-              ? "inline-flex items-center gap-1 text-[11px] text-danger"
+              ? "inline-flex items-center gap-1 text-[11px] text-fg"
               : "inline-flex items-center gap-1 font-mono text-[11px] text-brand dark:text-support"
           }
         >
           {feedback.kind === "err" ? (
-            <WarningCircle size={12} weight="bold" aria-hidden="true" />
+            <WarningCircle size={12} weight="bold" aria-hidden="true" className="text-danger" />
           ) : (
             <CheckCircle size={12} weight="bold" aria-hidden="true" />
           )}

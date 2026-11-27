@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ClockCounterClockwise, DownloadSimple, LockKey } from "@phosphor-icons/react/dist/ssr";
+import { AuditExplorer } from "@/components/audit/audit-explorer";
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { formatDateTime, humanize } from "@/lib/format";
 import { actorCan, getActor } from "@/server/auth/actor";
 import { listAuditLog } from "@/server/compliance/service";
 
@@ -83,7 +83,7 @@ export default async function AuditPage() {
           size={15}
           weight="bold"
           aria-hidden="true"
-          className="mt-0.5 shrink-0 text-brand"
+          className="mt-0.5 shrink-0 text-brand dark:text-support"
         />
         <p>
           The workbench never offers an edit or delete affordance for an audit row. Redaction
@@ -97,7 +97,7 @@ export default async function AuditPage() {
             size={30}
             weight="bold"
             aria-hidden="true"
-            className="mx-auto text-brand"
+            className="mx-auto text-brand dark:text-support"
           />
           <h2 className="mt-4 text-lg font-medium">No audit events yet.</h2>
           <p className="mt-2 text-sm text-muted">
@@ -105,45 +105,22 @@ export default async function AuditPage() {
           </p>
         </Card>
       ) : (
-        <Card className="overflow-hidden">
-          <div className="hidden grid-cols-[11rem_1fr_9rem_1fr] gap-4 border-b border-line bg-surface-2 px-5 py-2.5 font-mono text-[9px] uppercase tracking-[0.16em] text-muted lg:grid">
-            <span>When</span>
-            <span>Action</span>
-            <span>Actor</span>
-            <span>Context</span>
-          </div>
-          <ul className="divide-y divide-line">
-            {entries.map((entry) => (
-              <li
-                key={entry.id}
-                className="grid gap-2 px-5 py-3.5 lg:grid-cols-[11rem_1fr_9rem_1fr] lg:items-baseline lg:gap-4"
-              >
-                <span className="font-mono text-[10px] text-muted">
-                  {formatDateTime(entry.createdAt)}
-                </span>
-                <div>
-                  <p className="font-mono text-[11px] text-fg">{entry.action}</p>
-                  <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-muted">
-                    {entry.entity}
-                    {entry.entityId ? ` · ${entry.entityId.slice(0, 10)}…` : ""}
-                  </p>
-                </div>
-                <span className="text-xs text-muted">{entry.actorName ?? "System"}</span>
-                <span
-                  className="truncate font-mono text-[10px] text-muted"
-                  title={summarizeMetadata(entry.metadata)}
-                >
-                  {summarizeMetadata(entry.metadata)}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="border-t border-line px-5 py-3">
-            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
-              Showing the latest {entries.length} events · {humanize(actor.role)} view
-            </p>
-          </div>
-        </Card>
+        <AuditExplorer
+          actorRole={actor.role}
+          entries={entries.map((entry) => ({
+            id: entry.id,
+            action: entry.action,
+            entity: entry.entity,
+            entityId: entry.entityId,
+            actorName: entry.actorName,
+            createdAt: entry.createdAt.toISOString(),
+            metadataSummary: summarizeMetadata(entry.metadata),
+            metadataPretty:
+              entry.metadata !== null && entry.metadata !== undefined
+                ? JSON.stringify(entry.metadata, null, 2)
+                : null,
+          }))}
+        />
       )}
     </div>
   );

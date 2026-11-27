@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Database, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
+import { Database } from "@phosphor-icons/react/dist/ssr";
+import { DataCatalogExplorer } from "@/components/data/data-catalog-explorer";
 import { ScanForm } from "@/components/scan-form";
-import { SeverityBadge } from "@/components/severity-badge";
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { humanize } from "@/lib/format";
 import { actorCan, getActor } from "@/server/auth/actor";
 import { listDataScans } from "@/server/compliance/service";
 
@@ -78,7 +77,12 @@ export default async function DataPage() {
 
       {items.length === 0 ? (
         <Card className="px-6 py-16 text-center">
-          <Database size={30} weight="bold" aria-hidden="true" className="mx-auto text-brand" />
+          <Database
+            size={30}
+            weight="bold"
+            aria-hidden="true"
+            className="mx-auto text-brand dark:text-support"
+          />
           <h2 className="mt-4 text-lg font-medium">No fields have been scanned.</h2>
           <p className="mx-auto mt-2 max-w-[48ch] text-sm text-muted">
             {canScan
@@ -87,70 +91,21 @@ export default async function DataPage() {
           </p>
         </Card>
       ) : (
-        <Card className="overflow-hidden">
-          <div className="hidden grid-cols-[5.5rem_1.2fr_7rem_7rem_1fr] gap-4 border-b border-line bg-surface-2 px-5 py-2.5 font-mono text-[9px] uppercase tracking-[0.16em] text-muted lg:grid">
-            <span>Risk</span>
-            <span>Field</span>
-            <span>Category</span>
-            <span>Safeguards</span>
-            <span>Finding</span>
-          </div>
-          <ul className="divide-y divide-line">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className="grid gap-3 px-5 py-4 lg:grid-cols-[5.5rem_1.2fr_7rem_7rem_1fr] lg:items-start lg:gap-4"
-              >
-                <SeverityBadge severity={item.riskLevel} />
-                <div className="min-w-0">
-                  <p className="truncate font-mono text-xs text-fg">
-                    {item.datasetName}.{item.fieldName}
-                  </p>
-                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
-                    {item.sampleMasked ?? "no sample"}
-                    {item.sensitiveType ? ` · ${item.sensitiveType}` : ""}
-                  </p>
-                </div>
-                <p className="text-xs text-muted">{humanize(item.dataCategory)}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  <span
-                    className={
-                      item.encrypted
-                        ? "rounded-full border border-line bg-surface px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-muted"
-                        : "rounded-full border border-danger/35 bg-danger/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-fg"
-                    }
-                  >
-                    {item.encrypted ? "Encrypted" : "Not encrypted"}
-                  </span>
-                  <span
-                    className={
-                      item.consented
-                        ? "rounded-full border border-line bg-surface px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-muted"
-                        : "rounded-full border border-danger/35 bg-danger/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-fg"
-                    }
-                  >
-                    {item.consented ? "Consent" : "No consent"}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-xs leading-relaxed text-muted">{item.finding}</p>
-                  <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-muted">
-                    {item.citation}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col gap-2 border-t border-line px-5 py-3 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
-            <span className="inline-flex items-center gap-1.5">
-              <ShieldCheck size={13} weight="bold" aria-hidden="true" className="text-brand" />
-              Samples are masked before they reach the API.
-            </span>
-            <span className="font-mono text-[9px] uppercase tracking-[0.12em]">
-              Citations · DPDP Act 2023
-            </span>
-          </div>
-        </Card>
+        <DataCatalogExplorer
+          items={items.map((item) => ({
+            id: item.id,
+            datasetName: item.datasetName,
+            fieldName: item.fieldName,
+            dataCategory: item.dataCategory,
+            sensitiveType: item.sensitiveType,
+            sampleMasked: item.sampleMasked,
+            encrypted: item.encrypted,
+            consented: item.consented,
+            riskLevel: item.riskLevel,
+            finding: item.finding,
+            citation: item.citation,
+          }))}
+        />
       )}
     </div>
   );

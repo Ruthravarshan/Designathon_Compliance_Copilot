@@ -102,7 +102,7 @@ export function UnauthorizedState({
   return (
     <div className="mx-auto max-w-[640px] py-12">
       <Card className="p-7 sm:p-8">
-        <span className="inline-flex size-10 items-center justify-center rounded-full bg-brand/10 text-brand">
+        <span className="inline-flex size-10 items-center justify-center rounded-full bg-brand/10 text-brand dark:bg-support/15 dark:text-support">
           <LockSimple size={20} weight="bold" aria-hidden="true" />
         </span>
         <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.12em] text-muted">403</p>

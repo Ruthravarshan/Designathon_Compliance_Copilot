@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChartBar, ChartDonut, ShieldCheck } from "@phosphor-icons/react";
+import Link from "next/link";
+import { ArrowRight, ChartBar, ChartDonut, ShieldCheck } from "@phosphor-icons/react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/cn";
 
@@ -147,6 +148,7 @@ export function ComplianceCharts({ findings, documents, scans }: DashboardCharts
                         activeKey !== seg.key && "opacity-80 hover:opacity-100",
                       )}
                       onMouseEnter={() => setActiveKey(seg.key)}
+                      onClick={() => setActiveKey(seg.key)}
                     />
                   ) : null,
                 )}
@@ -161,18 +163,20 @@ export function ComplianceCharts({ findings, documents, scans }: DashboardCharts
               </div>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {severityRows.map((row) => {
                 const pct = total > 0 ? Math.round((row.count / total) * 100) : 0;
+                const isSelected = activeKey === row.key;
                 return (
                   <button
                     key={row.key}
                     type="button"
+                    aria-pressed={isSelected}
                     onMouseEnter={() => setActiveKey(row.key)}
                     onClick={() => setActiveKey(row.key)}
                     className={cn(
-                      "block w-full rounded-xl px-2.5 py-1.5 text-left transition-colors",
-                      activeKey === row.key ? "bg-surface-2/80" : "hover:bg-surface-2/40",
+                      "block w-full rounded-xl px-2.5 py-2 text-left transition-colors",
+                      isSelected ? "bg-surface-2/85" : "hover:bg-surface-2/40",
                     )}
                   >
                     <div className="flex items-center justify-between text-xs">
@@ -193,6 +197,16 @@ export function ComplianceCharts({ findings, documents, scans }: DashboardCharts
                   </button>
                 );
               })}
+
+              <div className="flex justify-end pt-1">
+                <Link
+                  href={`/app/findings?severity=${activeRow.key}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline dark:text-support"
+                >
+                  Filter {activeRow.label.toLowerCase()} findings
+                  <ArrowRight size={12} weight="bold" aria-hidden="true" />
+                </Link>
+              </div>
             </div>
           </div>
         )}
@@ -200,7 +214,7 @@ export function ComplianceCharts({ findings, documents, scans }: DashboardCharts
 
       {/* Circular Extraction Density + DPDP Consent Gauge */}
       <Card className="flex flex-col justify-between p-5">
-        <div className="flex items-center justify-between gap-2 border-b border-line pb-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3.5">
           <div className="flex items-center gap-2">
             <ChartBar
               size={17}
@@ -210,9 +224,16 @@ export function ComplianceCharts({ findings, documents, scans }: DashboardCharts
             />
             <h2 className="text-sm font-semibold text-fg">Circular density &amp; DPDP posture</h2>
           </div>
-          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
-            {documents.length} circulars
-          </span>
+          <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-brand dark:bg-support" aria-hidden="true" />
+              Clauses
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-brand/60 dark:bg-accent" aria-hidden="true" />
+              Findings
+            </span>
+          </div>
         </div>
 
         {documents.length === 0 && scans.total === 0 ? (
@@ -220,12 +241,16 @@ export function ComplianceCharts({ findings, documents, scans }: DashboardCharts
             No circulars or data field scans recorded in this workspace yet.
           </div>
         ) : (
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 space-y-3">
             {documents.slice(0, 4).map((doc) => {
               const clauseWidth = Math.round((doc.clauseCount / maxDocUnits) * 100);
               const findingWidth = Math.round((doc.findingCount / maxDocUnits) * 100);
               return (
-                <div key={doc.id} className="space-y-1">
+                <Link
+                  key={doc.id}
+                  href={`/app/circulars/${doc.id}`}
+                  className="block space-y-1.5 rounded-xl p-1.5 -mx-1.5 transition-colors hover:bg-surface-2/60"
+                >
                   <div className="flex items-center justify-between gap-2 text-xs">
                     <span className="truncate font-mono text-[11px] text-fg">
                       {doc.regulator} · {doc.reference}
@@ -254,7 +279,7 @@ export function ComplianceCharts({ findings, documents, scans }: DashboardCharts
                       />
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
 

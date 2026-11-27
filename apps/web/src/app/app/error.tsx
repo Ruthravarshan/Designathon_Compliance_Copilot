@@ -10,7 +10,9 @@ export default function AppError({
 }) {
   return (
     <div className="mx-auto max-w-[640px] py-16">
-      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand">Workbench error</p>
+      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand dark:text-support">
+        Workbench error
+      </p>
       <h1 className="mt-4 text-3xl font-medium tracking-[-0.03em]">That view could not load.</h1>
       <p className="mt-3 text-sm leading-relaxed text-muted">
         The failure was logged. Retry the view. If it repeats, check that the database is running

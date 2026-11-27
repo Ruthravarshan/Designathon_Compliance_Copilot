@@ -1,19 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowUpRight,
-  CheckCircle,
-  FileText,
-  Info,
-} from "@phosphor-icons/react/dist/ssr";
-import { GapStatusLabel, ReviewStatusBadge, SeverityBadge } from "@/components/severity-badge";
+import { ArrowLeft, ArrowUpRight, FileText, Info } from "@phosphor-icons/react/dist/ssr";
+import { CircularClausesExplorer } from "@/components/circulars/circular-clauses-explorer";
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { CopyButton } from "@/components/ui/navigation-controls";
 import { AppError, ERROR_CODES } from "@/lib/errors";
-import { formatDate, formatPercent, humanize } from "@/lib/format";
+import { formatDate, humanize } from "@/lib/format";
 import { actorCan, getActor } from "@/server/auth/actor";
 import { getDocument } from "@/server/compliance/service";
 
@@ -61,6 +54,7 @@ export default async function CircularDetailPage({ params }: { params: Promise<{
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
               {document.reference}
             </span>
+            <CopyButton value={document.reference} label="Copy ref" />
           </div>
           <h1 className="mt-3 max-w-[30ch] text-3xl font-medium tracking-[-0.03em] sm:text-4xl">
             {document.title}
@@ -71,9 +65,9 @@ export default async function CircularDetailPage({ params }: { params: Promise<{
           href={document.sourceUrl}
           target="_blank"
           rel="noreferrer noopener"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-muted/50 hover:text-fg"
+          className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-muted/50 hover:text-fg"
         >
-          {host}
+          <span className="max-w-[24ch] truncate">{host}</span>
           <ArrowUpRight size={13} weight="bold" aria-hidden="true" />
         </a>
       </header>
@@ -90,7 +84,6 @@ export default async function CircularDetailPage({ params }: { params: Promise<{
               0,
             )}`,
           },
-          { label: "Checksum", value: document.checksum.slice(0, 12) },
         ].map((item) => (
           <div key={item.label} className="bg-surface px-5 py-4">
             <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted">
@@ -99,100 +92,55 @@ export default async function CircularDetailPage({ params }: { params: Promise<{
             <dd className="mt-1.5 font-mono text-xs text-fg">{item.value}</dd>
           </div>
         ))}
+        <div className="bg-surface px-5 py-4">
+          <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted">Checksum</dt>
+          <dd className="mt-1.5 flex items-center justify-between gap-2 font-mono text-xs text-fg">
+            <span>{document.checksum.slice(0, 12)}</span>
+            <CopyButton value={document.checksum} label="Copy" />
+          </dd>
+        </div>
       </dl>
 
       <div className="flex items-start gap-2.5 rounded-xl border border-line bg-surface/60 px-4 py-3 text-xs leading-relaxed text-muted">
-        <Info size={15} weight="bold" aria-hidden="true" className="mt-0.5 shrink-0 text-brand" />
+        <Info
+          size={15}
+          weight="bold"
+          aria-hidden="true"
+          className="mt-0.5 shrink-0 text-brand dark:text-support"
+        />
         <p>
           Quotations below are the source clauses exactly as stored. Review links open the finding
           workbench with the redline, confidence breakdown, and audit history.
         </p>
       </div>
 
-      <section aria-label="Clauses" className="space-y-3">
-        {document.clauses.map((clause) => (
-          <Card key={clause.id} className="overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2/60 px-5 py-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-brand">
-                  {clause.sectionLabel}
-                </span>
-                {clause.heading ? (
-                  <span className="text-xs text-muted">· {clause.heading}</span>
-                ) : null}
-              </div>
-              <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
-                Page {clause.pageNumber}
-              </span>
-            </div>
-
-            <div className="p-5">
-              <blockquote className="border-l-2 border-brand/40 pl-4 text-sm leading-relaxed text-fg">
-                {clause.text}
-              </blockquote>
-
-              {clause.obligations.length === 0 ? (
-                <p className="mt-4 rounded-xl border border-dashed border-line px-4 py-3 text-xs text-muted">
-                  No atomic obligation was extracted from this clause. The clause remains citable in
-                  policy Q&amp;A.
-                </p>
-              ) : (
-                <ul className="mt-4 space-y-2">
-                  {clause.obligations.map((obligation) => {
-                    const finding = obligation.finding;
-                    return (
-                      <li
-                        key={obligation.id}
-                        className="rounded-xl border border-line bg-surface px-4 py-3.5"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
-                            {humanize(obligation.obligationType)}
-                          </span>
-                          {finding ? <SeverityBadge severity={finding.severity} /> : null}
-                          {finding ? <ReviewStatusBadge status={finding.reviewStatus} /> : null}
-                          <span className="ml-auto inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.12em] text-muted">
-                            <CheckCircle
-                              size={11}
-                              weight="bold"
-                              aria-hidden="true"
-                              className={obligation.citationVerified ? "text-brand" : "text-danger"}
-                            />
-                            {obligation.citationVerified ? "Citation verified" : "Citation flagged"}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-sm leading-relaxed">{obligation.plainLanguage}</p>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-                          <span className="font-mono">{obligation.reference}</span>
-                          {obligation.sla ? <span>SLA · {obligation.sla}</span> : null}
-                          <span>Extraction {formatPercent(obligation.extractionConfidence)}</span>
-                          {finding ? (
-                            <span className="inline-flex items-center gap-2">
-                              <GapStatusLabel status={finding.status} />
-                              <span>Overall {formatPercent(finding.confidence)}</span>
-                            </span>
-                          ) : null}
-                        </div>
-                        {finding ? (
-                          <div className="mt-3 border-t border-line pt-3">
-                            <Link
-                              href={`/app/findings/${finding.id}`}
-                              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
-                            >
-                              Open finding and redline
-                              <ArrowRight size={12} weight="bold" aria-hidden="true" />
-                            </Link>
-                          </div>
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </Card>
-        ))}
-      </section>
+      <CircularClausesExplorer
+        clauses={document.clauses.map((clause) => ({
+          id: clause.id,
+          sectionLabel: clause.sectionLabel,
+          heading: clause.heading,
+          pageNumber: clause.pageNumber,
+          text: clause.text,
+          obligations: clause.obligations.map((ob) => ({
+            id: ob.id,
+            obligationType: ob.obligationType,
+            citationVerified: ob.citationVerified,
+            plainLanguage: ob.plainLanguage,
+            reference: ob.reference,
+            sla: ob.sla,
+            extractionConfidence: ob.extractionConfidence,
+            finding: ob.finding
+              ? {
+                  id: ob.finding.id,
+                  severity: ob.finding.severity,
+                  reviewStatus: ob.finding.reviewStatus,
+                  status: ob.finding.status,
+                  confidence: ob.finding.confidence,
+                }
+              : null,
+          })),
+        }))}
+      />
 
       <div className="flex flex-col items-start justify-between gap-3 border-t border-line pt-5 text-xs text-muted sm:flex-row sm:items-center">
         <span className="inline-flex items-center gap-1.5">
@@ -200,7 +148,7 @@ export default async function CircularDetailPage({ params }: { params: Promise<{
           {document.clauses.length} clauses stored · checksum{" "}
           <span className="font-mono">{document.checksum.slice(0, 10)}…</span>
         </span>
-        <Link href="/app/findings" className="font-medium hover:text-brand">
+        <Link href="/app/findings" className="font-medium hover:text-brand dark:hover:text-support">
           Review the finding queue →
         </Link>
       </div>

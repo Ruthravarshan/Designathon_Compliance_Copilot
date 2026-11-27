@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, ArrowUpRight, FilePlus, FileText } from "@phosphor-icons/react/dist/ssr";
-import { SeverityBadge } from "@/components/severity-badge";
+import { ArrowUpRight, FilePlus, FileText } from "@phosphor-icons/react/dist/ssr";
+import { CircularsExplorer } from "@/components/circulars/circulars-explorer";
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatDate } from "@/lib/format";
 import { actorCan, getActor } from "@/server/auth/actor";
 import { listDocuments } from "@/server/compliance/service";
 
@@ -52,7 +51,12 @@ export default async function CircularsPage() {
 
       {documents.length === 0 ? (
         <Card className="px-6 py-16 text-center">
-          <FileText size={30} weight="bold" aria-hidden="true" className="mx-auto text-brand" />
+          <FileText
+            size={30}
+            weight="bold"
+            aria-hidden="true"
+            className="mx-auto text-brand dark:text-support"
+          />
           <h2 className="mt-4 text-lg font-medium">No circulars ingested yet.</h2>
           <p className="mx-auto mt-2 max-w-[46ch] text-sm text-muted">
             Paste a regulation excerpt. The parser needs blank-line separated clauses of at least 24
@@ -65,59 +69,20 @@ export default async function CircularsPage() {
           ) : null}
         </Card>
       ) : (
-        <Card className="overflow-hidden">
-          <div className="hidden grid-cols-[6rem_1fr_9rem_8rem_2rem] gap-4 border-b border-line bg-surface-2 px-5 py-2.5 font-mono text-[9px] uppercase tracking-[0.16em] text-muted lg:grid">
-            <span>Regulator</span>
-            <span>Circular</span>
-            <span>Coverage</span>
-            <span>Published</span>
-            <span />
-          </div>
-          <ul className="divide-y divide-line">
-            {documents.map((document) => (
-              <li key={document.id}>
-                <Link
-                  href={`/app/circulars/${document.id}`}
-                  className="group grid gap-3 px-5 py-4 transition-colors hover:bg-surface-2/60 lg:grid-cols-[6rem_1fr_9rem_8rem_2rem] lg:items-center lg:gap-4"
-                >
-                  <span className="w-fit rounded-full border border-brand/25 bg-brand/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-brand dark:border-support/35 dark:bg-support/15 dark:text-support">
-                    {document.regulator}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{document.title}</p>
-                    <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
-                      {document.reference} · {document.status.toLowerCase()}
-                    </p>
-                    <p className="mt-1 line-clamp-1 text-xs text-muted lg:hidden">
-                      {formatDate(document.publishedAt)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-muted">
-                    <span>{document.clauseCount} clauses</span>
-                    <span aria-hidden="true">·</span>
-                    <span>{document.findingCount} findings</span>
-                  </div>
-                  <div className="hidden lg:block">
-                    <p className="text-xs">{formatDate(document.publishedAt)}</p>
-                    {document.criticalCount > 0 ? (
-                      <SeverityBadge severity="CRITICAL" className="mt-1.5" />
-                    ) : (
-                      <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
-                        no critical gaps
-                      </span>
-                    )}
-                  </div>
-                  <ArrowRight
-                    size={15}
-                    weight="bold"
-                    aria-hidden="true"
-                    className="hidden text-muted transition-colors group-hover:text-brand lg:block"
-                  />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <CircularsExplorer
+          items={documents.map((doc) => ({
+            id: doc.id,
+            title: doc.title,
+            reference: doc.reference,
+            regulator: doc.regulator,
+            summary: doc.summary,
+            publishedAt: doc.publishedAt.toISOString(),
+            status: doc.status,
+            clauseCount: doc.clauseCount,
+            findingCount: doc.findingCount,
+            criticalCount: doc.criticalCount,
+          }))}
+        />
       )}
 
       <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface/60 px-5 py-4 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">

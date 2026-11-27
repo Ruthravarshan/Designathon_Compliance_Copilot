@@ -420,7 +420,7 @@ export interface FindingDetail {
     requirement: unknown;
   };
   clause: { sectionLabel: string; heading: string | null; pageNumber: number; text: string };
-  policy: { code: string; title: string; ownerName: string; section: string } | null;
+  policy: { id: string; code: string; title: string; ownerName: string; section: string } | null;
   control: { code: string; title: string; ownerName: string; systemName: string | null } | null;
   reviews: Array<{
     id: string;
@@ -449,7 +449,7 @@ export async function getFinding(actor: Actor, findingId: string): Promise<Findi
       document: {
         select: { id: true, title: true, reference: true, regulator: true, sourceUrl: true },
       },
-      policy: { select: { code: true, title: true, ownerName: true, section: true } },
+      policy: { select: { id: true, code: true, title: true, ownerName: true, section: true } },
       control: { select: { code: true, title: true, ownerName: true, systemName: true } },
       reviews: { orderBy: { createdAt: "desc" } },
     },
