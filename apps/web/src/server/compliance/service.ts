@@ -6,7 +6,13 @@ import { AppError, ERROR_CODES } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { analyzeClause } from "@/lib/compliance/pipeline";
 import { parseDocumentText } from "@/lib/compliance/parse";
-import { answerQuestion, type QaAnswer, type QaSource } from "@/lib/compliance/qa";
+import {
+  answerQuestion,
+  retrievePassages,
+  type QaAnswer,
+  type QaSource,
+} from "@/lib/compliance/qa";
+import { verifyGroundedAnswer } from "@/lib/compliance/qa-grounding";
 import { diffWords, type DiffToken } from "@/lib/compliance/redline";
 import { scanField, type DataFieldInput, type ScanResult } from "@/lib/compliance/data-scan";
 import type {
@@ -18,6 +24,7 @@ import type {
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/audit";
 import { enqueueEmail } from "@/server/email/service";
+import { answerWithGrounding, assistantModel, isGeminiConfigured } from "@/server/llm/qa";
 import type { Actor } from "@/server/auth/actor";
 
 function round(value: number): number {
@@ -899,11 +906,13 @@ export async function askComplianceQuestion(actor: Actor, question: string): Pro
     db.internalPolicy.findMany({
       where: { workspaceId: actor.workspaceId },
       select: { id: true, code: true, title: true, text: true },
+      orderBy: { code: "asc" },
       take: 100,
     }),
     db.internalControl.findMany({
       where: { workspaceId: actor.workspaceId },
       select: { id: true, code: true, title: true, description: true },
+      orderBy: { code: "asc" },
       take: 100,
     }),
     db.documentClause.findMany({
@@ -911,6 +920,7 @@ export async function askComplianceQuestion(actor: Actor, question: string): Pro
       select: {
         id: true,
         sectionLabel: true,
+        heading: true,
         text: true,
         document: { select: { regulator: true, reference: true } },
       },
@@ -934,13 +944,83 @@ export async function askComplianceQuestion(actor: Actor, question: string): Pro
     })),
     ...clauses.map((clause) => ({
       id: clause.id,
-      label: `${clause.document.regulator} ${clause.document.reference} · ${clause.sectionLabel}`,
+      label: `${clause.document.regulator} ${clause.document.reference} · ${clause.sectionLabel}${
+        clause.heading ? ` — ${clause.heading}` : ""
+      }`,
       kind: "clause" as const,
       text: clause.text,
     })),
   ];
 
-  return answerQuestion(question, sources);
+  // The raw question is never logged; a short hash is enough for correlation.
+  const questionHash = createHash("sha256").update(question).digest("hex").slice(0, 12);
+  const startedAt = Date.now();
+  const passages = retrievePassages(question, sources);
+
+  if (passages.length > 0 && isGeminiConfigured()) {
+    const model = assistantModel();
+    try {
+      const result = await answerWithGrounding({
+        question,
+        model,
+        passages: passages.map((passage) => ({
+          id: passage.source.id,
+          label: passage.source.label,
+          text: passage.source.text,
+        })),
+      });
+      const verified = verifyGroundedAnswer(
+        result.candidate,
+        passages.map((passage) => ({
+          id: passage.source.id,
+          label: passage.source.label,
+          text: passage.source.text,
+        })),
+      );
+
+      logger.info(
+        {
+          questionHash,
+          mode: verified.matched ? "grounded" : "grounded_refusal",
+          citations: verified.citations.length,
+          model: result.model,
+          latencyMs: result.latencyMs,
+          promptTokens: result.promptTokens,
+          completionTokens: result.completionTokens,
+        },
+        "assistant answered",
+      );
+
+      return {
+        ...verified,
+        mode: "grounded",
+        model: result.model,
+        latencyMs: Math.max(0, Date.now() - startedAt),
+      };
+    } catch (error) {
+      logger.warn(
+        {
+          questionHash,
+          errorName: error instanceof Error ? error.name : "UnknownError",
+          ...(error instanceof Error && "code" in error ? { code: String(error.code) } : {}),
+        },
+        "grounded answer unavailable; using retrieval fallback",
+      );
+    }
+  }
+
+  const fallback = answerQuestion(question, sources);
+  logger.info(
+    {
+      questionHash,
+      mode: "retrieval",
+      citations: fallback.citations.length,
+      latencyMs: Math.max(0, Date.now() - startedAt),
+    },
+    "assistant answered",
+  );
+
+  return { ...fallback, mode: "retrieval", latencyMs: Math.max(0, Date.now() - startedAt) };
 }
 
 export interface DataScanView {

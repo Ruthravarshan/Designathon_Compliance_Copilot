@@ -4,6 +4,7 @@ import { AssistantPanel } from "@/components/assistant-panel";
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
 import { actorCan, getActor } from "@/server/auth/actor";
+import { assistantModel, isGeminiConfigured } from "@/server/llm/qa";
 
 export const metadata: Metadata = { title: "Policy Q&A" };
 
@@ -22,6 +23,8 @@ export default async function AssistantPage() {
     );
   }
 
+  const grounded = isGeminiConfigured();
+
   return (
     <div className="space-y-6">
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -33,14 +36,17 @@ export default async function AssistantPage() {
             Ask the register
           </h1>
           <p className="mt-2 max-w-[68ch] text-sm leading-relaxed text-muted">
-            A grounded retrieval assistant over this workspace&apos;s policies, controls, and stored
-            clauses. It quotes what it finds and escalates when it finds nothing.
+            A retrieval assistant over this workspace&apos;s policies, controls, and stored clauses.
+            Every answer must quote the register verbatim; when it cannot, it refuses and tells you
+            to escalate.
           </p>
         </div>
-        <Badge tone="brand">No generative model</Badge>
+        <Badge tone={grounded ? "brand" : "outline"} dot>
+          {grounded ? "Verified generation" : "Retrieval only"}
+        </Badge>
       </header>
 
-      <AssistantPanel />
+      <AssistantPanel grounded={grounded} model={grounded ? assistantModel() : null} />
     </div>
   );
 }

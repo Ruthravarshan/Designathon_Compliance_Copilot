@@ -80,10 +80,13 @@ export function normalizeCandidate(candidate: CandidateExtraction): CandidateExt
   };
 }
 
-/** Gemini's OpenAPI-schema subset. Kept in sync with the Zod schema above. */
+/**
+ * Gemini's OpenAPI-schema subset. Kept in sync with the Zod schema above.
+ * `additionalProperties` is rejected by the provider (400) and unnecessary:
+ * the Zod `.strict()` parse after generation rejects unknown fields.
+ */
 export const GEMINI_RESPONSE_SCHEMA = {
   type: "OBJECT",
-  additionalProperties: false,
   properties: {
     title: { type: "STRING", nullable: true },
     issuer: { type: "STRING", nullable: true },
@@ -95,7 +98,6 @@ export const GEMINI_RESPONSE_SCHEMA = {
       type: "ARRAY",
       items: {
         type: "OBJECT",
-        additionalProperties: false,
         properties: {
           type: { type: "STRING", nullable: true, enum: [...OBLIGATION_TYPES] },
           plainLanguage: { type: "STRING" },
@@ -105,7 +107,6 @@ export const GEMINI_RESPONSE_SCHEMA = {
             type: "ARRAY",
             items: {
               type: "OBJECT",
-              additionalProperties: false,
               properties: {
                 quote: { type: "STRING" },
                 pageNumber: { type: "INTEGER" },
