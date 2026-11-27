@@ -28,11 +28,11 @@ Or run `apps/web/prisma/sql/003-storage-connections.sql` against the target data
 
 The owner's folder is a personal OneDrive folder shared by link. Two supported configurations:
 
-| Option | Settings | Graph permission |
-| --- | --- | --- |
+| Option                | Settings                                           | Graph permission                                                                       |
+| --------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Paste the folder link | `folderUrl` (+ optional subfolder in `folder`) | `Sites.Selected` (most limited), `Sites.ReadWrite.All`, or `Files.ReadWrite.All` |
-| Resolve by owner | `driveOwner` = UPN, e.g. `owner@contoso.com` | `User.Read.All` (+ `Files.ReadWrite.All` for writes) |
-| Direct ids | `driveId` or `siteId`, plus `folderItemId` | Any of the above |
+| Resolve by owner      | `driveOwner` = UPN, e.g. `owner@contoso.com`   | `User.Read.All` (+ `Files.ReadWrite.All` for writes)                               |
+| Direct ids            | `driveId` or `siteId`, plus `folderItemId`   | Any of the above                                                                       |
 
 Steps:
 
