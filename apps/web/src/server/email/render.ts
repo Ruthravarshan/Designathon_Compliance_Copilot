@@ -253,6 +253,89 @@ const renderers: Renderers = {
     };
   },
 
+  "watch.digest": ({
+    name,
+    workspaceName,
+    newCirculars,
+    revisions,
+    newFindings,
+    criticalOverdue,
+    highOverdue,
+    postureScore,
+    postureBand,
+    watchUrl,
+    preferencesUrl,
+  }) => {
+    const heading = "Your weekly compliance digest";
+    const lines = [
+      `${newCirculars} new circular${newCirculars === 1 ? "" : "s"} ingested`,
+      `${revisions} revision${revisions === 1 ? "" : "s"} detected in tracked documents`,
+      `${newFindings} new finding${newFindings === 1 ? "" : "s"} generated`,
+      `${criticalOverdue} critical and ${highOverdue} high-severity item${
+        criticalOverdue + highOverdue === 1 ? "" : "s"
+      } overdue`,
+      `Posture score ${postureScore}/100 (${postureBand})`,
+    ];
+    const body = [
+      paragraph(`Hi ${name}, here is this week's regulatory watch for ${workspaceName}.`),
+      `<p style="margin:0 0 14px;font:400 15px/1.65 Arial,Helvetica,sans-serif;color:${BRAND.muted};">${lines
+        .map((line) => escapeHtml(line))
+        .join("<br>")}</p>`,
+      `<p style="margin:0;font:13px/1.6 Arial,Helvetica,sans-serif;color:${BRAND.muted};">Manage your email preferences: <a href="${safeUrl(preferencesUrl)}" style="color:${BRAND.brand};">open settings</a></p>`,
+    ].join("");
+
+    return {
+      subject: sanitizeHeader(`${workspaceName} weekly compliance digest`),
+      html: layout({
+        preview: `${newCirculars} new circulars, ${newFindings} findings this week.`,
+        heading,
+        body,
+        cta: { label: "Open regulatory watch", url: watchUrl },
+        footer: footerFor("watch.digest"),
+      }),
+      text: `Hi ${name},\n\nThis week's regulatory watch for ${workspaceName}:\n${lines.join(
+        "\n",
+      )}\n\nOpen regulatory watch: ${watchUrl}\nManage email preferences: ${preferencesUrl}\n`,
+    };
+  },
+
+  "policy.check.alert": ({
+    name,
+    workspaceName,
+    policyTitle,
+    policyCode,
+    result,
+    summary,
+    openFindings,
+    critical,
+    high,
+    overdue,
+    policyUrl,
+    preferencesUrl,
+  }) => {
+    const heading = `${policyTitle} needs attention`;
+    const body = [
+      paragraph(`Hi ${name}, the latest compliance check on ${policyCode} in ${workspaceName} returned ${result}.`),
+      paragraph(summary),
+      paragraph(
+        `${openFindings} open findings · ${critical} critical · ${high} high · ${overdue} overdue.`,
+      ),
+      `<p style="margin:0;font:13px/1.6 Arial,Helvetica,sans-serif;color:${BRAND.muted};">Manage your email preferences: <a href="${safeUrl(preferencesUrl)}" style="color:${BRAND.brand};">open settings</a></p>`,
+    ].join("");
+
+    return {
+      subject: sanitizeHeader(`${policyCode} compliance check: ${result}`),
+      html: layout({
+        preview: `${policyCode} returned ${result}.`,
+        heading,
+        body,
+        cta: { label: "Review policy", url: policyUrl },
+        footer: footerFor("policy.check.alert"),
+      }),
+      text: `Hi ${name},\n\n${policyCode} (${policyTitle}) in ${workspaceName} returned ${result}.\n\n${summary}\n\n${openFindings} open findings · ${critical} critical · ${high} high · ${overdue} overdue.\n\nReview the policy: ${policyUrl}\nManage email preferences: ${preferencesUrl}\n`,
+    };
+  },
+
   "email.test": ({ name, mailboxEmail, workspaceName, appUrl }) => {
     const heading = "Gmail sending works";
     const body = [

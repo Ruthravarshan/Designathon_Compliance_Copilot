@@ -7,6 +7,7 @@ export const reviewLimiter = new RateLimiter({ limit: 20, windowMs: 60_000, name
 export const assistantLimiter = new RateLimiter({ limit: 15, windowMs: 60_000, name: "assistant" });
 export const scanLimiter = new RateLimiter({ limit: 10, windowMs: 60_000, name: "scan" });
 export const ingestLimiter = new RateLimiter({ limit: 5, windowMs: 5 * 60_000, name: "ingest" });
+export const watchLimiter = new RateLimiter({ limit: 3, windowMs: 10 * 60_000, name: "watch" });
 
 export function clientKey(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");

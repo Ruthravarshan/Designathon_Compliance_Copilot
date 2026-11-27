@@ -37,6 +37,31 @@ enum Regulator {
   MEITY
 }
 
+enum WatchTrigger {
+  MANUAL
+  SCHEDULED
+}
+
+enum WatchRunStatus {
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+  SKIPPED
+}
+
+enum WatchSourceKind {
+  LISTING
+  FEED
+  DIRECT
+}
+
+enum PolicyCheckResult {
+  COMPLIANT
+  AT_RISK
+  GAPS
+}
+
 enum DocumentStatus {
   INGESTED
   ANALYZED
@@ -119,6 +144,10 @@ model Workspace {
   reviewEvents ReviewEvent[]
   dataScans   DataFieldScan[]
   gmailAccount GmailAccount?
+  sources     RegulatorySource[]
+  watchRuns   WatchRun[]
+  policyChecks PolicyCheck[]
+  revisions   RegulatoryRevision[]
 }
 
 model Membership {
@@ -239,14 +268,18 @@ model RegulatoryDocument {
   ingestedAt  DateTime         @default(now())
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+  sourceId    String?
   workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  source      RegulatorySource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
   clauses     DocumentClause[]
   obligations Obligation[]
   findings    Finding[]
+  revisions   RegulatoryRevision[]
 
   @@unique([workspaceId, reference])
   @@index([workspaceId, ingestedAt])
   @@index([workspaceId, regulator, publishedAt])
+  @@index([workspaceId, sourceId])
 }
 
 model DocumentClause {
@@ -282,6 +315,8 @@ model InternalPolicy {
   updatedAt  DateTime  @updatedAt
   workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   findings   Finding[]
+
+  checks     PolicyCheck[]
 
   @@unique([workspaceId, code])
   @@index([workspaceId])
@@ -420,4 +455,99 @@ model DataFieldScan {
 
   @@unique([workspaceId, datasetName, fieldName])
   @@index([workspaceId, riskLevel])
+}
+
+model RegulatorySource {
+  id            String          @id @default(cuid())
+  workspaceId   String
+  name          String
+  regulator     Regulator
+  kind          WatchSourceKind @default(LISTING)
+  listingUrl    String
+  allowedDomains String[]
+  linkPattern   String?
+  schedule      String          @default("weekly")
+  enabled       Boolean         @default(true)
+  lastCheckedAt DateTime?
+  lastStatus    WatchRunStatus?
+  lastItemCount Int             @default(0)
+  lastErrorCode String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  workspace     Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  documents     RegulatoryDocument[]
+  runs          WatchRun[]
+
+  @@unique([workspaceId, listingUrl])
+  @@index([workspaceId, enabled])
+}
+
+model WatchRun {
+  id              String          @id @default(cuid())
+  workspaceId     String
+  sourceId        String?
+  trigger         WatchTrigger
+  status          WatchRunStatus  @default(RUNNING)
+  discovered      Int             @default(0)
+  ingested        Int             @default(0)
+  skipped         Int             @default(0)
+  failed          Int             @default(0)
+  revisions       Int             @default(0)
+  newFindings     Int             @default(0)
+  overdueCritical Int             @default(0)
+  overdueHigh     Int             @default(0)
+  summary         Json?
+  errorCode       String?
+  triggeredById   String?
+  triggeredByName String?
+  startedAt       DateTime        @default(now())
+  finishedAt      DateTime?
+  workspace       Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  source          RegulatorySource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, startedAt])
+  @@index([sourceId, startedAt])
+}
+
+model PolicyCheck {
+  id           String            @id @default(cuid())
+  workspaceId  String
+  policyId     String
+  result       PolicyCheckResult
+  score        Int
+  openFindings Int               @default(0)
+  critical     Int               @default(0)
+  high         Int               @default(0)
+  medium       Int               @default(0)
+  low          Int               @default(0)
+  overdue      Int               @default(0)
+  summary      String
+  details      Json?
+  actorId      String?
+  actorName    String?
+  trigger      WatchTrigger      @default(MANUAL)
+  createdAt    DateTime          @default(now())
+  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  policy       InternalPolicy    @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([policyId, createdAt])
+}
+
+model RegulatoryRevision {
+  id               String   @id @default(cuid())
+  workspaceId      String
+  documentId       String
+  previousChecksum String
+  newChecksum      String
+  previousContent  String
+  newContent       String
+  summary          String
+  diff             Json
+  detectedAt       DateTime @default(now())
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  document         RegulatoryDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, detectedAt])
+  @@index([documentId, detectedAt])
 }

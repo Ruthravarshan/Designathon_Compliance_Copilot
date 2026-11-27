@@ -9,7 +9,7 @@ import { parseDocumentText } from "@/lib/compliance/parse";
 import { answerQuestion, type QaAnswer, type QaSource } from "@/lib/compliance/qa";
 import { diffWords, type DiffToken } from "@/lib/compliance/redline";
 import { scanField, type DataFieldInput, type ScanResult } from "@/lib/compliance/data-scan";
-import type { ComplianceRecord, RegulatorKey, Severity } from "@/lib/compliance/types";
+import type { ComplianceRecord, RegulatorKey, Severity, SourceClause } from "@/lib/compliance/types";
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/audit";
 import { enqueueEmail } from "@/server/email/service";
@@ -682,6 +682,8 @@ export interface IngestDocumentInput {
   effectiveAt?: string;
   pageCount?: number;
   content: string;
+  /** Pre-parsed clauses (fetched HTML/PDF) so real section labels and pages survive. */
+  clauses?: SourceClause[];
 }
 
 export interface IngestDocumentResult {
@@ -696,7 +698,8 @@ export async function ingestDocument(
   actor: Actor,
   input: IngestDocumentInput,
 ): Promise<IngestDocumentResult> {
-  const clauses = parseDocumentText(input.content);
+  const clauses =
+    input.clauses && input.clauses.length > 0 ? input.clauses : parseDocumentText(input.content);
   if (clauses.length === 0) {
     throw new AppError(
       ERROR_CODES.BAD_REQUEST,

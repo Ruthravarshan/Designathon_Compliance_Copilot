@@ -25,6 +25,11 @@ export const PERMISSIONS = [
   "finding:review",
   "assistant:ask",
   "data:scan",
+  "watch:read",
+  "watch:manage",
+  "watch:run",
+  "policy:read",
+  "policy:check",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -57,6 +62,11 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "finding:review",
     "assistant:ask",
     "data:scan",
+    "watch:read",
+    "watch:manage",
+    "watch:run",
+    "policy:read",
+    "policy:check",
   ]),
   MEMBER: new Set<Permission>([
     "workspace:read",
@@ -67,6 +77,9 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "document:read",
     "finding:read",
     "assistant:ask",
+    "watch:read",
+    "policy:read",
+    "policy:check",
   ]),
   VIEWER: new Set<Permission>([
     "workspace:read",
@@ -74,6 +87,8 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "project:read",
     "document:read",
     "finding:read",
+    "watch:read",
+    "policy:read",
   ]),
 };
 

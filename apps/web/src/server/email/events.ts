@@ -7,6 +7,8 @@ export const EMAIL_EVENTS = [
   "notification.digest",
   "finding.remediation_task",
   "email.test",
+  "watch.digest",
+  "policy.check.alert",
 ] as const;
 
 export type EmailEvent = (typeof EMAIL_EVENTS)[number];
@@ -61,6 +63,33 @@ export type EmailPayloads = {
     workspaceName: string;
     appUrl: string;
   };
+  "watch.digest": {
+    name: string;
+    workspaceName: string;
+    newCirculars: number;
+    revisions: number;
+    newFindings: number;
+    criticalOverdue: number;
+    highOverdue: number;
+    postureScore: number;
+    postureBand: string;
+    watchUrl: string;
+    preferencesUrl: string;
+  };
+  "policy.check.alert": {
+    name: string;
+    workspaceName: string;
+    policyTitle: string;
+    policyCode: string;
+    result: string;
+    summary: string;
+    openFindings: number;
+    critical: number;
+    high: number;
+    overdue: number;
+    policyUrl: string;
+    preferencesUrl: string;
+  };
 };
 
 export const EMAIL_CATEGORIES: Record<EmailEvent, EmailCategory> = {
@@ -72,6 +101,8 @@ export const EMAIL_CATEGORIES: Record<EmailEvent, EmailCategory> = {
   "notification.digest": "product",
   "finding.remediation_task": "product",
   "email.test": "transactional",
+  "watch.digest": "product",
+  "policy.check.alert": "product",
 };
 
 export function isEmailEvent(value: string): value is EmailEvent {

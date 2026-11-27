@@ -338,3 +338,113 @@ CREATE TABLE IF NOT EXISTS "GmailAccount" (
 CREATE UNIQUE INDEX IF NOT EXISTS "GmailAccount_workspaceId_key" ON "GmailAccount"("workspaceId");
 CREATE INDEX IF NOT EXISTS "GmailAccount_status_idx" ON "GmailAccount"("status");
 CREATE INDEX IF NOT EXISTS "GmailAccount_email_idx" ON "GmailAccount"("email");
+
+-- ---------------------------------------------------------------------------
+-- Regulatory watch, policy checks, and revision tracking (v1.1)
+-- ---------------------------------------------------------------------------
+
+DO $$ BEGIN CREATE TYPE "WatchTrigger" AS ENUM ('MANUAL', 'SCHEDULED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "WatchRunStatus" AS ENUM ('RUNNING', 'SUCCEEDED', 'PARTIAL', 'FAILED', 'SKIPPED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "WatchSourceKind" AS ENUM ('LISTING', 'FEED', 'DIRECT'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "PolicyCheckResult" AS ENUM ('COMPLIANT', 'AT_RISK', 'GAPS'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "RegulatorySource" (
+  "id" TEXT NOT NULL,
+  "workspaceId" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "regulator" "Regulator" NOT NULL,
+  "kind" "WatchSourceKind" NOT NULL DEFAULT 'LISTING',
+  "listingUrl" TEXT NOT NULL,
+  "allowedDomains" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  "linkPattern" TEXT,
+  "schedule" TEXT NOT NULL DEFAULT 'weekly',
+  "enabled" BOOLEAN NOT NULL DEFAULT true,
+  "lastCheckedAt" TIMESTAMP(3),
+  "lastStatus" "WatchRunStatus",
+  "lastItemCount" INTEGER NOT NULL DEFAULT 0,
+  "lastErrorCode" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "RegulatorySource_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "RegulatorySource_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "RegulatorySource_workspaceId_listingUrl_key" ON "RegulatorySource"("workspaceId", "listingUrl");
+CREATE INDEX IF NOT EXISTS "RegulatorySource_workspaceId_enabled_idx" ON "RegulatorySource"("workspaceId", "enabled");
+
+ALTER TABLE "RegulatoryDocument" ADD COLUMN IF NOT EXISTS "sourceId" TEXT;
+CREATE INDEX IF NOT EXISTS "RegulatoryDocument_workspaceId_sourceId_idx" ON "RegulatoryDocument"("workspaceId", "sourceId");
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'RegulatoryDocument_sourceId_fkey') THEN
+    ALTER TABLE "RegulatoryDocument" ADD CONSTRAINT "RegulatoryDocument_sourceId_fkey" FOREIGN KEY ("sourceId") REFERENCES "RegulatorySource"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "WatchRun" (
+  "id" TEXT NOT NULL,
+  "workspaceId" TEXT NOT NULL,
+  "sourceId" TEXT,
+  "trigger" "WatchTrigger" NOT NULL,
+  "status" "WatchRunStatus" NOT NULL DEFAULT 'RUNNING',
+  "discovered" INTEGER NOT NULL DEFAULT 0,
+  "ingested" INTEGER NOT NULL DEFAULT 0,
+  "skipped" INTEGER NOT NULL DEFAULT 0,
+  "failed" INTEGER NOT NULL DEFAULT 0,
+  "revisions" INTEGER NOT NULL DEFAULT 0,
+  "newFindings" INTEGER NOT NULL DEFAULT 0,
+  "overdueCritical" INTEGER NOT NULL DEFAULT 0,
+  "overdueHigh" INTEGER NOT NULL DEFAULT 0,
+  "summary" JSONB,
+  "errorCode" TEXT,
+  "triggeredById" TEXT,
+  "triggeredByName" TEXT,
+  "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "finishedAt" TIMESTAMP(3),
+  CONSTRAINT "WatchRun_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "WatchRun_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "WatchRun_sourceId_fkey" FOREIGN KEY ("sourceId") REFERENCES "RegulatorySource"("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "WatchRun_workspaceId_startedAt_idx" ON "WatchRun"("workspaceId", "startedAt");
+CREATE INDEX IF NOT EXISTS "WatchRun_sourceId_startedAt_idx" ON "WatchRun"("sourceId", "startedAt");
+
+CREATE TABLE IF NOT EXISTS "PolicyCheck" (
+  "id" TEXT NOT NULL,
+  "workspaceId" TEXT NOT NULL,
+  "policyId" TEXT NOT NULL,
+  "result" "PolicyCheckResult" NOT NULL,
+  "score" INTEGER NOT NULL,
+  "openFindings" INTEGER NOT NULL DEFAULT 0,
+  "critical" INTEGER NOT NULL DEFAULT 0,
+  "high" INTEGER NOT NULL DEFAULT 0,
+  "medium" INTEGER NOT NULL DEFAULT 0,
+  "low" INTEGER NOT NULL DEFAULT 0,
+  "overdue" INTEGER NOT NULL DEFAULT 0,
+  "summary" TEXT NOT NULL,
+  "details" JSONB,
+  "actorId" TEXT,
+  "actorName" TEXT,
+  "trigger" "WatchTrigger" NOT NULL DEFAULT 'MANUAL',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "PolicyCheck_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "PolicyCheck_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "PolicyCheck_policyId_fkey" FOREIGN KEY ("policyId") REFERENCES "InternalPolicy"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "PolicyCheck_workspaceId_createdAt_idx" ON "PolicyCheck"("workspaceId", "createdAt");
+CREATE INDEX IF NOT EXISTS "PolicyCheck_policyId_createdAt_idx" ON "PolicyCheck"("policyId", "createdAt");
+
+CREATE TABLE IF NOT EXISTS "RegulatoryRevision" (
+  "id" TEXT NOT NULL,
+  "workspaceId" TEXT NOT NULL,
+  "documentId" TEXT NOT NULL,
+  "previousChecksum" TEXT NOT NULL,
+  "newChecksum" TEXT NOT NULL,
+  "previousContent" TEXT NOT NULL,
+  "newContent" TEXT NOT NULL,
+  "summary" TEXT NOT NULL,
+  "diff" JSONB NOT NULL,
+  "detectedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "RegulatoryRevision_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "RegulatoryRevision_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "RegulatoryRevision_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "RegulatoryDocument"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "RegulatoryRevision_workspaceId_detectedAt_idx" ON "RegulatoryRevision"("workspaceId", "detectedAt");
+CREATE INDEX IF NOT EXISTS "RegulatoryRevision_documentId_detectedAt_idx" ON "RegulatoryRevision"("documentId", "detectedAt");
