@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { answerQuestion, confidenceFor, retrievePassages, tokenize, type QaSource } from "./qa";
+import {
+  answerFromPassages,
+  answerQuestion,
+  citationFromSource,
+  confidenceFor,
+  fusePassages,
+  retrievePassages,
+  tokenize,
+  type QaSource,
+  type VectorHit,
+} from "./qa";
 
 const sources: QaSource[] = [
   {
@@ -202,5 +212,143 @@ describe("confidence mapping", () => {
     expect(confidenceFor(0)).toBe(0);
     expect(confidenceFor(-1)).toBe(0);
     expect(confidenceFor(1_000)).toBe(0.95);
+  });
+});
+
+describe("weighted vector fusion", () => {
+  const storageClause: QaSource = {
+    id: "clause-rbi",
+    label: "RBI/IT/2023/07 · Section 4.1 — Storage of payment system data",
+    kind: "clause",
+    text: "All regulated entities shall ensure that payment system data is stored only on servers located within India.",
+  };
+
+  const privacyPolicy: QaSource = {
+    id: "pol-priv",
+    label: "POL-PRIV-01 Customer Privacy and Consent Policy",
+    kind: "policy",
+    text: "Customers may withdraw consent by writing to the privacy desk within 14 days.",
+  };
+
+  const storageQuestion = "Where is payment data allowed to be stored?";
+
+  it("falls back to lexical ranking without vector hits", () => {
+    const lexical = retrievePassages(storageQuestion, [storageClause, privacyPolicy]);
+    const fused = fusePassages(storageQuestion, [storageClause, privacyPolicy], []);
+    expect(fused.map((passage) => passage.source.id)).toEqual(
+      lexical.map((passage) => passage.source.id),
+    );
+  });
+
+  it("falls back when there is no corpus to retrieve from", () => {
+    expect(fusePassages("incident reporting", [], [{ id: "clause-rbi", similarity: 0.9 }])).toEqual(
+      [],
+    );
+  });
+
+  it("adds the weighted similarity to a passage that already matched lexically", () => {
+    const lexical = retrievePassages(storageQuestion, [storageClause], { limit: 1 })[0]!;
+    const fused = fusePassages(
+      storageQuestion,
+      [storageClause],
+      [{ id: "clause-rbi", similarity: 0.5 }],
+    );
+    expect(fused[0]!.source.id).toBe("clause-rbi");
+    expect(fused[0]!.score).toBeCloseTo(lexical.score + 2.5 * 0.5, 5);
+  });
+
+  it("introduces a semantically similar passage that shares no query terms", () => {
+    const fused = fusePassages(
+      storageQuestion,
+      [storageClause, privacyPolicy],
+      [{ id: "pol-priv", similarity: 0.8 }],
+    );
+    const privacy = fused.find((passage) => passage.source.id === "pol-priv");
+    expect(privacy?.score).toBeCloseTo(2.5 * 0.8, 5);
+  });
+
+  it("ignores weak, non-finite, and unknown vector hits", () => {
+    const hits: VectorHit[] = [
+      { id: "pol-priv", similarity: 0.31 },
+      { id: "pol-priv", similarity: Number.NaN },
+      { id: "ghost", similarity: 0.99 },
+      { id: "clause-rbi", similarity: Number.POSITIVE_INFINITY },
+    ];
+    const fused = fusePassages(storageQuestion, [storageClause, privacyPolicy], hits);
+    expect(fused.map((passage) => passage.source.id)).toEqual(["clause-rbi"]);
+    expect(fused[0]!.score).toBeCloseTo(
+      retrievePassages(storageQuestion, [storageClause, privacyPolicy], { limit: 1 })[0]!.score,
+      5,
+    );
+  });
+
+  it("breaks score ties by kind, then label", () => {
+    const tied: QaSource[] = [
+      { id: "b-clause", label: "B circular", kind: "clause", text: "Notes about weather." },
+      { id: "a-clause", label: "A circular", kind: "clause", text: "Notes about weather." },
+      { id: "z-control", label: "Z control", kind: "control", text: "Notes about weather." },
+    ];
+    const hits: VectorHit[] = tied.map((source) => ({ id: source.id, similarity: 0.5 }));
+    expect(
+      fusePassages("incident reporting", tied, hits).map((passage) => passage.source.id),
+    ).toEqual(["z-control", "a-clause", "b-clause"]);
+  });
+
+  it("clamps the fused limit to the passage bounds", () => {
+    const many: QaSource[] = Array.from({ length: 30 }, (_, index) => ({
+      id: `src-${String(index).padStart(2, "0")}`,
+      label: `Circular ${index}`,
+      kind: "clause",
+      text: "Notes about weather.",
+    }));
+    const hits: VectorHit[] = many.map((source, index) => ({
+      id: source.id,
+      similarity: 0.4 + index / 1000,
+    }));
+    expect(fusePassages("incident reporting", many, hits, { limit: 0 })).toHaveLength(1);
+    expect(fusePassages("incident reporting", many, hits)).toHaveLength(6);
+    expect(fusePassages("incident reporting", many, hits, { limit: 99 })).toHaveLength(24);
+  });
+
+  it("rejects an unsearchable question before ranking passages", () => {
+    const answer = answerFromPassages("??", [{ source: storageClause, score: 2 }]);
+    expect(answer.matched).toBe(false);
+    expect(answer.answer).toContain("searchable terms");
+  });
+});
+
+describe("citation links", () => {
+  it("carries every available document link and page onto the citation", () => {
+    const citation = citationFromSource(
+      {
+        id: "clause-1",
+        label: "RBI circular",
+        kind: "clause",
+        text: "text",
+        documentId: "doc-1",
+        pageNumber: 12,
+        webUrl: "https://example.com/circular",
+        pdfUrl: "/api/documents/doc-1/pdf",
+        workspaceUrl: "/app/circulars?doc=doc-1",
+      },
+      "quote",
+    );
+    expect(citation).toEqual({
+      id: "clause-1",
+      label: "RBI circular",
+      quote: "quote",
+      kind: "clause",
+      documentId: "doc-1",
+      pageNumber: 12,
+      webUrl: "https://example.com/circular",
+      pdfUrl: "/api/documents/doc-1/pdf",
+      workspaceUrl: "/app/circulars?doc=doc-1",
+    });
+  });
+
+  it("omits link fields the source does not have", () => {
+    expect(
+      citationFromSource({ id: "pol-1", label: "Policy", kind: "policy", text: "" }, ""),
+    ).toEqual({ id: "pol-1", label: "Policy", quote: "", kind: "policy" });
   });
 });

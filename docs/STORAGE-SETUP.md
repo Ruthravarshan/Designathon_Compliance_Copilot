@@ -120,3 +120,9 @@ PDFs in `apps/web/prisma/fixtures/` (IRDAI Information and Cyber Security Guidel
 2024) through the same extractor, clause builder, and Gemini embedding path as live ingestion. The
 seed prints page and clause counts per document and marks each `indexStatus` (`READY`, `SKIPPED`, or
 `FAILED`); it never writes placeholder vectors.
+
+The two documents total 1,039 clauses and the free Gemini tier allows 1,000 embedding requests per
+day, so a fresh free-tier key cannot finish both in one run. The seed retries with backoff, marks the
+document `FAILED` when the quota ends, and leaves lexical retrieval fully available; the missing
+vectors are filled on the next `indexDocument` pass after the quota resets. Use a billed key to index
+everything in one pass.

@@ -23,7 +23,7 @@ test("board viewer is read-only in the UI and blocked by the API", async ({ page
 test("the second tenant sees only its own empty workspace", async ({ page }) => {
   await signIn(page, /Tara Singh/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Welcome back, Tara");
-  await expect(page.getByText("Northwind Assurance").first()).toBeVisible();
+  await expect(page.getByText(/Scoped to Northwind Assurance/)).toBeVisible();
 
   await page.goto("/app/findings");
   await expect(page.getByRole("heading", { name: "No findings yet." })).toBeVisible();
