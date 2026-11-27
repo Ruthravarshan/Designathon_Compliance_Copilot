@@ -24,6 +24,7 @@ interface AppErrorOptions {
   details?: unknown;
   expose?: boolean;
   cause?: unknown;
+  headers?: Record<string, string>;
 }
 
 const DEFAULT_STATUS: Record<ErrorCode, number> = {
@@ -41,6 +42,7 @@ export class AppError extends Error {
   readonly status: number;
   readonly details?: unknown;
   readonly expose: boolean;
+  readonly headers?: Record<string, string>;
 
   constructor(code: ErrorCode, message: string, options: AppErrorOptions = {}) {
     super(message, { cause: options.cause });
@@ -49,13 +51,14 @@ export class AppError extends Error {
     this.status = options.status ?? DEFAULT_STATUS[code];
     this.details = options.details;
     this.expose = options.expose ?? true;
+    this.headers = options.headers;
   }
 }
 
 export function toPublicError(
   error: unknown,
   requestId?: string,
-): { status: number; body: ApiErrorBody } {
+): { status: number; body: ApiErrorBody; headers?: Record<string, string> } {
   if (error instanceof AppError && error.expose) {
     return {
       status: error.status,
@@ -67,6 +70,7 @@ export function toPublicError(
           ...(requestId ? { requestId } : {}),
         },
       },
+      ...(error.headers ? { headers: error.headers } : {}),
     };
   }
 

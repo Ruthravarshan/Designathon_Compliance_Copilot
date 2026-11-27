@@ -106,7 +106,11 @@ export function RunWatchButton({
   );
 }
 
-export function DirectIngestForm() {
+export function DirectIngestForm({
+  sources,
+}: {
+  sources: Array<{ id: string; name: string; allowedDomains: string[] }>;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +131,7 @@ export function DirectIngestForm() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          sourceId: String(data.get("sourceId") ?? ""),
           url: String(data.get("url") ?? "").trim(),
           regulator: String(data.get("regulator") ?? "RBI"),
           ...(title ? { title } : {}),
@@ -153,8 +158,23 @@ export function DirectIngestForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-3 lg:grid-cols-[1fr_10rem_1fr_auto] lg:items-end">
-      <Field label="Document URL" htmlFor="watch-url" className="lg:col-span-1">
+    <form
+      onSubmit={onSubmit}
+      className="grid gap-3 lg:grid-cols-[12rem_1fr_10rem_1fr_auto] lg:items-end"
+    >
+      <Field label="Tracked source" htmlFor="watch-source">
+        <Select id="watch-source" name="sourceId" required defaultValue="">
+          <option value="" disabled>
+            Choose a source
+          </option>
+          {sources.map((source) => (
+            <option key={source.id} value={source.id}>
+              {source.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="Document URL" htmlFor="watch-url">
         <Input
           id="watch-url"
           name="url"
@@ -185,7 +205,7 @@ export function DirectIngestForm() {
         <CloudArrowDown size={15} weight="bold" aria-hidden="true" />
         Fetch &amp; ingest
       </Button>
-      <div aria-live="polite" className="lg:col-span-4">
+      <div aria-live="polite" className="lg:col-span-5">
         {error ? (
           <p className="flex items-start gap-1.5 text-xs text-fg" role="alert">
             <WarningCircle

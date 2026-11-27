@@ -125,18 +125,23 @@ async function readIngestInput(request: Request) {
   return { meta, content, clauses: undefined, file: undefined };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const requestId = requestIdFor();
 
   try {
     const actor = await requireActor("document:read");
-    const documents = await listDocuments(actor);
+    const rawCursor = new URL(request.url).searchParams.get("cursor");
+    const cursor = rawCursor && /^[A-Za-z0-9_-]+$/.test(rawCursor) ? rawCursor : undefined;
+    const page = await listDocuments(actor, { cursor });
     return ok(
-      documents.map((document) => ({
-        ...document,
-        publishedAt: document.publishedAt.toISOString(),
-        effectiveAt: document.effectiveAt?.toISOString() ?? null,
-      })),
+      {
+        items: page.items.map((document) => ({
+          ...document,
+          publishedAt: document.publishedAt.toISOString(),
+          effectiveAt: document.effectiveAt?.toISOString() ?? null,
+        })),
+        nextCursor: page.nextCursor,
+      },
       { headers: apiHeaders(requestId) },
     );
   } catch (error) {

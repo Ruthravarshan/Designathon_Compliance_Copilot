@@ -30,23 +30,37 @@ function parseIpv4(value: string): number[] | null {
 
 /** True for loopback, private, link-local, CGNAT, multicast, and metadata ranges. */
 export function isPrivateIp(value: string): boolean {
-  const ip = value.trim().toLowerCase();
+  // Strip IPv6 literal brackets so bracketed loopback/private forms cannot slip
+  // through the anchored checks below.
+  const ip = value
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
 
   if (ip.includes(":")) {
     // IPv6: loopback, unspecified, unique-local (fc00::/7), link-local (fe80::/10),
-    // and IPv4-mapped forms that embed a private IPv4 address.
+    // multicast, 6to4/NAT64 tunnels, and IPv4-embedded forms (mapped or compatible).
     if (ip === "::1" || ip === "::") {
       return true;
     }
     if (ip.startsWith("fc") || ip.startsWith("fd")) {
       return true;
     }
-    if (/^fe[89ab]/.test(ip)) {
+    if (/^fe[89ab]/.test(ip) || ip.startsWith("ff")) {
       return true;
     }
-    const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(ip);
-    if (mapped) {
-      return isPrivateIp(mapped[1] ?? "");
+    if (/^64:ff9b::/.test(ip) || ip.startsWith("2002:")) {
+      return true;
+    }
+    const embedded = /^(?:::ffff:|::)(\d{1,3}(?:\.\d{1,3}){3})$/.exec(ip);
+    if (embedded) {
+      return isPrivateIp(embedded[1] ?? "");
+    }
+    // Conservative default: only global unicast (2000::/3) is considered public.
+    // This blocks hex-encoded IPv4-compatible forms such as ::7f00:1 that the
+    // URL parser normalises from bracketed loopback literals.
+    if (!/^2[0-9a-f]/.test(ip)) {
+      return true;
     }
     return false;
   }
@@ -117,6 +131,12 @@ export function parseHttpUrl(value: string): URL | null {
     return null;
   }
   if (url.username || url.password) {
+    return null;
+  }
+  // Non-default ports are a common SSRF route to internal services (Redis,
+  // Postgres, admin panels). Only the scheme's default port is permitted.
+  const expectedPort = url.protocol === "https:" ? "443" : "80";
+  if (url.port !== "" && url.port !== expectedPort) {
     return null;
   }
   if (isDisallowedHostname(url.hostname)) {

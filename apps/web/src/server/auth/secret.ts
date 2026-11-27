@@ -9,7 +9,9 @@ export function authSecret(): string {
     return env.AUTH_SECRET;
   }
 
-  if (env.DEMO_MODE_ENABLED && env.NODE_ENV !== "production") {
+  // The demo secret is never used in production, even when demo mode is opted in:
+  // persona sign-in is documented as non-production and must not ship.
+  if (env.NODE_ENV !== "production" && env.DEMO_MODE_ENABLED) {
     return DEV_SECRET;
   }
 

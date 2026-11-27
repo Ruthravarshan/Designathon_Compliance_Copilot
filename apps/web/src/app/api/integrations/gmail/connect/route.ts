@@ -13,7 +13,7 @@ import {
   isGmailConfigured,
   resolveRedirectUri,
 } from "@/server/email/gmail";
-import { assertSameOrigin, authLimiter, clientKey, enforceLimit } from "@/server/rate-limits";
+import { assertSameOrigin, authLimiter, enforceLimit } from "@/server/rate-limits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,9 +25,8 @@ function settingsRedirect(query: string): NextResponse {
 export async function GET(request: Request) {
   try {
     assertSameOrigin(request);
-    await enforceLimit(authLimiter, clientKey(request));
-
     const actor = await requireActor("email:send");
+    await enforceLimit(authLimiter, actor.userId);
     if (actor.role !== "OWNER") {
       throw new AppError(
         ERROR_CODES.FORBIDDEN,

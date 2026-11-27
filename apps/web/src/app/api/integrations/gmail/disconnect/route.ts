@@ -4,7 +4,7 @@ import { apiHeaders, requestIdFor } from "@/server/api";
 import { recordAudit, requestMeta } from "@/server/audit";
 import { requireActor } from "@/server/auth/actor";
 import { disconnectGmail } from "@/server/email/gmail";
-import { assertSameOrigin, authLimiter, clientKey, enforceLimit } from "@/server/rate-limits";
+import { assertSameOrigin, authLimiter, enforceLimit } from "@/server/rate-limits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,9 +14,8 @@ export async function POST(request: Request) {
 
   try {
     assertSameOrigin(request);
-    await enforceLimit(authLimiter, clientKey(request));
-
     const actor = await requireActor("email:send");
+    await enforceLimit(authLimiter, actor.userId);
     if (actor.role !== "OWNER") {
       throw new AppError(ERROR_CODES.FORBIDDEN, "Only the workspace owner can disconnect Gmail.");
     }

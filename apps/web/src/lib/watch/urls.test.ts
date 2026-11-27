@@ -23,6 +23,12 @@ describe("isPrivateIp", () => {
       "fd00::1",
       "fe80::1",
       "::ffff:10.0.0.1",
+      "[::1]",
+      "[fd00::1]",
+      "::127.0.0.1",
+      "64:ff9b::a00:1",
+      "2002:0a00:0001::",
+      "ff02::1",
     ]) {
       expect(isPrivateIp(ip), ip).toBe(true);
     }
@@ -31,6 +37,7 @@ describe("isPrivateIp", () => {
   it("allows public addresses", () => {
     expect(isPrivateIp("8.8.8.8")).toBe(false);
     expect(isPrivateIp("52.95.1.1")).toBe(false);
+    expect(isPrivateIp("2606:4700:4700::1111")).toBe(false);
   });
 });
 
@@ -52,11 +59,14 @@ describe("parseHttpUrl", () => {
     expect(parseHttpUrl("https://www.rbi.org.in/a.pdf")?.hostname).toBe("www.rbi.org.in");
   });
 
-  it("rejects other schemes, credentials, and internal hosts", () => {
+  it("rejects other schemes, credentials, internal hosts, and non-default ports", () => {
     expect(parseHttpUrl("ftp://example.com")).toBeNull();
     expect(parseHttpUrl("https://user:pass@example.com")).toBeNull();
     expect(parseHttpUrl("http://localhost/x")).toBeNull();
     expect(parseHttpUrl("not a url")).toBeNull();
+    expect(parseHttpUrl("http://[::127.0.0.1]/x")).toBeNull();
+    expect(parseHttpUrl("https://example.com:6379/x")).toBeNull();
+    expect(parseHttpUrl("https://example.com/x")?.hostname).toBe("example.com");
   });
 });
 

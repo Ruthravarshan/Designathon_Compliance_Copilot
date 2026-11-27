@@ -12,7 +12,12 @@ import { listDocuments } from "@/server/compliance/service";
 
 export const metadata: Metadata = { title: "Circulars" };
 
-export default async function CircularsPage() {
+export default async function CircularsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cursor?: string }>;
+}) {
+  const { cursor } = await searchParams;
   const actor = await getActor();
   if (!actor) {
     redirect("/signin");
@@ -21,7 +26,8 @@ export default async function CircularsPage() {
     return <UnauthorizedState signedInAs={`${actor.name} · ${actor.role}`} />;
   }
 
-  const documents = await listDocuments(actor);
+  const page = await listDocuments(actor, { cursor });
+  const documents = page.items;
   const canIngest = actorCan(actor, "document:ingest");
 
   return (
@@ -84,6 +90,17 @@ export default async function CircularsPage() {
           }))}
         />
       )}
+
+      {page.nextCursor ? (
+        <div className="flex justify-end">
+          <Link
+            href={`/app/circulars?cursor=${encodeURIComponent(page.nextCursor)}`}
+            className="text-xs font-medium text-brand hover:underline"
+          >
+            Older circulars →
+          </Link>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface/60 px-5 py-4 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
         <p>

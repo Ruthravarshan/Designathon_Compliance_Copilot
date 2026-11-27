@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS "User" (
   "email" TEXT NOT NULL,
   "name" TEXT,
   "imageUrl" TEXT,
+  "sessionVersion" INTEGER NOT NULL DEFAULT 0,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,
   CONSTRAINT "User_pkey" PRIMARY KEY ("id")
@@ -139,6 +140,7 @@ CREATE TABLE IF NOT EXISTS "RegulatoryDocument" (
 CREATE UNIQUE INDEX IF NOT EXISTS "RegulatoryDocument_workspaceId_reference_key" ON "RegulatoryDocument"("workspaceId", "reference");
 CREATE INDEX IF NOT EXISTS "RegulatoryDocument_workspaceId_ingestedAt_idx" ON "RegulatoryDocument"("workspaceId", "ingestedAt");
 CREATE INDEX IF NOT EXISTS "RegulatoryDocument_workspaceId_regulator_publishedAt_idx" ON "RegulatoryDocument"("workspaceId", "regulator", "publishedAt");
+CREATE INDEX IF NOT EXISTS "RegulatoryDocument_workspaceId_publishedAt_idx" ON "RegulatoryDocument"("workspaceId", "publishedAt");
 
 CREATE TABLE IF NOT EXISTS "DocumentClause" (
   "id" TEXT NOT NULL,
@@ -175,6 +177,7 @@ CREATE TABLE IF NOT EXISTS "InternalPolicy" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "InternalPolicy_workspaceId_code_key" ON "InternalPolicy"("workspaceId", "code");
 CREATE INDEX IF NOT EXISTS "InternalPolicy_workspaceId_idx" ON "InternalPolicy"("workspaceId");
+CREATE INDEX IF NOT EXISTS "InternalPolicy_workspaceId_section_code_idx" ON "InternalPolicy"("workspaceId", "section", "code");
 
 CREATE TABLE IF NOT EXISTS "InternalControl" (
   "id" TEXT NOT NULL,
@@ -264,6 +267,8 @@ CREATE TABLE IF NOT EXISTS "Finding" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "Finding_obligationId_key" ON "Finding"("obligationId");
 CREATE INDEX IF NOT EXISTS "Finding_workspaceId_reviewStatus_severity_idx" ON "Finding"("workspaceId", "reviewStatus", "severity");
+CREATE INDEX IF NOT EXISTS "Finding_workspaceId_reviewStatus_severity_dueDate_idx" ON "Finding"("workspaceId", "reviewStatus", "severity", "dueDate");
+CREATE INDEX IF NOT EXISTS "Finding_workspaceId_severity_dueDate_idx" ON "Finding"("workspaceId", "severity", "dueDate");
 CREATE INDEX IF NOT EXISTS "Finding_workspaceId_dueDate_idx" ON "Finding"("workspaceId", "dueDate");
 CREATE INDEX IF NOT EXISTS "Finding_workspaceId_createdAt_idx" ON "Finding"("workspaceId", "createdAt");
 CREATE INDEX IF NOT EXISTS "Finding_workspaceId_documentId_idx" ON "Finding"("workspaceId", "documentId");
@@ -308,6 +313,7 @@ CREATE TABLE IF NOT EXISTS "DataFieldScan" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "DataFieldScan_workspaceId_datasetName_fieldName_key" ON "DataFieldScan"("workspaceId", "datasetName", "fieldName");
 CREATE INDEX IF NOT EXISTS "DataFieldScan_workspaceId_riskLevel_idx" ON "DataFieldScan"("workspaceId", "riskLevel");
+CREATE INDEX IF NOT EXISTS "DataFieldScan_workspaceId_riskLevel_datasetName_fieldName_idx" ON "DataFieldScan"("workspaceId", "riskLevel", "datasetName", "fieldName");
 -- Gmail OAuth sender connection (one per workspace).
 -- Idempotent: safe to apply against an existing database.
 -- Mirrors the GmailAccount model in apps/web/prisma/schema.prisma.
@@ -370,6 +376,7 @@ CREATE TABLE IF NOT EXISTS "RegulatorySource" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "RegulatorySource_workspaceId_listingUrl_key" ON "RegulatorySource"("workspaceId", "listingUrl");
 CREATE INDEX IF NOT EXISTS "RegulatorySource_workspaceId_enabled_idx" ON "RegulatorySource"("workspaceId", "enabled");
+CREATE INDEX IF NOT EXISTS "RegulatorySource_workspaceId_enabled_name_idx" ON "RegulatorySource"("workspaceId", "enabled", "name");
 
 ALTER TABLE "RegulatoryDocument" ADD COLUMN IF NOT EXISTS "sourceId" TEXT;
 CREATE INDEX IF NOT EXISTS "RegulatoryDocument_workspaceId_sourceId_idx" ON "RegulatoryDocument"("workspaceId", "sourceId");
@@ -404,6 +411,7 @@ CREATE TABLE IF NOT EXISTS "WatchRun" (
   CONSTRAINT "WatchRun_sourceId_fkey" FOREIGN KEY ("sourceId") REFERENCES "RegulatorySource"("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 CREATE INDEX IF NOT EXISTS "WatchRun_workspaceId_startedAt_idx" ON "WatchRun"("workspaceId", "startedAt");
+CREATE INDEX IF NOT EXISTS "WatchRun_workspaceId_status_startedAt_idx" ON "WatchRun"("workspaceId", "status", "startedAt");
 CREATE INDEX IF NOT EXISTS "WatchRun_sourceId_startedAt_idx" ON "WatchRun"("sourceId", "startedAt");
 
 CREATE TABLE IF NOT EXISTS "PolicyCheck" (

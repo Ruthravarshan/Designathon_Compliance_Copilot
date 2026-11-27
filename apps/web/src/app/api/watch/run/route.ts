@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { AppError, ERROR_CODES } from "@/lib/errors";
 import { fail, ok } from "@/lib/http";
-import { apiHeaders, requestIdFor } from "@/server/api";
+import { apiHeaders, readJson, requestIdFor } from "@/server/api";
 import { requireActor } from "@/server/auth/actor";
 import { assertSameOrigin, enforceLimit, watchLimiter } from "@/server/rate-limits";
 import { runWatch } from "@/server/watch/service";
@@ -22,17 +21,7 @@ export async function POST(request: Request) {
     const actor = await requireActor("watch:run");
     await enforceLimit(watchLimiter, actor.userId);
 
-    const raw = await request.text();
-    let body: z.infer<typeof bodySchema> = {};
-    if (raw.trim() !== "") {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        throw new AppError(ERROR_CODES.BAD_REQUEST, "Invalid JSON body.");
-      }
-      body = bodySchema.parse(parsed);
-    }
+    const body = await readJson(request, bodySchema);
 
     const result = await runWatch({
       workspaceId: actor.workspaceId,

@@ -135,6 +135,8 @@ model User {
   email           String           @unique
   name            String?
   imageUrl        String?
+  // Bumped on sign-out and privilege change so copied cookies stop working.
+  sessionVersion  Int              @default(0)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   memberships     Membership[]
@@ -334,6 +336,7 @@ model RegulatoryDocument {
   @@unique([workspaceId, reference])
   @@index([workspaceId, ingestedAt])
   @@index([workspaceId, regulator, publishedAt])
+  @@index([workspaceId, publishedAt])
   @@index([workspaceId, sourceId])
   @@index([workspaceId, storageItemId])
   @@index([workspaceId, indexStatus])
@@ -380,6 +383,7 @@ model InternalPolicy {
 
   @@unique([workspaceId, code])
   @@index([workspaceId])
+  @@index([workspaceId, section, code])
 }
 
 model InternalControl {
@@ -471,6 +475,8 @@ model Finding {
   reviews              ReviewEvent[]
 
   @@index([workspaceId, reviewStatus, severity])
+  @@index([workspaceId, reviewStatus, severity, dueDate])
+  @@index([workspaceId, severity, dueDate])
   @@index([workspaceId, dueDate])
   @@index([workspaceId, createdAt])
   @@index([workspaceId, documentId])
@@ -515,6 +521,7 @@ model DataFieldScan {
 
   @@unique([workspaceId, datasetName, fieldName])
   @@index([workspaceId, riskLevel])
+  @@index([workspaceId, riskLevel, datasetName, fieldName])
 }
 
 model RegulatorySource {
@@ -540,6 +547,7 @@ model RegulatorySource {
 
   @@unique([workspaceId, listingUrl])
   @@index([workspaceId, enabled])
+  @@index([workspaceId, enabled, name])
 }
 
 model WatchRun {
@@ -566,6 +574,7 @@ model WatchRun {
   source          RegulatorySource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, startedAt])
+  @@index([workspaceId, status, startedAt])
   @@index([sourceId, startedAt])
 }
 

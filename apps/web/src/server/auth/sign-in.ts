@@ -13,6 +13,11 @@ export async function signInWithPersona(personaKey: string, request: Request): P
   if (!env.DEMO_MODE_ENABLED) {
     throw new AppError(ERROR_CODES.FORBIDDEN, "Demo sign-in is disabled in this environment.");
   }
+  // Defence in depth: never mint a privileged persona session in production
+  // without the explicit opt-in, even if the env module is changed later.
+  if (env.NODE_ENV === "production" && env.ALLOW_DEMO_MODE_IN_PRODUCTION !== "true") {
+    throw new AppError(ERROR_CODES.FORBIDDEN, "Demo sign-in is disabled in production.");
+  }
 
   const persona = personaByKey(personaKey);
   if (!persona) {
@@ -30,7 +35,7 @@ export async function signInWithPersona(personaKey: string, request: Request): P
     throw new AppError(ERROR_CODES.CONFLICT, "The demo workspace is not seeded.");
   }
 
-  await createSession(user.id, membership.workspaceId);
+  await createSession(user.id, membership.workspaceId, user.sessionVersion);
 
   const meta = requestMeta(request);
   await recordAudit({

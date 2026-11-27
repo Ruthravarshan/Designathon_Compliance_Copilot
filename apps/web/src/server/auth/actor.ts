@@ -31,6 +31,12 @@ export const getActor = cache(async (): Promise<Actor | null> => {
     return null;
   }
 
+  // A signed cookie alone is not enough: sign-out and privilege changes bump
+  // the user's version, which invalidates every older session token.
+  if (membership.user.sessionVersion !== session.version) {
+    return null;
+  }
+
   return {
     userId: membership.userId,
     name: membership.user.name ?? membership.user.email,

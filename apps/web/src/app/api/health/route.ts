@@ -12,7 +12,11 @@ export async function GET() {
   let database: "ok" | "unreachable" = "ok";
 
   try {
-    await db.$queryRaw`SELECT 1`;
+    // A stalled database must not keep the health check past its <1s budget.
+    const deadline = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("Database check timed out")), 500);
+    });
+    await Promise.race([db.$queryRaw`SELECT 1`, deadline]);
   } catch (error) {
     database = "unreachable";
     logger.warn({ err: error, requestId }, "health check: database unreachable");

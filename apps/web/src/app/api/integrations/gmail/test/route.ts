@@ -8,7 +8,7 @@ import { requireActor } from "@/server/auth/actor";
 import { db } from "@/server/db";
 import { getGmailStatus, isGmailConfigured } from "@/server/email/gmail";
 import { enqueueEmail, processEmailById } from "@/server/email/service";
-import { assertSameOrigin, authLimiter, clientKey, enforceLimit } from "@/server/rate-limits";
+import { assertSameOrigin, authLimiter, enforceLimit } from "@/server/rate-limits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,9 +22,8 @@ export async function POST(request: Request) {
 
   try {
     assertSameOrigin(request);
-    await enforceLimit(authLimiter, clientKey(request));
-
     const actor = await requireActor("email:send");
+    await enforceLimit(authLimiter, actor.userId);
     const body = await readJson(request, bodySchema);
 
     // Local and resend deployments send without a Gmail OAuth connection; only
@@ -46,6 +45,13 @@ export async function POST(request: Request) {
       );
     }
 
+    // A connected mailbox must not become an open relay for arbitrary recipients.
+    if (body.to && body.to.toLowerCase() !== actor.email.toLowerCase()) {
+      throw new AppError(
+        ERROR_CODES.FORBIDDEN,
+        "Test emails can only be sent to your own address.",
+      );
+    }
     const mailboxEmail = usesGmail ? (connection.email ?? env.EMAIL_FROM) : env.EMAIL_FROM;
     const to = body.to ?? actor.email;
     const queued = await enqueueEmail({

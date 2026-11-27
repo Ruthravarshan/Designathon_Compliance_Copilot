@@ -257,3 +257,19 @@ Next: `08-hardening-report.md`
   credentials each provider needs.
 - Local reset: `public` schema dropped and rebuilt from `prisma/sql` (Prisma engines are stubbed on
   this corporate network), then reseeded.
+
+## 2026-11-28 — Review fixes from incoming commits
+
+- Sign-out in `workbench-shell.tsx` and `personal-settings-client.tsx` used to redirect in `finally`,
+  so a failed POST still navigated to `/signin` (which sends an authenticated actor back to `/app`).
+  Both handlers now require a successful response and surface an inline `role="alert"` error;
+  `PersonalSettingsView` resets its pending state on failure and renders the error.
+- `hero-telemetry.tsx` SVG nodes were focusable with `focus:outline-none` and no replacement focus
+  indicator. Removed the redundant keyboard stops / `aria-hidden` on the decorative diagram; the
+  labelled real buttons below remain the keyboard path.
+- Evidence: `npm run check` green after the edits (format, lint, typecheck, 465/465 tests, production
+  build); `npm run test:coverage` green (99.88% statements, 98.07% branches, 100% functions).
+  Later concurrent edits from another agent raised the suite to 468/468; final isolated lint,
+  typecheck, tests, and production build all exit 0, and browser smoke is 8/8. Intermittent
+  `ENOENT`/missing `.next/types` build failures were caused by two `next build` processes sharing
+  `.next` at the same time, not by source defects.

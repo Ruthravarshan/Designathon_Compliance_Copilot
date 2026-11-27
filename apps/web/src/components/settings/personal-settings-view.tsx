@@ -54,7 +54,7 @@ export function PersonalSettingsView({
   onSaveEmailPreferences?: (
     categories: Record<string, boolean>,
   ) => Promise<{ ok: boolean; error?: string; requestId?: string | null }>;
-  onSignOut: () => void | Promise<void>;
+  onSignOut: () => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [name, setName] = useState(actor.name);
   const [title, setTitle] = useState(actor.title ?? "");
@@ -76,8 +76,19 @@ export function PersonalSettingsView({
   } | null>(null);
 
   const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   const canEditProfile = Boolean((actor.canEditName || actor.canEditTitle) && onSaveProfile);
+
+  const handleSignOutClick = async () => {
+    setSigningOut(true);
+    setSignOutError(null);
+    const result = await onSignOut();
+    setSigningOut(false);
+    if (!result.ok) {
+      setSignOutError(result.error ?? "Sign out failed. Try again.");
+    }
+  };
 
   const handleProfileSave = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -290,15 +301,17 @@ export function PersonalSettingsView({
             variant="secondary"
             pending={signingOut}
             pendingLabel="Signing out..."
-            onClick={() => {
-              setSigningOut(true);
-              void onSignOut();
-            }}
+            onClick={() => void handleSignOutClick()}
           >
             <SignOut size={15} weight="bold" aria-hidden="true" />
             Sign out
           </Button>
         </CardHeader>
+        {signOutError ? (
+          <CardBody className="pt-0">
+            <InlineStatusFeedback status={{ kind: "error", message: signOutError }} />
+          </CardBody>
+        ) : null}
       </Card>
     </div>
   );

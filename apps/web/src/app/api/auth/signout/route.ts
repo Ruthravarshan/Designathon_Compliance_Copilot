@@ -3,6 +3,7 @@ import { apiHeaders, requestIdFor } from "@/server/api";
 import { getActor } from "@/server/auth/actor";
 import { clearSession } from "@/server/auth/session";
 import { recordAudit, requestMeta } from "@/server/audit";
+import { db } from "@/server/db";
 import { assertSameOrigin } from "@/server/rate-limits";
 
 export const runtime = "nodejs";
@@ -17,6 +18,12 @@ export async function POST(request: Request) {
     await clearSession();
 
     if (actor) {
+      // Invalidate the token server-side too; clearing only the browser cookie
+      // leaves a copied session usable until it expires.
+      await db.user.update({
+        where: { id: actor.userId },
+        data: { sessionVersion: { increment: 1 } },
+      });
       const meta = requestMeta(request);
       await recordAudit({
         workspaceId: actor.workspaceId,

@@ -23,6 +23,11 @@ const envSchema = z
     REDIS_URL: z.string().url().optional(),
     AUTH_SECRET: z.string().min(32).optional(),
     DEMO_MODE: z.enum(["true", "false"]).optional(),
+    // Explicit, separately named opt-in required to run demo personas in production.
+    ALLOW_DEMO_MODE_IN_PRODUCTION: z.enum(["true", "false"]).optional(),
+    // Set only when a trusted platform/proxy overwrites forwarding headers.
+    TRUST_PROXY_HEADERS: z.enum(["true", "false"]).optional(),
+    VERCEL: optionalString,
     EMAIL_PROVIDER: z.enum(["console", "smtp", "resend", "gmail"]).default("console"),
     EMAIL_FROM: z.string().min(3).default("Hexa <no-reply@hexa.local>"),
     SMTP_URL: z.string().url().optional(),
@@ -88,10 +93,12 @@ if (!parsed.success) {
   throw new Error("Invalid environment variables. Check .env against .env.example.");
 }
 
+// Persona sign-in mints an OWNER session for anyone who can reach the app, so it
+// is disabled in production unless the explicit, separately named opt-in is set.
 const demoModeEnabled =
-  parsed.data.DEMO_MODE === undefined
-    ? parsed.data.NODE_ENV !== "production"
-    : parsed.data.DEMO_MODE === "true";
+  parsed.data.NODE_ENV === "production"
+    ? parsed.data.ALLOW_DEMO_MODE_IN_PRODUCTION === "true"
+    : parsed.data.DEMO_MODE !== "false";
 
 export const env = {
   ...parsed.data,
