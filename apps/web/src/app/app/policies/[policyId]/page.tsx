@@ -122,7 +122,10 @@ export default async function PolicyDetailPage({
         ) : (
           <ul className="divide-y divide-line">
             {checks.map((check) => (
-              <li key={check.id} className="flex flex-wrap items-start justify-between gap-3 px-5 py-3.5">
+              <li
+                key={check.id}
+                className="flex flex-wrap items-start justify-between gap-3 px-5 py-3.5"
+              >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone={OUTCOME_TONE[check.result] ?? "outline"} dot>

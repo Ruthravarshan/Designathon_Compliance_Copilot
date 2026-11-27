@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CircleNotch, PaperPlaneTilt, Plugs } from "@phosphor-icons/react";
+import { ConfirmDialog } from "@/components/ui/overlays";
 
 interface ApiErrorBody {
   error?: { message?: string; requestId?: string };
@@ -21,6 +22,7 @@ export function GmailConnectionActions({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState<Pending>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; message: string } | null>(null);
 
   async function sendTest() {
@@ -53,14 +55,6 @@ export function GmailConnectionActions({
   }
 
   async function disconnect() {
-    if (
-      !window.confirm(
-        "Disconnect this Gmail mailbox? Automated email will stop until you reconnect.",
-      )
-    ) {
-      return;
-    }
-
     setPending("disconnect");
     setFeedback(null);
 
@@ -76,6 +70,7 @@ export function GmailConnectionActions({
         return;
       }
 
+      setConfirmOpen(false);
       setFeedback({ kind: "ok", message: "Mailbox disconnected." });
       router.refresh();
     } catch {
@@ -110,7 +105,7 @@ export function GmailConnectionActions({
         {canManage && connected ? (
           <button
             type="button"
-            onClick={disconnect}
+            onClick={() => setConfirmOpen(true)}
             disabled={pending !== null}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-line bg-surface px-5 text-sm font-medium text-fg transition-colors hover:border-danger/40 hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -129,15 +124,27 @@ export function GmailConnectionActions({
         ) : null}
       </div>
 
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Disconnect Gmail mailbox"
+        description="Automated remediation and alert emails will stop until you reconnect an OAuth mailbox."
+        confirmLabel="Disconnect mailbox"
+        variant="danger"
+        pending={pending === "disconnect"}
+        onConfirm={() => void disconnect()}
+        onClose={() => setConfirmOpen(false)}
+      />
+
       {feedback ? (
         <p
-          role="status"
+          role={feedback.kind === "ok" ? "status" : "alert"}
           className={
             feedback.kind === "ok"
-              ? "rounded-xl border border-brand/25 bg-brand/5 px-4 py-3 text-xs text-brand"
-              : "rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-xs text-danger"
+              ? "rounded-xl border border-brand/25 bg-brand/10 px-4 py-3 text-xs text-fg dark:border-support/35 dark:bg-support/15"
+              : "rounded-xl border border-danger/35 bg-danger/10 px-4 py-3 text-xs text-fg"
           }
         >
+          {feedback.kind === "error" ? <span className="font-semibold">Error: </span> : null}
           {feedback.message}
         </p>
       ) : null}

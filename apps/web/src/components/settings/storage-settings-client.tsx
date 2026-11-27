@@ -53,7 +53,11 @@ const PROVIDERS: readonly ProviderSpec[] = [
       { key: "folderUrl", label: "Shared folder link", placeholder: "https://…sharepoint.com/…" },
       { key: "folderItemId", label: "Folder item id (optional)", placeholder: "01ABCDEF…" },
       { key: "driveId", label: "Drive id (optional)", placeholder: "b!abc123…" },
-      { key: "siteId", label: "Site id (optional)", placeholder: "contoso.sharepoint.com,site,web" },
+      {
+        key: "siteId",
+        label: "Site id (optional)",
+        placeholder: "contoso.sharepoint.com,site,web",
+      },
       { key: "driveOwner", label: "Drive owner UPN (optional)", placeholder: "owner@contoso.com" },
       { key: "folder", label: "Folder path (optional)", placeholder: "PolicyPulse/Circulars" },
     ],
@@ -66,7 +70,11 @@ const PROVIDERS: readonly ProviderSpec[] = [
     envNames: ["GOOGLE_SERVICE_ACCOUNT_JSON_BASE64"],
     hint: "Share the folder with the service account email (Editor). Paste the folder link; the folder id is read from it.",
     fields: [
-      { key: "folderUrl", label: "Folder link", placeholder: "https://drive.google.com/drive/folders/…" },
+      {
+        key: "folderUrl",
+        label: "Folder link",
+        placeholder: "https://drive.google.com/drive/folders/…",
+      },
       { key: "folderId", label: "Folder id", placeholder: "1AbCdEfGh…" },
     ],
   },
@@ -166,7 +174,10 @@ function ProviderCard({
       });
       const result = await readEnvelope<StorageConnection>(response);
       if (!response.ok || !result.data) {
-        setFeedback({ kind: "error", message: result.error?.message ?? "The connection was not saved." });
+        setFeedback({
+          kind: "error",
+          message: result.error?.message ?? "The connection was not saved.",
+        });
         return;
       }
       setFeedback({ kind: "ok", message: "Saved. Run a test to verify the provider." });
@@ -228,7 +239,10 @@ function ProviderCard({
       });
       const result = await readEnvelope<{ deleted: boolean }>(response);
       if (!response.ok) {
-        setFeedback({ kind: "error", message: result.error?.message ?? "The connection was not removed." });
+        setFeedback({
+          kind: "error",
+          message: result.error?.message ?? "The connection was not removed.",
+        });
         return;
       }
       setFeedback({ kind: "ok", message: "Connection removed." });
@@ -270,8 +284,8 @@ function ProviderCard({
       <CardBody className="flex-1 space-y-4">
         {!envConfigured ? (
           <p className="rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-xs leading-relaxed text-fg">
-            Server secrets missing: <span className="font-mono">{spec.envNames.join(", ")}</span>. The
-            saved settings still work once the environment is set.
+            Server secrets missing: <span className="font-mono">{spec.envNames.join(", ")}</span>.
+            The saved settings still work once the environment is set.
           </p>
         ) : null}
 
@@ -299,7 +313,9 @@ function ProviderCard({
         <p className="text-xs leading-relaxed text-muted">{spec.hint}</p>
 
         <fieldset className="space-y-2">
-          <legend className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">Role</legend>
+          <legend className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
+            Role
+          </legend>
           <div className="flex flex-wrap gap-2">
             {(
               [
@@ -332,7 +348,12 @@ function ProviderCard({
 
         {existing?.lastErrorCode ? (
           <p className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-xs text-fg">
-            <WarningCircle size={14} weight="fill" aria-hidden="true" className="mt-0.5 shrink-0 text-danger" />
+            <WarningCircle
+              size={14}
+              weight="fill"
+              aria-hidden="true"
+              className="mt-0.5 shrink-0 text-danger"
+            />
             <span className="font-mono">{existing.lastErrorCode}</span>
           </p>
         ) : null}
@@ -353,7 +374,9 @@ function ProviderCard({
 
       <CardFooter>
         <span className="font-mono text-[11px] text-muted">
-          {existing?.lastCheckedAt ? `Checked ${formatDateTime(existing.lastCheckedAt)}` : "Never tested"}
+          {existing?.lastCheckedAt
+            ? `Checked ${formatDateTime(existing.lastCheckedAt)}`
+            : "Never tested"}
         </span>
         <div className="flex flex-wrap gap-2">
           {existing ? (

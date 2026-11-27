@@ -278,10 +278,7 @@ export function createGraphProvider(
     async healthCheck() {
       try {
         const resolved = await target();
-        const response = await request(
-          "GET",
-          `/drives/${encodeURIComponent(resolved.driveId)}`,
-        );
+        const response = await request("GET", `/drives/${encodeURIComponent(resolved.driveId)}`);
         if (!response.ok) {
           return { ok: false, code: graphErrorCode(response.status) };
         }

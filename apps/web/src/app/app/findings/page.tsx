@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  ArrowLeft,
   ArrowRight,
   DownloadSimple,
   FunnelSimple,
   MagnifyingGlass,
 } from "@phosphor-icons/react/dist/ssr";
-import { ReviewStatusBadge, SeverityBadge } from "@/components/severity-badge";
+import { FindingsExplorer } from "@/components/findings/findings-explorer";
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { formatDate, formatPercent } from "@/lib/format";
 import { isSeverity, type Severity } from "@/lib/compliance/types";
 import { actorCan, getActor } from "@/server/auth/actor";
 import { listFindings, type FindingFilter } from "@/server/compliance/service";
@@ -169,7 +169,7 @@ export default async function FindingsPage({
             size={28}
             weight="bold"
             aria-hidden="true"
-            className="mx-auto text-brand"
+            className="mx-auto text-brand dark:text-support"
           />
           <h2 className="mt-4 text-lg font-medium">
             {hasFilters ? "No findings match these filters." : "No findings yet."}
@@ -199,76 +199,54 @@ export default async function FindingsPage({
         </Card>
       ) : (
         <>
-          <Card className="overflow-hidden">
-            <div className="hidden grid-cols-[7rem_1fr_8rem_7.5rem_8rem_2rem] gap-4 border-b border-line bg-surface-2 px-5 py-2.5 font-mono text-[9px] uppercase tracking-[0.16em] text-muted xl:grid">
-              <span>Severity</span>
-              <span>Finding</span>
-              <span>Mapped to</span>
-              <span>Deadline</span>
-              <span>Review</span>
-              <span />
-            </div>
-            <ul className="divide-y divide-line">
-              {items.map((finding) => (
-                <li key={finding.id}>
-                  <Link
-                    href={`/app/findings/${finding.id}`}
-                    className="group grid gap-3 px-5 py-4 transition-colors hover:bg-surface-2/60 xl:grid-cols-[7rem_1fr_8rem_7.5rem_8rem_2rem] xl:items-center xl:gap-4"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <SeverityBadge severity={finding.severity} />
-                      <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-muted xl:hidden">
-                        {finding.reviewStatus.replace(/_/g, " ")}
-                      </span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="line-clamp-2 text-sm font-medium">{finding.plainLanguage}</p>
-                      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
-                        {finding.reference} · {finding.documentReference}
-                      </p>
-                      <p className="mt-1 text-xs text-muted">
-                        Overall confidence {formatPercent(finding.confidence)}
-                      </p>
-                    </div>
-                    <div className="font-mono text-[10px] leading-relaxed text-muted">
-                      {finding.policyCode ? <p>{finding.policyCode}</p> : <p>No policy match</p>}
-                      {finding.controlCode ? <p>{finding.controlCode}</p> : null}
-                    </div>
-                    <p className="text-xs text-muted">{formatDate(finding.dueDate)}</p>
-                    <div className="hidden xl:block">
-                      <ReviewStatusBadge status={finding.reviewStatus} />
-                    </div>
-                    <ArrowRight
-                      size={15}
-                      weight="bold"
-                      aria-hidden="true"
-                      className="hidden text-muted transition-colors group-hover:text-brand xl:block"
-                    />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </Card>
+          <FindingsExplorer
+            items={items.map((finding) => ({
+              id: finding.id,
+              severity: finding.severity,
+              reviewStatus: finding.reviewStatus,
+              plainLanguage: finding.plainLanguage,
+              reference: finding.reference,
+              documentReference: finding.documentReference,
+              confidence: finding.confidence,
+              policyCode: finding.policyCode,
+              controlCode: finding.controlCode,
+              dueDate: finding.dueDate.toISOString(),
+            }))}
+          />
 
-          <div className="flex items-center justify-between gap-3 border-t border-line pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
               {items.length} findings on this page
             </p>
-            {nextCursor ? (
-              <Link
-                href={`/app/findings?${new URLSearchParams({
-                  ...(severity ? { severity } : {}),
-                  ...(review ? { review } : {}),
-                  cursor: nextCursor,
-                }).toString()}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-muted/50 hover:text-fg"
-              >
-                Next page
-                <ArrowRight size={13} weight="bold" aria-hidden="true" />
-              </Link>
-            ) : (
-              <span className="text-xs text-muted">End of queue</span>
-            )}
+            <div className="flex items-center gap-2">
+              {cursor ? (
+                <Link
+                  href={filterHref({
+                    ...(severity ? { severity } : {}),
+                    ...(review ? { review } : {}),
+                  })}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-muted/50 hover:text-fg"
+                >
+                  <ArrowLeft size={13} weight="bold" aria-hidden="true" />
+                  First page
+                </Link>
+              ) : null}
+              {nextCursor ? (
+                <Link
+                  href={`/app/findings?${new URLSearchParams({
+                    ...(severity ? { severity } : {}),
+                    ...(review ? { review } : {}),
+                    cursor: nextCursor,
+                  }).toString()}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-muted/50 hover:text-fg"
+                >
+                  Next page
+                  <ArrowRight size={13} weight="bold" aria-hidden="true" />
+                </Link>
+              ) : (
+                <span className="text-xs text-muted">End of queue</span>
+              )}
+            </div>
           </div>
         </>
       )}

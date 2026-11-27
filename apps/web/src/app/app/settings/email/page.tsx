@@ -99,7 +99,7 @@ export default async function EmailSettingsPage({
       {connectedNow ? (
         <div
           role="status"
-          className="rounded-xl border border-brand/25 bg-brand/5 px-4 py-3 text-sm text-brand"
+          className="rounded-xl border border-brand/25 bg-brand/10 px-4 py-3 text-sm text-fg dark:border-support/35 dark:bg-support/15"
         >
           Gmail connected. Send a test email to confirm delivery.
         </div>
@@ -123,7 +123,12 @@ export default async function EmailSettingsPage({
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <Card className="p-5 sm:p-6">
           <div className="flex items-center gap-2">
-            <EnvelopeSimple size={18} weight="bold" aria-hidden="true" className="text-brand" />
+            <EnvelopeSimple
+              size={18}
+              weight="bold"
+              aria-hidden="true"
+              className="text-brand dark:text-support"
+            />
             <h2 className="text-base font-medium">Sending mailbox</h2>
           </div>
 
@@ -166,8 +171,8 @@ export default async function EmailSettingsPage({
           )}
 
           {status.lastErrorCode && status.status !== "CONNECTED" ? (
-            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-danger">
-              Last error · {status.lastErrorCode}
+            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-fg">
+              <span className="text-danger">Error:</span> Last error · {status.lastErrorCode}
             </p>
           ) : null}
 
@@ -215,7 +220,7 @@ export default async function EmailSettingsPage({
                 size={15}
                 weight="bold"
                 aria-hidden="true"
-                className="mt-0.5 shrink-0 text-brand"
+                className="mt-0.5 shrink-0 text-brand dark:text-support"
               />
               <span>
                 Access tokens are refreshed automatically before they expire. A revoked refresh
@@ -227,7 +232,7 @@ export default async function EmailSettingsPage({
                 size={15}
                 weight="bold"
                 aria-hidden="true"
-                className="mt-0.5 shrink-0 text-brand"
+                className="mt-0.5 shrink-0 text-brand dark:text-support"
               />
               <span>
                 Access and refresh tokens are encrypted at rest with AES-256-GCM. They never reach
@@ -239,7 +244,7 @@ export default async function EmailSettingsPage({
                 size={15}
                 weight="bold"
                 aria-hidden="true"
-                className="mt-0.5 shrink-0 text-brand"
+                className="mt-0.5 shrink-0 text-brand dark:text-support"
               />
               <span>
                 Product email is written to the outbox first. The cron worker drains the queue
@@ -251,7 +256,7 @@ export default async function EmailSettingsPage({
                 size={15}
                 weight="bold"
                 aria-hidden="true"
-                className="mt-0.5 shrink-0 text-brand"
+                className="mt-0.5 shrink-0 text-brand dark:text-support"
               />
               <span>
                 The requested scope is <code className="font-mono">gmail.send</code> only.

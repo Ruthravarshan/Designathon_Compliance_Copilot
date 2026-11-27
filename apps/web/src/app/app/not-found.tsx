@@ -5,7 +5,7 @@ import { LinkButton } from "@/components/ui/button";
 export default function AppNotFound() {
   return (
     <div className="mx-auto max-w-[640px] py-16">
-      <span className="inline-flex size-10 items-center justify-center rounded-full bg-brand/10 text-brand">
+      <span className="inline-flex size-10 items-center justify-center rounded-full bg-brand/10 text-brand dark:bg-support/15 dark:text-support">
         <FileMagnifyingGlass size={20} weight="bold" aria-hidden="true" />
       </span>
       <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">404</p>

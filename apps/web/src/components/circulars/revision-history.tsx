@@ -61,10 +61,7 @@ export function RevisionHistory({ revisions }: { revisions: RevisionRow[] }) {
             <p className="mt-2 text-xs leading-relaxed text-muted">
               {toTokens(revision.diff).map((token, index) =>
                 token.type === "added" ? (
-                  <mark
-                    key={index}
-                    className="rounded-sm bg-brand/15 px-0.5 text-brand"
-                  >
+                  <mark key={index} className="rounded-sm bg-brand/15 px-0.5 text-brand">
                     {token.value}
                   </mark>
                 ) : token.type === "removed" ? (

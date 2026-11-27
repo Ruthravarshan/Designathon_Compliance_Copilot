@@ -53,8 +53,8 @@ export default async function WatchPage() {
           </h1>
           <p className="mt-2 max-w-[72ch] text-sm leading-relaxed text-muted">
             A scheduled watchdog fetches the regulator listing pages, detects republished circulars
-            by checksum, extracts clauses, and re-scores findings. Owners can also trigger a check on
-            demand.
+            by checksum, extracts clauses, and re-scores findings. Owners can also trigger a check
+            on demand.
           </p>
         </div>
         {canRun ? <RunWatchButton /> : null}
@@ -62,7 +62,12 @@ export default async function WatchPage() {
 
       {overdueTotal > 0 ? (
         <div className="flex items-start gap-3 rounded-2xl border border-danger/35 bg-danger/10 px-5 py-4">
-          <WarningOctagon size={18} weight="bold" aria-hidden="true" className="mt-0.5 text-danger" />
+          <WarningOctagon
+            size={18}
+            weight="bold"
+            aria-hidden="true"
+            className="mt-0.5 text-danger"
+          />
           <div className="text-sm">
             <p className="font-medium text-fg">
               {overview.posture.criticalOverdue} critical and {overview.posture.highOverdue} high
@@ -78,8 +83,16 @@ export default async function WatchPage() {
 
       <dl className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Posture", value: `${overview.posture.score}/100`, hint: humanize(overview.posture.band) },
-          { label: "Open findings", value: String(overview.posture.open), hint: `${overview.posture.overdue} overdue` },
+          {
+            label: "Posture",
+            value: `${overview.posture.score}/100`,
+            hint: humanize(overview.posture.band),
+          },
+          {
+            label: "Open findings",
+            value: String(overview.posture.open),
+            hint: `${overview.posture.overdue} overdue`,
+          },
           {
             label: "Sources",
             value: `${enabledCount}/${overview.sources.length}`,
@@ -164,9 +177,7 @@ export default async function WatchPage() {
                   <div className="flex items-center gap-2">
                     <Badge
                       tone={
-                        source.lastStatus
-                          ? (RUN_TONE[source.lastStatus] ?? "neutral")
-                          : "neutral"
+                        source.lastStatus ? (RUN_TONE[source.lastStatus] ?? "neutral") : "neutral"
                       }
                       dot={Boolean(source.lastStatus)}
                     >

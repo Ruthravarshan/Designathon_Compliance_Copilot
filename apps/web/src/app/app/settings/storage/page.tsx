@@ -45,9 +45,9 @@ export default async function StorageSettingsPage() {
             Document storage
           </h1>
           <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-muted">
-            Circular PDFs are written to the primary store and fall back to the standby only when the
-            primary is unavailable. Owners and admins choose the location; secrets stay in the server
-            environment.
+            Circular PDFs are written to the primary store and fall back to the standby only when
+            the primary is unavailable. Owners and admins choose the location; secrets stay in the
+            server environment.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -62,11 +62,19 @@ export default async function StorageSettingsPage() {
           role="alert"
           className="flex items-start gap-2 rounded-xl border border-danger/35 bg-danger/10 px-4 py-3 text-sm text-fg"
         >
-          <ShieldCheck size={18} weight="bold" aria-hidden="true" className="mt-0.5 shrink-0 text-danger" />
+          <ShieldCheck
+            size={18}
+            weight="bold"
+            aria-hidden="true"
+            className="mt-0.5 shrink-0 text-danger"
+          />
           <span>
             The storage settings table is not in this database yet. Apply{" "}
-            <code className="font-mono text-xs">apps/web/prisma/sql/003-storage-connections.sql</code>{" "}
-            (or run <code className="font-mono text-xs">npm run db:init</code>) and reload this page.
+            <code className="font-mono text-xs">
+              apps/web/prisma/sql/003-storage-connections.sql
+            </code>{" "}
+            (or run <code className="font-mono text-xs">npm run db:init</code>) and reload this
+            page.
           </span>
         </div>
       ) : null}
@@ -78,8 +86,9 @@ export default async function StorageSettingsPage() {
           <HardDrives size={18} weight="bold" aria-hidden="true" />
         </span>
         <p className="text-xs leading-relaxed text-muted">
-          Uploads are path-scoped per workspace and never overwrite an existing file. A failed provider
-          call surfaces a safe error code here; it is never reported as a successful upload.
+          Uploads are path-scoped per workspace and never overwrite an existing file. A failed
+          provider call surfaces a safe error code here; it is never reported as a successful
+          upload.
         </p>
       </Card>
     </div>

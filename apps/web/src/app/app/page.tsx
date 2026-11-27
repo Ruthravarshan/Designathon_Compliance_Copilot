@@ -180,12 +180,19 @@ export default async function DashboardPage() {
           </p>
           <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: "Critical", value: posture.counts.critical, overdue: posture.criticalOverdue },
+              {
+                label: "Critical",
+                value: posture.counts.critical,
+                overdue: posture.criticalOverdue,
+              },
               { label: "High", value: posture.counts.high, overdue: posture.highOverdue },
               { label: "Medium", value: posture.counts.medium, overdue: posture.overdue },
               { label: "Low", value: posture.counts.low, overdue: 0 },
             ].map((item) => (
-              <div key={item.label} className="rounded-xl border border-line bg-surface-2 px-3 py-2.5">
+              <div
+                key={item.label}
+                className="rounded-xl border border-line bg-surface-2 px-3 py-2.5"
+              >
                 <dt className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted">
                   {item.label}
                 </dt>

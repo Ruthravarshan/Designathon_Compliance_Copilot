@@ -87,12 +87,18 @@ export function RunWatchButton({
       <span aria-live="polite" className="max-w-[34ch] text-right text-xs leading-relaxed">
         {error ? (
           <span className="inline-flex items-start gap-1.5 text-fg">
-            <WarningCircle size={13} weight="fill" aria-hidden="true" className="mt-0.5 text-danger" />
+            <WarningCircle
+              size={13}
+              weight="fill"
+              aria-hidden="true"
+              className="mt-0.5 text-danger"
+            />
             {error}
           </span>
         ) : result ? (
           <span className="text-muted">
-            {result.message} {result.ingested > 0 || result.revisions > 0 ? "Documents updated." : ""}
+            {result.message}{" "}
+            {result.ingested > 0 || result.revisions > 0 ? "Documents updated." : ""}
           </span>
         ) : null}
       </span>
@@ -182,13 +188,18 @@ export function DirectIngestForm() {
       <div aria-live="polite" className="lg:col-span-4">
         {error ? (
           <p className="flex items-start gap-1.5 text-xs text-fg" role="alert">
-            <WarningCircle size={14} weight="fill" aria-hidden="true" className="mt-0.5 text-danger" />
+            <WarningCircle
+              size={14}
+              weight="fill"
+              aria-hidden="true"
+              className="mt-0.5 text-danger"
+            />
             {error}
           </p>
         ) : result ? (
           <p className="text-xs text-muted">
-            Ingested <span className="font-mono text-fg">{result.reference}</span> · {result.clauses}{" "}
-            clauses · {result.findings} findings.{" "}
+            Ingested <span className="font-mono text-fg">{result.reference}</span> ·{" "}
+            {result.clauses} clauses · {result.findings} findings.{" "}
             <Link
               href={`/app/circulars/${result.id}`}
               className="inline-flex items-center gap-1 font-medium text-brand hover:underline"

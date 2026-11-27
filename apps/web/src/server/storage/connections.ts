@@ -31,7 +31,10 @@ function envSet(name: string): boolean {
 /** Secrets stay in the environment; this only tells the UI what is configured. */
 export function storageEnvironmentStatus(): StorageEnvironmentStatus {
   return {
-    graph: envSet("MSFT_GRAPH_TENANT_ID") && envSet("MSFT_GRAPH_CLIENT_ID") && envSet("MSFT_GRAPH_CLIENT_SECRET"),
+    graph:
+      envSet("MSFT_GRAPH_TENANT_ID") &&
+      envSet("MSFT_GRAPH_CLIENT_ID") &&
+      envSet("MSFT_GRAPH_CLIENT_SECRET"),
     drive: envSet("GOOGLE_SERVICE_ACCOUNT_JSON_BASE64"),
     supabase: envSet("NEXT_PUBLIC_SUPABASE_URL") && envSet("SUPABASE_SERVICE_ROLE_KEY"),
   };
@@ -157,7 +160,11 @@ export async function upsertStorageConnection(input: {
     const saved = await db.$transaction(async (tx) => {
       if (isDefault) {
         await tx.storageConnection.updateMany({
-          where: { workspaceId: input.workspaceId, isDefault: true, NOT: { provider: key.provider } },
+          where: {
+            workspaceId: input.workspaceId,
+            isDefault: true,
+            NOT: { provider: key.provider },
+          },
           data: { isDefault: false },
         });
       }

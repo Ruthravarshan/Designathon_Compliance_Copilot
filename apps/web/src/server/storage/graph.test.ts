@@ -228,9 +228,9 @@ describe("SharePoint Graph adapter", () => {
     });
 
     expect(stored.itemId).toBe("item-shared");
-    expect(calls.some((call) => call.url.includes(`/shares/${graphShareId(linked)}/driveItem`))).toBe(
-      true,
-    );
+    expect(
+      calls.some((call) => call.url.includes(`/shares/${graphShareId(linked)}/driveItem`)),
+    ).toBe(true);
     const put = calls.find((call) => call.init.method === "PUT");
     expect(put?.url).toContain("/drives/drive-9/items/folder-9:/ws/a.pdf:/content");
   });

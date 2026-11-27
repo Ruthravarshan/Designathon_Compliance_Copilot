@@ -64,6 +64,7 @@ export function checksumOf(bytes: Uint8Array): string {
 
 /** Extracts the folder id from a Google Drive folder link: /folders/<id> or ?id=<id>. */
 export function driveFolderIdFromUrl(url: string): string | null {
-  const match = /\/folders\/([A-Za-z0-9_-]{6,})/.exec(url) ?? /[?&]id=([A-Za-z0-9_-]{6,})/.exec(url);
+  const match =
+    /\/folders\/([A-Za-z0-9_-]{6,})/.exec(url) ?? /[?&]id=([A-Za-z0-9_-]{6,})/.exec(url);
   return match?.[1] ?? null;
 }

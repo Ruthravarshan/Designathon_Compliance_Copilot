@@ -134,8 +134,18 @@ export function HeroTelemetry() {
                 return (
                   <g
                     key={stage.id}
-                    className="cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={selected}
+                    aria-label={`Inspect stage ${stage.step}: ${stage.label}`}
+                    className="cursor-pointer focus:outline-none"
                     onClick={() => setActiveStage(stage.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setActiveStage(stage.id);
+                      }
+                    }}
                   >
                     <rect
                       x={cx - 34}
@@ -186,7 +196,29 @@ export function HeroTelemetry() {
               })}
             </svg>
 
-            <div className="mt-2 rounded-xl border border-line bg-surface px-4 py-3">
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {PIPELINE_STAGES.map((stage) => {
+                const selected = stage.id === activeStage;
+                return (
+                  <button
+                    key={stage.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setActiveStage(stage.id)}
+                    className={cn(
+                      "min-h-8 rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors",
+                      selected
+                        ? "bg-brand text-brand-ink"
+                        : "border border-line bg-surface text-muted hover:border-muted/50 hover:text-fg",
+                    )}
+                  >
+                    {stage.step} · {stage.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-2.5 rounded-xl border border-line bg-surface px-4 py-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-brand dark:text-accent">
                   Stage {currentStage.step} · {currentStage.label}

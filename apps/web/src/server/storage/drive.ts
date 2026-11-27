@@ -334,7 +334,11 @@ export function createDriveProvider(
       const response = await authorized(
         "GET",
         `${DRIVE_API}/files/${encodeURIComponent(input.itemId)}?alt=media&supportsAllDrives=true`,
-        { ...(input.range ? { headers: { range: `bytes=${input.range.start}-${input.range.end}` } } : {}) },
+        {
+          ...(input.range
+            ? { headers: { range: `bytes=${input.range.start}-${input.range.end}` } }
+            : {}),
+        },
       );
       if (!response.ok) {
         throw new IngestionError(

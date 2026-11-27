@@ -162,8 +162,78 @@
   }
 }
 
+@keyframes pp-scan-beam {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  20% {
+    opacity: 0.7;
+  }
+  80% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(420%);
+  }
+}
+
+@keyframes pp-pulse-ring {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
 .pp-skeleton {
   background-color: var(--color-surface-2);
+}
+
+.pp-spotlight-card {
+  position: relative;
+}
+
+.pp-spotlight-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  background: radial-gradient(
+    360px circle at var(--pp-mx, 50%) var(--pp-my, 50%),
+    color-mix(in oklab, var(--color-brand) 9%, transparent),
+    transparent 65%
+  );
+}
+
+[data-theme="dark"] .pp-spotlight-card::before {
+  background: radial-gradient(
+    360px circle at var(--pp-mx, 50%) var(--pp-my, 50%),
+    color-mix(in oklab, var(--color-support) 13%, transparent),
+    transparent 65%
+  );
+}
+
+@media (hover: hover) {
+  .pp-spotlight-card:hover::before {
+    opacity: 1;
+  }
+}
+
+.pp-reveal {
+  opacity: 1;
+  transform: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -183,6 +253,19 @@
     animation: rise 620ms cubic-bezier(0.16, 1, 0.3, 1) 150ms both;
   }
 
+  .pp-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 640ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 640ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .pp-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   .pp-signal-line {
     stroke-dasharray: 6 6;
     animation: pp-signal-flow 1.8s linear infinite;
@@ -190,6 +273,14 @@
 
   .pp-chart-enter {
     animation: pp-ring-sweep 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .pp-scan-beam {
+    animation: pp-scan-beam 1.15s cubic-bezier(0.16, 1, 0.3, 1) 1 both;
+  }
+
+  .pp-pulse-ring {
+    animation: pp-pulse-ring 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
   }
 }
 

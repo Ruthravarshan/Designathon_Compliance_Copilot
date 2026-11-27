@@ -26,6 +26,7 @@ export function UserMenu({
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -39,6 +40,24 @@ export function UserMenu({
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        const items = Array.from(
+          containerRef.current?.querySelectorAll<HTMLElement>(
+            '[role="menuitem"]:not([disabled])',
+          ) ?? [],
+        );
+        if (items.length === 0) {
+          return;
+        }
+        event.preventDefault();
+        const currentIndex = items.findIndex((item) => item === document.activeElement);
+        const delta = event.key === "ArrowDown" ? 1 : -1;
+        const nextIndex =
+          currentIndex === -1 ? 0 : (currentIndex + delta + items.length) % items.length;
+        items[nextIndex]?.focus();
       }
     };
     document.addEventListener("mousedown", onPointer);
@@ -52,6 +71,7 @@ export function UserMenu({
   return (
     <div ref={containerRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={open}
         aria-controls={menuId}

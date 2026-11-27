@@ -145,7 +145,11 @@ export function PersonalSettingsView({
 
         <CardBody>
           <form onSubmit={(event) => void handleProfileSave(event)} className="space-y-4">
-            <Field label="Display name" htmlFor="profile-name">
+            <Field
+              label="Display name"
+              htmlFor="profile-name"
+              hint={!actor.canEditName ? "Managed by your workspace directory." : undefined}
+            >
               <Input
                 id="profile-name"
                 value={name}
@@ -154,15 +158,17 @@ export function PersonalSettingsView({
               />
             </Field>
 
-            <Field label="Title" htmlFor="profile-title">
-              <Input
-                id="profile-title"
-                value={title}
-                placeholder="Not set"
-                disabled={!actor.canEditTitle || profilePending}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </Field>
+            {actor.canEditTitle || actor.title ? (
+              <Field label="Title" htmlFor="profile-title">
+                <Input
+                  id="profile-title"
+                  value={title}
+                  placeholder="Not set"
+                  disabled={!actor.canEditTitle || profilePending}
+                  onChange={(event) => setTitle(event.target.value)}
+                />
+              </Field>
+            ) : null}
 
             <Field label="Email" htmlFor="profile-email">
               <Input
@@ -205,11 +211,17 @@ export function PersonalSettingsView({
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <EnvelopeSimple size={18} weight="bold" aria-hidden="true" className="text-brand" />
+            <EnvelopeSimple
+              size={18}
+              weight="bold"
+              aria-hidden="true"
+              className="text-brand dark:text-support"
+            />
             <div>
               <h2 className="text-base font-semibold text-fg">Email notifications</h2>
               <p className="mt-0.5 text-xs text-muted">
-                Security, access changes, and invitations are transactional and always enabled.
+                Security, access changes, and remediation alerts are transactional and always
+                enabled.
               </p>
             </div>
           </div>
@@ -230,7 +242,10 @@ export function PersonalSettingsView({
               Guest sessions have no email address and do not receive email notifications.
             </p>
           ) : emailCategories.length === 0 ? (
-            <p className="text-sm text-muted">No configurable email categories available.</p>
+            <p className="text-xs leading-relaxed text-muted">
+              Transactional remediation alerts and review decisions are delivered to{" "}
+              <span className="font-mono text-fg">{actor.email}</span> through the workspace outbox.
+            </p>
           ) : (
             <div className="divide-y divide-line">
               {emailCategories.map((category) => (
@@ -296,7 +311,10 @@ function InlineStatusFeedback({
 }) {
   if (status.kind === "success") {
     return (
-      <p role="status" className="flex items-center gap-1.5 text-xs font-medium text-brand">
+      <p
+        role="status"
+        className="flex items-center gap-1.5 text-xs font-medium text-brand dark:text-support"
+      >
         <CheckCircle size={15} weight="fill" aria-hidden="true" />
         <span>{status.message}</span>
       </p>

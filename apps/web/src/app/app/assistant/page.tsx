@@ -36,7 +36,7 @@ export default async function AssistantPage() {
             Ask the register
           </h1>
           <p className="mt-2 max-w-[68ch] text-sm leading-relaxed text-muted">
-            A retrieval assistant over this workspace&apos;s policies, controls, and stored clauses.
+            A grounded assistant over this workspace&apos;s policies, controls, and stored clauses.
             Every answer must quote the register verbatim; when it cannot, it refuses and tells you
             to escalate.
           </p>
