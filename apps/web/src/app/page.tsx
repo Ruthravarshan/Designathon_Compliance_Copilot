@@ -2,11 +2,13 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { BrandLockup } from "@/components/brand/brand-lockup";
+import { HeroReceiptSnapshot } from "@/components/landing/hero-receipt-snapshot";
 import { HeroWorkbenchPreview } from "@/components/landing/hero-workbench-preview";
 import {
   InteractiveWorkflow,
   SecurityArchitectureGrid,
 } from "@/components/landing/interactive-workflow";
+import { PlatformModules } from "@/components/landing/platform-modules";
 import { Reveal, SpotlightCard } from "@/components/landing/reveal";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { parseThemeCookie, THEME_COOKIE_NAME } from "@/components/theme/theme";
@@ -33,6 +35,14 @@ const PILLARS = [
 
 const REGULATORS = ["RBI", "SEBI", "IRDAI", "MeitY · DPDP", "CERT-In"] as const;
 
+const NAV_LINKS = [
+  { href: "#capabilities", label: "Capabilities" },
+  { href: "#workbench", label: "Workbench" },
+  { href: "#workflow", label: "Workflow" },
+  { href: "#platform", label: "Platform" },
+  { href: "#security", label: "Security" },
+] as const;
+
 export default async function LandingPage() {
   const cookieStore = await cookies();
   const initialTheme = parseThemeCookie(cookieStore.get(THEME_COOKIE_NAME)?.value, "light");
@@ -43,32 +53,28 @@ export default async function LandingPage() {
       <div aria-hidden="true" className="pp-backdrop-grid" />
 
       <header className="sticky top-0 z-40 border-b border-line/80 bg-canvas/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-8">
-          <Link href="/" className="shrink-0">
+        <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-3 px-4 sm:px-8">
+          <Link href="/" className="min-w-0 shrink-0">
             <BrandLockup appName="PolicyPulse" />
           </Link>
 
           <nav
             aria-label="Primary"
-            className="hidden items-center gap-8 text-sm font-medium text-muted md:flex"
+            className="hidden items-center gap-7 text-sm font-medium text-muted lg:flex"
           >
-            <a href="#capabilities" className="transition-colors hover:text-fg">
-              Capabilities
-            </a>
-            <a href="#workflow" className="transition-colors hover:text-fg">
-              Workflow
-            </a>
-            <a href="#security" className="transition-colors hover:text-fg">
-              Security
-            </a>
+            {NAV_LINKS.map((item) => (
+              <a key={item.href} href={item.href} className="transition-colors hover:text-fg">
+                {item.label}
+              </a>
+            ))}
           </nav>
 
-          <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
             <ThemeToggle initialMode={initialTheme} />
             <LinkButton
               href="/signin"
               variant="secondary"
-              className="h-10 px-4 active:scale-[0.98]"
+              className="h-10 px-3.5 text-xs sm:px-4 sm:text-sm active:scale-[0.98]"
             >
               Sign in
             </LinkButton>
@@ -77,13 +83,13 @@ export default async function LandingPage() {
       </header>
 
       <main id="main">
-        {/* Hero: Asymmetric two-column layout with interactive verification simulator */}
-        <section className="mx-auto w-full max-w-[1200px] px-4 pb-16 pt-10 sm:px-8 md:pb-20 md:pt-16">
-          <div className="grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-12">
-            <div className="rise">
-              <div className="inline-flex items-center gap-2.5 rounded-full border border-line bg-surface px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+        {/* Hero: Focused value proposition + compact live citation receipt */}
+        <section className="mx-auto w-full max-w-[1200px] px-4 pb-14 pt-10 sm:px-8 md:pb-20 md:pt-16">
+          <div className="grid items-center gap-10 lg:grid-cols-[1.06fr_0.94fr] lg:gap-12">
+            <div className="rise min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-muted">
                 <span
-                  className="relative flex size-2 items-center justify-center"
+                  className="relative flex size-2 shrink-0 items-center justify-center"
                   aria-hidden="true"
                 >
                   <span className="pp-pulse-ring absolute inline-flex size-2 rounded-full bg-brand dark:bg-support" />
@@ -92,18 +98,22 @@ export default async function LandingPage() {
                 <span>Enterprise Regulatory Intelligence</span>
               </div>
 
-              <h1 className="mt-5 max-w-[14ch] text-[clamp(2.55rem,5.4vw,4.35rem)] font-semibold leading-[0.98] tracking-[-0.045em] text-fg">
+              <h1 className="mt-5 max-w-[14ch] text-[clamp(2.2rem,5vw,4.15rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-fg">
                 Regulatory change,{" "}
                 <span className="text-brand dark:text-support">with receipts.</span>
               </h1>
 
-              <p className="mt-5 max-w-[50ch] text-base leading-relaxed text-muted sm:text-[17px]">
+              <p className="mt-4 max-w-[48ch] text-base leading-relaxed text-muted sm:text-[17px]">
                 Ingest circulars across RBI, SEBI, IRDAI, and DPDP. Map cited obligations to your
                 internal policy register and route redlines for human sign-off.
               </p>
 
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <LinkButton href="/signin" size="lg" className="active:scale-[0.98]">
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <LinkButton
+                  href="/signin"
+                  size="lg"
+                  className="w-full sm:w-auto active:scale-[0.98]"
+                >
                   Open workbench
                   <ArrowRight size={16} weight="bold" aria-hidden="true" />
                 </LinkButton>
@@ -111,7 +121,7 @@ export default async function LandingPage() {
                   href="/signin?provider=google"
                   variant="secondary"
                   size="lg"
-                  className="active:scale-[0.98]"
+                  className="w-full sm:w-auto active:scale-[0.98]"
                 >
                   Enterprise SSO
                 </LinkButton>
@@ -145,28 +155,71 @@ export default async function LandingPage() {
             </div>
 
             <div className="rise rise-2 min-w-0">
-              <HeroWorkbenchPreview />
+              <HeroReceiptSnapshot />
             </div>
           </div>
+        </section>
 
-          {/* 3-column architectural ledger */}
-          <div id="capabilities" className="scroll-mt-24 mt-14 grid gap-4 md:grid-cols-3">
-            {PILLARS.map((pillar, idx) => (
-              <Reveal key={pillar.index} delayMs={idx * 75}>
-                <SpotlightCard className="h-full p-6 sm:p-7">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-brand dark:text-support">
-                      {pillar.index}
-                    </p>
-                    <span className="h-px w-8 bg-line" aria-hidden="true" />
-                  </div>
-                  <h2 className="mt-4 text-base font-semibold tracking-[-0.015em] text-fg">
-                    {pillar.title}
+        {/* Capabilities: 3-column architectural ledger */}
+        <section id="capabilities" className="scroll-mt-20 border-t border-line bg-surface/40">
+          <div className="mx-auto w-full max-w-[1200px] px-4 py-14 sm:px-8 md:py-20">
+            <Reveal>
+              <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+                <div className="max-w-[52ch]">
+                  <h2 className="text-2xl font-semibold tracking-[-0.025em] text-fg sm:text-3xl">
+                    Verifiable provenance, not black-box summaries.
                   </h2>
-                  <p className="mt-2 text-sm leading-relaxed text-muted">{pillar.body}</p>
-                </SpotlightCard>
-              </Reveal>
-            ))}
+                </div>
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                  Core guarantees
+                </span>
+              </div>
+            </Reveal>
+
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              {PILLARS.map((pillar, idx) => (
+                <Reveal key={pillar.index} delayMs={idx * 65}>
+                  <SpotlightCard className="h-full p-5 sm:p-6">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-brand dark:text-support">
+                        {pillar.index}
+                      </p>
+                      <span className="h-px w-8 bg-line" aria-hidden="true" />
+                    </div>
+                    <h3 className="mt-4 text-base font-semibold tracking-[-0.015em] text-fg">
+                      {pillar.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted">{pillar.body}</p>
+                  </SpotlightCard>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Interactive Workbench Preview: Dedicated full-width simulator section */}
+        <section id="workbench" className="scroll-mt-20 border-t border-line bg-canvas">
+          <div className="mx-auto w-full max-w-[1200px] px-4 py-16 sm:px-8 md:py-24">
+            <Reveal>
+              <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+                <div className="max-w-[54ch]">
+                  <h2 className="text-3xl font-semibold tracking-[-0.03em] text-fg sm:text-4xl">
+                    Inspect drafted redlines before anything publishes.
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
+                    Switch between bundled regulatory scenarios to trace exact clause citations,
+                    policy deltas, and the officer sign-off gate.
+                  </p>
+                </div>
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                  Interactive redline simulator
+                </span>
+              </div>
+            </Reveal>
+
+            <Reveal delayMs={80}>
+              <HeroWorkbenchPreview />
+            </Reveal>
           </div>
         </section>
 
@@ -196,8 +249,34 @@ export default async function LandingPage() {
           </div>
         </section>
 
+        {/* Workspace Modules: Regulatory Watch, Policy Checks, Grounded Q&A, Storage & Outbox */}
+        <section id="platform" className="scroll-mt-20 border-t border-line bg-canvas">
+          <div className="mx-auto w-full max-w-[1200px] px-4 py-16 sm:px-8 md:py-24">
+            <Reveal>
+              <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+                <div className="max-w-[56ch]">
+                  <h2 className="text-3xl font-semibold tracking-[-0.03em] text-fg sm:text-4xl">
+                    Continuous watch, policy checks, and resilient storage.
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
+                    Every backend service runs inside the tenant boundary—from scheduled regulator
+                    watchdogs and posture checks to SharePoint failover and Gmail OAuth delivery.
+                  </p>
+                </div>
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                  Workbench modules
+                </span>
+              </div>
+            </Reveal>
+
+            <Reveal delayMs={90}>
+              <PlatformModules />
+            </Reveal>
+          </div>
+        </section>
+
         {/* Enterprise Security & Live RBAC Preview */}
-        <section id="security" className="scroll-mt-20 border-t border-line bg-canvas">
+        <section id="security" className="scroll-mt-20 border-t border-line bg-surface/40">
           <div className="mx-auto grid w-full max-w-[1200px] gap-10 px-4 py-16 sm:px-8 md:py-24 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
             <Reveal>
               <div className="max-w-[44ch] lg:sticky lg:top-24">
@@ -210,7 +289,11 @@ export default async function LandingPage() {
                   every redline.
                 </p>
                 <div className="mt-7">
-                  <LinkButton href="/signin" variant="secondary" className="active:scale-[0.98]">
+                  <LinkButton
+                    href="/signin"
+                    variant="secondary"
+                    className="w-full sm:w-auto active:scale-[0.98]"
+                  >
                     Sign in to inspect workspace
                     <ArrowRight size={15} weight="bold" aria-hidden="true" />
                   </LinkButton>
@@ -237,7 +320,11 @@ export default async function LandingPage() {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <LinkButton href="/signin" size="lg" className="active:scale-[0.98]">
+                <LinkButton
+                  href="/signin"
+                  size="lg"
+                  className="w-full sm:w-auto active:scale-[0.98]"
+                >
                   Sign in
                   <ArrowRight size={16} weight="bold" aria-hidden="true" />
                 </LinkButton>

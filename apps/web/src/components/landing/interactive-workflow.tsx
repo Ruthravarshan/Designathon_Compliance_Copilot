@@ -53,7 +53,7 @@ const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     body: "Approve, edit, or reject drafted redlines. Every decision writes an immutable audit row.",
     artifactLabel: "Audit Spine + Outbox Queue",
     artifactLines: [
-      "decision: APPROVED · actor: Meera Krishnan (OWNER)",
+      "decision: APPROVED · actor: Rajeshwari (OWNER)",
       "audit_row: finding.reviewed · append-only",
       "outbox_email: queued to policy owner · escaped HTML",
     ],
@@ -66,7 +66,7 @@ export function InteractiveWorkflow() {
 
   return (
     <div className="mt-10 space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
         {WORKFLOW_STAGES.map((item, index) => {
           const isActive = index === activeStep;
           return (
@@ -76,9 +76,9 @@ export function InteractiveWorkflow() {
               aria-pressed={isActive}
               onClick={() => setActiveStep(index)}
               className={cn(
-                "group relative flex flex-col rounded-2xl border p-5 text-left transition-all duration-200",
+                "group relative flex min-h-14 flex-col rounded-2xl border p-3.5 text-left transition-all duration-200 sm:p-5",
                 isActive
-                  ? "border-brand bg-surface shadow-sm dark:border-support"
+                  ? "border-brand bg-surface pp-card-shadow dark:border-support"
                   : "border-line bg-surface/60 hover:border-brand/35 hover:bg-surface dark:hover:border-support/40",
               )}
             >
@@ -94,24 +94,25 @@ export function InteractiveWorkflow() {
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "h-1.5 w-8 rounded-full transition-colors duration-200",
+                    "h-1.5 w-6 rounded-full transition-colors duration-200 sm:w-8",
                     isActive ? "bg-brand dark:bg-support" : "bg-line",
                   )}
                 />
               </div>
-              <h3 className="mt-4 text-lg font-semibold tracking-[-0.015em] text-fg">
+              <h3 className="mt-2.5 text-sm font-semibold tracking-[-0.015em] text-fg sm:mt-4 sm:text-lg">
                 {item.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{item.body}</p>
+              <p className="mt-2 hidden text-sm leading-relaxed text-muted sm:block">{item.body}</p>
             </button>
           );
         })}
       </div>
 
       {/* Live stage artifact output */}
-      <div className="rounded-2xl border border-line bg-surface p-5">
+      <div className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
+        <p className="mb-3 text-xs leading-relaxed text-muted sm:hidden">{current.body}</p>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
-          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-brand dark:text-support">
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-brand dark:text-support">
             Stage {current.step} output · {current.artifactLabel}
           </span>
           <span className="font-mono text-[10px] text-muted">
@@ -120,7 +121,10 @@ export function InteractiveWorkflow() {
         </div>
         <div className="mt-3 grid gap-2 font-mono text-xs text-fg sm:grid-cols-3">
           {current.artifactLines.map((line) => (
-            <div key={line} className="rounded-xl border border-line bg-surface-2/60 px-3 py-2.5">
+            <div
+              key={line}
+              className="min-w-0 rounded-xl border border-line bg-surface-2/60 px-3 py-2.5 [overflow-wrap:anywhere]"
+            >
               {line}
             </div>
           ))}
@@ -141,33 +145,44 @@ const ROLE_PREVIEWS: readonly RolePreviewSpec[] = [
   {
     id: "owner",
     label: "Owner",
-    scope: "Full workspace governance, OAuth mailbox, and review sign-off",
+    scope: "Full workspace governance, OAuth mailbox, storage failover, and redline sign-off",
     capabilities: [
-      { name: "Ingest circulars", allowed: true },
+      { name: "Ingest circulars & run watch", allowed: true },
       { name: "Approve / reject redlines", allowed: true },
       { name: "Run policy & DPDP scans", allowed: true },
-      { name: "Read audit trail & export CSV", allowed: true },
+      { name: "Gmail OAuth, storage & CSV export", allowed: true },
     ],
   },
   {
     id: "admin",
-    label: "Compliance Admin",
-    scope: "Daily operations, ingestion, redline sign-off, and watchdog runs",
+    label: "Admin (CISO)",
+    scope: "Security ops, ingestion, watch runs, storage failover, and redline sign-off",
     capabilities: [
-      { name: "Ingest circulars", allowed: true },
+      { name: "Ingest circulars & run watch", allowed: true },
       { name: "Approve / reject redlines", allowed: true },
-      { name: "Run policy & DPDP scans", allowed: true },
-      { name: "Connect workspace Gmail", allowed: false },
+      { name: "Configure SharePoint / Drive", allowed: true },
+      { name: "Read audit trail & export CSV", allowed: true },
+    ],
+  },
+  {
+    id: "member",
+    label: "Member (HR)",
+    scope: "Read circulars, run assigned policy checks, and query grounded Q&A",
+    capabilities: [
+      { name: "Run policy check (POL-HR-01)", allowed: true },
+      { name: "Ask grounded Policy Q&A", allowed: true },
+      { name: "Approve / reject redlines", allowed: false },
+      { name: "Run watch or storage admin", allowed: false },
     ],
   },
   {
     id: "auditor",
-    label: "Board Auditor",
-    scope: "Read-only evidence inspection without mutation permissions",
+    label: "Auditor",
+    scope: "Read-only evidence inspection across circulars, findings, and policies",
     capabilities: [
       { name: "Read circulars & findings", allowed: true },
       { name: "Approve / reject redlines", allowed: false },
-      { name: "Ingest circulars", allowed: false },
+      { name: "Run policy checks or watch", allowed: false },
       { name: "Read restricted audit log", allowed: false },
     ],
   },
@@ -181,7 +196,7 @@ const ENTERPRISE_CONTROLS = [
   },
   {
     title: "Server-side RBAC",
-    detail: "Granular permissions across Owners, Admins, Analysts, and Read-Only Auditors.",
+    detail: "Granular permissions across Owners, Admins, Policy Members, and Read-Only Auditors.",
     icon: LockKey,
   },
   {
@@ -193,7 +208,7 @@ const ENTERPRISE_CONTROLS = [
   {
     title: "Append-only audit spine",
     detail:
-      "Every review decision, policy check, and data scan leaves an attributable event record.",
+      "Every review decision, policy check, watch run, and data scan writes an attributable record.",
     icon: CheckCircle,
   },
 ] as const;
@@ -223,9 +238,9 @@ export function SecurityArchitectureGrid() {
       </div>
 
       {/* Interactive RBAC Enforcement Preview */}
-      <SpotlightCard className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3.5">
-          <div>
+      <SpotlightCard className="p-4 sm:p-5">
+        <div className="flex flex-col gap-3 border-b border-line pb-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
               Server-enforced RBAC preview
             </p>
@@ -241,7 +256,7 @@ export function SecurityArchitectureGrid() {
                   aria-pressed={selected}
                   onClick={() => setRoleId(role.id)}
                   className={cn(
-                    "min-h-8 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                    "min-h-9 rounded-full px-3 py-1 text-xs font-medium transition-colors",
                     selected
                       ? "bg-brand text-brand-ink"
                       : "border border-line bg-surface-2 text-muted hover:text-fg",
@@ -258,14 +273,19 @@ export function SecurityArchitectureGrid() {
           {activeRole.capabilities.map((cap) => (
             <div
               key={cap.name}
-              className="flex items-center justify-between gap-2 rounded-xl border border-line bg-canvas/60 px-3 py-2 text-xs"
+              className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-line bg-canvas/60 px-3 py-2.5 text-xs"
             >
-              <span className={cap.allowed ? "text-fg" : "text-muted line-through"}>
+              <span
+                className={cn(
+                  "min-w-0 truncate",
+                  cap.allowed ? "text-fg" : "text-muted line-through",
+                )}
+              >
                 {cap.name}
               </span>
               <span
                 className={cn(
-                  "font-mono text-[10px] uppercase tracking-[0.1em]",
+                  "shrink-0 font-mono text-[10px] uppercase tracking-[0.1em]",
                   cap.allowed ? "text-brand dark:text-support" : "text-muted",
                 )}
               >

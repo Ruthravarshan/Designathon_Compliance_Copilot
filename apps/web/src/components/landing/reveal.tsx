@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 export function Reveal({
@@ -57,13 +57,7 @@ export function Reveal({
   );
 }
 
-export function SpotlightCard({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+export function SpotlightCard({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   const ref = useRef<HTMLDivElement>(null);
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
@@ -84,6 +78,7 @@ export function SpotlightCard({
         "pp-spotlight-card pp-card-shadow rounded-2xl border border-line bg-surface transition-colors duration-200 hover:border-brand/40 dark:hover:border-support/45",
         className,
       )}
+      {...props}
     >
       {children}
     </div>

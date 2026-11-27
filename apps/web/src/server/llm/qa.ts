@@ -102,7 +102,7 @@ export const GROUNDED_SYSTEM_INSTRUCTION = [
   "   numbers, dates, owners, or URLs.",
   "2. Every factual claim must be supported by at least one citation. A citation quotes a passage",
   "   verbatim (exact words copied from it) and names its passage number.",
-  "3. If the passages do not answer the question, set decision to \"insufficient\" and say in one",
+  '3. If the passages do not answer the question, set decision to "insufficient" and say in one',
   "   sentence what is missing. Do not stretch a passage to fit.",
   "4. Do not give legal advice, do not approve or reject anything, and do not propose policy edits.",
   "   State what the register says and, when useful, what to escalate.",

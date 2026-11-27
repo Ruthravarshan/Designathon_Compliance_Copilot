@@ -181,7 +181,17 @@ const SYNONYM_GROUPS: readonly (readonly string[])[] = [
     "inspection",
     "inspections",
   ],
-  ["frequency", "frequencies", "cadence", "cadences", "interval", "intervals", "periodic", "periodically", "often"],
+  [
+    "frequency",
+    "frequencies",
+    "cadence",
+    "cadences",
+    "interval",
+    "intervals",
+    "periodic",
+    "periodically",
+    "often",
+  ],
   [
     "deadline",
     "deadlines",
@@ -349,7 +359,9 @@ export function retrievePassages(
       }
       const df = documentFrequency.get(term) ?? 0;
       const idf = Math.log(1 + (totalDocuments - df + 0.5) / (df + 0.5));
-      const saturation = (tf * (BM25_K1 + 1)) / (tf + BM25_K1 * (1 - BM25_B + (BM25_B * document.length) / averageLength));
+      const saturation =
+        (tf * (BM25_K1 + 1)) /
+        (tf + BM25_K1 * (1 - BM25_B + (BM25_B * document.length) / averageLength));
       score += idf * saturation;
     }
 

@@ -96,11 +96,7 @@ describe("questions without words", () => {
 
 describe("token normalization", () => {
   it("collapses synonyms and strips suffixes", () => {
-    expect(tokenize("How are cyber incidents reported?")).toEqual([
-      "cyber",
-      "incident",
-      "report",
-    ]);
+    expect(tokenize("How are cyber incidents reported?")).toEqual(["cyber", "incident", "report"]);
     expect(tokenize("storage tested processes access")).toEqual([
       "store",
       "test",

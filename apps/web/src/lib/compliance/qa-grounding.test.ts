@@ -63,7 +63,8 @@ describe("grounded answer verification", () => {
         citations: [
           {
             passage: 2,
-            quote: "  critical   and CYBER security incidents shall be reported to the irdai within six hours ",
+            quote:
+              "  critical   and CYBER security incidents shall be reported to the irdai within six hours ",
           },
         ],
       }),

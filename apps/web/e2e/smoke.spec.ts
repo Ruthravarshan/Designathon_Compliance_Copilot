@@ -9,6 +9,35 @@ test("landing page states the product promise", async ({ page }) => {
   await expect(page.getByText("Built for regulated operations.")).toBeVisible();
 });
 
+test("landing page sections are interactive with zero horizontal overflow", async ({ page }) => {
+  for (const width of [320, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/");
+    const hasOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    );
+    expect(hasOverflow, `Horizontal overflow at ${width}px`).toBe(false);
+  }
+
+  // Interactive workbench scenario switch & sign-off preview
+  await page.getByRole("button", { name: /RBI · Residency/i }).click();
+  await expect(page.getByText("POL-CLOUD-05 · Cloud & data residency").first()).toBeVisible();
+  await page.getByRole("button", { name: /Simulate sign-off/i }).click();
+  await expect(page.getByText(/Audit event \+ outbox email queued/i)).toBeVisible();
+
+  // Interactive 4-stage workflow
+  await page.getByRole("button", { name: /04\s*Sign off/i }).click();
+  await expect(page.getByText(/Stage 04 output/i)).toBeVisible();
+
+  // Interactive backend platform modules
+  await page.getByRole("tab", { name: /Storage, Gmail & Exports/i }).click();
+  await expect(page.getByText(/SharePoint → Drive \/ Supabase/i)).toBeVisible();
+
+  // Interactive RBAC preview
+  await page.getByRole("button", { name: /Board Auditor|^Auditor$/i }).click();
+  await expect(page.getByText("403 Blocked").first()).toBeVisible();
+});
+
 test("build OS page keeps the ten hour route", async ({ page }) => {
   await page.goto("/platform");
 

@@ -186,3 +186,18 @@ Next: `08-hardening-report.md`
   `compliance@hexa.example`, matching the test).
 - Evidence: `typecheck` clean, `lint` clean, 436/436 unit tests. Live probe against a real provider
   not yet evidenced — owner must supply Graph consent and the Drive key first.
+
+## 2026-11-28 — Audit of incoming commits
+
+- Found unresolved merge conflict markers in `src/components/assistant-panel.tsx`: format, lint, and
+  typecheck all failed at parse time. Merged both sides: grounded turn-based Q&A (the page passes
+  `grounded`/`model`), abortable requests, thread clearing, Ctrl/Meta+Enter submit, pending states,
+  and the verified-generation safety copy. No `any`, ignored errors, or dead controls added.
+- Normalised Prettier drift in 11 files changed by the incoming commits.
+- Evidence after fixes: `npm run check` green (format, lint, typecheck, 465/465 unit tests,
+  production build); `npm run test:coverage` green (99.88% statements, 98.07% branches, 100%
+  functions, 99.88% lines); `npm run verify` 5 passed / 3 environment warnings; browser smoke
+  6/6 passed on Chromium and Pixel 7 emulation (`E2E_SKIP_SEED=1`, no DB needed).
+- Full release gate remains BLOCKED in this environment only: `npm run db:seed` needs Postgres and
+  `apps/web/.env`, and neither Docker nor a local Postgres is installed. `npx playwright install
+  chromium` was run and browsers are now available.
