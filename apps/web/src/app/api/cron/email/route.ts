@@ -21,7 +21,7 @@ function isAuthorized(request: Request): boolean {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
-export async function POST(request: Request) {
+async function handle(request: Request) {
   const requestId = crypto.randomUUID();
 
   if (!env.CRON_SECRET) {
@@ -47,4 +47,12 @@ export async function POST(request: Request) {
     { data: result },
     { headers: { "cache-control": "no-store", "x-request-id": requestId } },
   );
+}
+
+export async function GET(request: Request) {
+  return handle(request);
+}
+
+export async function POST(request: Request) {
+  return handle(request);
 }

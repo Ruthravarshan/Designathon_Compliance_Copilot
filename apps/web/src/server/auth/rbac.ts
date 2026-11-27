@@ -19,6 +19,12 @@ export const PERMISSIONS = [
   "project:delete",
   "audit:read",
   "email:send",
+  "document:read",
+  "document:ingest",
+  "finding:read",
+  "finding:review",
+  "assistant:ask",
+  "data:scan",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -45,6 +51,12 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "project:delete",
     "audit:read",
     "email:send",
+    "document:read",
+    "document:ingest",
+    "finding:read",
+    "finding:review",
+    "assistant:ask",
+    "data:scan",
   ]),
   MEMBER: new Set<Permission>([
     "workspace:read",
@@ -52,8 +64,17 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "project:read",
     "project:create",
     "project:update",
+    "document:read",
+    "finding:read",
+    "assistant:ask",
   ]),
-  VIEWER: new Set<Permission>(["workspace:read", "member:read", "project:read"]),
+  VIEWER: new Set<Permission>([
+    "workspace:read",
+    "member:read",
+    "project:read",
+    "document:read",
+    "finding:read",
+  ]),
 };
 
 export function can(role: Role, permission: Permission): boolean {

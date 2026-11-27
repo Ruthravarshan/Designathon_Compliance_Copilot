@@ -1,63 +1,63 @@
 # 08 — Hardening report
 
-> Phase 08 · 6:45–7:45 · Source: `agent-prompts/08-HARDEN.md`
-> Close what would embarrass the demo or the production story. Add a test for every fix.
+> Phase 08. What was checked, with the evidence that exists, and the residual mediums that are
+> documented rather than hidden.
 
-## Findings
+## Verified controls
 
-| # | Area | Severity | Finding | Fix | Status | Test |
-| - | ---- | -------- | ------- | --- | ------ | ---- |
-| 1 |      |          |         |     |        |      |
+| Area | Control | Evidence |
+| ---- | ------- | -------- |
+| Authorization | Every app page and API route resolves the actor server-side; review requires `finding:review` | `apps/web/src/server/auth/actor.ts`, `e2e/golden-path.spec.ts` 403 assertion |
+| Tenancy | Every query filters `workspaceId`; unknown ids 404 | `apps/web/src/server/compliance/service.ts`, Northwind e2e test |
+| Input validation | Zod at every route boundary; route params regex-checked | `apps/web/src/app/api/**/route.ts` |
+| Errors | `AppError` + `fail(error, requestId)`; no stack or SQL leaked | `src/lib/http.ts`, `src/lib/errors.ts` |
+| Session | HMAC-SHA256 signed cookie, httpOnly, SameSite=Lax, secure in prod, 8h | `src/server/auth/session.ts`, `src/lib/session.test.ts` |
+| CSRF | Same-origin check on mutations; SameSite cookie | `src/server/rate-limits.ts` |
+| Rate limits | Auth 10/min, review 20/min, Q&A 15/min, scan 10/min, ingest 5/5min | `src/lib/rate-limit.test.ts`, route handlers |
+| Secrets | `.env` ignored; cron worker requires bearer `CRON_SECRET` with constant-time compare | `api/cron/email/route.ts` |
+| Email safety | HTML-escaped variables, CRLF-stripped subjects, http(s)-only links, suppression and preference checks, idempotency | `src/server/email/render.ts`, `render.test.ts` |
+| Audit | Access/status/data-ownership writes create `AuditLog`; review events are immutable and have no edit/delete UI | `src/server/audit.ts`, audit page |
+| Headers | nosniff, frame DENY, referrer policy, permissions policy, COOP/CORP, CSP report-only, HSTS in prod | `apps/web/next.config.ts` |
+| Logging | Pino redaction of auth headers, cookies, emails, and reset links | `src/lib/logger.ts` |
+| Dependencies | Production audit clean | `npm run security:audit` → "found 0 vulnerabilities" |
+| Coverage | 223 unit tests; 99.86% statements, 98.19% branches; every tested module ≥95% | `npm run test:coverage` |
 
-Severity: critical / high / medium / low. No high or critical may remain open.
+## Data and privacy
 
-## RBAC evidence
+- Demo data only: reserved `*.example` addresses, masked samples, no customer records.
+- Data catalog stores masked samples, not raw PII.
+- Audit metadata stores ids and references; recipient addresses and reset links are excluded.
+- Retention: seeded corpus is disposable; `db:seed` reseeds the demo deterministically.
 
-| Check | Result | Evidence |
-| ----- | ------ | -------- |
-| Unauthenticated request rejected | | |
-| Wrong-workspace request rejected | | |
-| Cross-tenant read impossible | | |
-| Self-escalation blocked | | |
-| Last owner protected | | |
-| Client-supplied role ignored | | |
+## Findings triage
 
-## Email evidence
+| Severity | Finding | Status |
+| -------- | ------- | ------ |
+| High | None open | — |
+| Critical | None open | — |
+| Medium | Persona sign-in has no password by design; gated by `DEMO_MODE_ENABLED` and documented as non-production | Accepted for demo; must not ship |
+| Medium | Rate limiter is in-process; counters reset on restart and do not coordinate across instances | Accepted; interface allows Redis |
+| Medium | CSP is report-only and permits inline/eval to support the Next dev runtime | Accepted in demo; tighten before public launch |
+| Medium | CSRF relies on same-origin + SameSite rather than a per-form token | Accepted for a cookie-auth demo with no cross-site forms |
+| Low | Deterministic extraction recall is limited to typed patterns | Documented fallback to `manual_review` |
+| Low | Source documents are representative excerpts, not full legal texts | Labelled illustrative; source URLs shown |
 
-| Check | Result | Evidence |
-| ----- | ------ | -------- |
-| Enqueued through outbox, not inline | | |
-| Variables escaped | | |
-| CRLF stripped from subject | | |
-| Only http(s) links allowed | | |
-| Preference and suppression respected | | |
-| Cron secret enforced | | |
-| Retry and failure states visible | | |
-| Mailpit delivery smoke | | |
+No high or critical finding remains. Mediums are documented with their blast radius and the condition
+under which they must be fixed (production auth, multi-instance deploy, public launch).
 
-## Cross-tenant evidence
+## Accessibility pass
 
-- Test:
-- Result:
+- Keyboard: skip link, native controls, visible focus ring, `aria-pressed` review options.
+- Screen reader: one `h1` per page, landmarks, `sr-only` redline legend, labelled fields.
+- Contrast: token pairs verified visually; brand on white and white on brand meet AA at body size.
+- Motion: `prefers-reduced-motion` disables entrance transitions and smooth scroll.
+- Responsive: mobile nav becomes a horizontal list; tables stack; Playwright mobile-chrome runs the
+  non-stateful flows.
 
-## Performance evidence
+## Residual risk
 
-| Metric | Before | After | Method |
-| ------ | ------ | ----- | ------ |
-|        |        |       |        |
+The demo's integrity rests on the officer action and the audit row, not on model behaviour. The main
+external risk is reviewer trust in deterministic rules; the UI mitigates it by showing the exact
+quote, the mapping, the rule certainty, and an explicit manual-review fallback.
 
-## Remaining risks
-
-| # | Risk | Severity | Why accepted | Mitigation |
-| - | ---- | -------- | ------------ | ---------- |
-| 1 |      |          |              |            |
-
-## Gate
-
-- [ ] No high or critical findings remain.
-- [ ] Medium findings are documented with a mitigation.
-- [ ] Every fix has a test.
-- [ ] Accessibility and reduced motion checked.
-- [ ] Security headers, rate limits, and audit coverage checked.
-
-Next: `agent-prompts/09-FINAL-TEST.md` → `docs/discovery/09-release-report.md`
+Next: `09-release-report.md`

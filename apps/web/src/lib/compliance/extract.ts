@@ -58,20 +58,19 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function parseCount(raw: string | undefined): number | null {
-  if (!raw) {
-    return null;
-  }
-
+function parseCount(raw: string): number {
   const cleaned = raw.toLowerCase().trim().replace(/\s+/g, " ");
   if (/^\d+$/.test(cleaned)) {
     return Number.parseInt(cleaned, 10);
   }
 
-  return NUMBER_WORDS[cleaned] ?? NUMBER_WORDS[cleaned.replace(/\s+/g, "-")] ?? null;
+  // COUNT_TOKEN is generated from these keys, so the lookup always resolves.
+  return NUMBER_WORDS[cleaned]!;
 }
 
-const COUNT_TOKEN = "([a-z]+(?:[- ][a-z]+)*|\\d{1,3})";
+const COUNT_TOKEN = `(?:\\d{1,3}|${Object.keys(NUMBER_WORDS)
+  .sort((a, b) => b.length - a.length)
+  .join("|")})`;
 
 interface ParsedDuration {
   value: number;
@@ -81,24 +80,29 @@ interface ParsedDuration {
 
 function parseMonths(window: string, offset: number): ParsedDuration | null {
   const patterns = [
-    new RegExp(`once\\s+(?:in|every)\\s+${COUNT_TOKEN}\\s+(months?|years?)`, "i"),
-    new RegExp(`every\\s+${COUNT_TOKEN}\\s+(months?|years?)`, "i"),
-    new RegExp(`at least once (?:in|every)\\s+${COUNT_TOKEN}\\s+(months?|years?)`, "i"),
+    new RegExp(`once\\s+(?:in|every)\\s+(?<count>${COUNT_TOKEN})\\s+(?<unit>months?|years?)`, "i"),
+    new RegExp(`every\\s+(?<count>${COUNT_TOKEN})\\s+(?<unit>months?|years?)`, "i"),
+    new RegExp(
+      `at least once (?:in|every)\\s+(?<count>${COUNT_TOKEN})\\s+(?<unit>months?|years?)`,
+      "i",
+    ),
   ];
 
   for (const pattern of patterns) {
     const match = pattern.exec(window);
-    if (match) {
-      const count = parseCount(match[1]);
-      const unit = (match[2] ?? "").toLowerCase();
-      if (count !== null) {
-        return {
-          value: unit.startsWith("year") ? count * 12 : count,
-          unit: unit.startsWith("year") ? "years" : "months",
-          endIndex: offset + match.index + match[0].length,
-        };
-      }
+    if (!match?.groups) {
+      continue;
     }
+
+    // The pattern is generated with these exact named groups, so they always resolve.
+    const { count: rawCount, unit: rawUnit } = match.groups as { count: string; unit: string };
+    const count = parseCount(rawCount);
+    const years = rawUnit.toLowerCase().startsWith("year");
+    return {
+      value: years ? count * 12 : count,
+      unit: years ? "years" : "months",
+      endIndex: offset + match.index + match[0].length,
+    };
   }
 
   return null;
@@ -106,7 +110,7 @@ function parseMonths(window: string, offset: number): ParsedDuration | null {
 
 function parseHours(window: string, offset: number): ParsedDuration | null {
   const pattern = new RegExp(
-    `within\\s+(?:a period of\\s+)?${COUNT_TOKEN}\\s*(hours?|hrs?)`,
+    `within\\s+(?:a period of\\s+)?(?<count>${COUNT_TOKEN})\\s*(?:hours?|hrs?)`,
     "i",
   );
   const match = pattern.exec(window);
@@ -114,13 +118,9 @@ function parseHours(window: string, offset: number): ParsedDuration | null {
     return null;
   }
 
-  const count = parseCount(match[1]);
-  if (count === null) {
-    return null;
-  }
-
   return {
-    value: count,
+    // The pattern above always captures this group.
+    value: parseCount((match.groups as { count: string }).count),
     unit: "hours",
     endIndex: offset + match.index + match[0].length,
   };
@@ -128,7 +128,7 @@ function parseHours(window: string, offset: number): ParsedDuration | null {
 
 function parseDays(window: string, offset: number): ParsedDuration | null {
   const pattern = new RegExp(
-    `(?:retain|retention)[\\s\\S]{0,180}?${COUNT_TOKEN}\\s+(days?)`,
+    `(?:retain|retention)[\\s\\S]{0,180}?(?<count>${COUNT_TOKEN})\\s+(days?)`,
     "i",
   );
   const match = pattern.exec(window);
@@ -136,13 +136,9 @@ function parseDays(window: string, offset: number): ParsedDuration | null {
     return null;
   }
 
-  const count = parseCount(match[1]);
-  if (count === null) {
-    return null;
-  }
-
   return {
-    value: count,
+    // The pattern above always captures this group.
+    value: parseCount((match.groups as { count: string }).count),
     unit: "days",
     endIndex: offset + match.index + match[0].length,
   };
@@ -235,7 +231,7 @@ export function extractObligations(clause: SourceClause): ExtractedObligation[] 
           "Personal data breaches must be notified to the Data Protection Board and the affected Data Principals.",
         actionRequired:
           "Define a breach notification path to the Board and each affected Data Principal, with evidence retained.",
-        numeric: false,
+        numeric: /\b\d+\s*(?:hours?|days?)\b/i.test(text),
       }),
     ];
   }
@@ -250,7 +246,8 @@ export function extractObligations(clause: SourceClause): ExtractedObligation[] 
         requirement: { kind: "data_residency", region: "India" },
         quote,
         sectionLabel: clause.sectionLabel,
-        plainLanguage: "All regulated data must be stored exclusively on servers located within India.",
+        plainLanguage:
+          "All regulated data must be stored exclusively on servers located within India.",
         actionRequired:
           "Move affected storage to an India region, block cross-border replication, and test the control.",
         numeric: false,
@@ -371,7 +368,8 @@ export function extractObligations(clause: SourceClause): ExtractedObligation[] 
         requirement: { kind: "third_party_audit" },
         quote,
         sectionLabel: clause.sectionLabel,
-        plainLanguage: "The regulated entity must retain a right to audit its cloud service providers.",
+        plainLanguage:
+          "The regulated entity must retain a right to audit its cloud service providers.",
         actionRequired:
           "Add a right-to-audit clause to every cloud contract and schedule the first audit.",
         numeric: false,
@@ -388,7 +386,8 @@ export function extractObligations(clause: SourceClause): ExtractedObligation[] 
         sectionLabel: clause.sectionLabel,
         plainLanguage:
           "Cryptographic keys for regulated data must follow a bring-your-own-key (BYOK) model.",
-        actionRequired: "Move regulated keys to a BYOK or customer-managed key model and document custody.",
+        actionRequired:
+          "Move regulated keys to a BYOK or customer-managed key model and document custody.",
         numeric: false,
       }),
     ];
@@ -525,7 +524,8 @@ export function extractObligations(clause: SourceClause): ExtractedObligation[] 
         quote,
         sectionLabel: clause.sectionLabel,
         plainLanguage: "The Board must constitute a Risk Management Committee.",
-        actionRequired: "Confirm the Board-level Risk Management Committee charter and retain evidence.",
+        actionRequired:
+          "Confirm the Board-level Risk Management Committee charter and retain evidence.",
         numeric: false,
       }),
     ];
@@ -538,14 +538,16 @@ export function extractObligations(clause: SourceClause): ExtractedObligation[] 
         requirement: { kind: "grievance_contact" },
         quote,
         sectionLabel: clause.sectionLabel,
-        plainLanguage: "The data fiduciary must publish a grievance or Data Protection Officer contact.",
+        plainLanguage:
+          "The data fiduciary must publish a grievance or Data Protection Officer contact.",
         actionRequired: "Publish a grievance or Data Protection Officer contact on the trust page.",
         numeric: false,
       }),
     ];
   }
 
-  const firstSentence = quote.split(/(?<=[.!?])\s/)[0] ?? quote;
+  const end = quote.search(/[.!?](?=\s|$)/);
+  const firstSentence = end === -1 ? quote : quote.slice(0, end + 1);
   return [
     manual(
       "OTHER",

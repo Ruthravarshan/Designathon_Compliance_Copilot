@@ -2,13 +2,7 @@ import { extractObligations } from "./extract";
 import { assessGap } from "./gap";
 import { mapObligation } from "./mapping";
 import { draftRedline } from "./redline";
-import type {
-  ComplianceRecord,
-  FindingDraft,
-  RegulatorKey,
-  Severity,
-  SourceClause,
-} from "./types";
+import type { ComplianceRecord, FindingDraft, RegulatorKey, Severity, SourceClause } from "./types";
 import { criticNotes, verifyCitation } from "./verify";
 
 const DUE_DAYS: Record<Severity, number> = {
@@ -80,6 +74,12 @@ export function analyzeClause(input: AnalyzeClauseInput): FindingDraft[] {
         extractionConfidence: obligation.extractionConfidence,
         citationVerified: check.verified,
         criticNotes: criticNotes(check, mapping.best !== null),
+      },
+      mapping: {
+        policyCode: mapping.policy?.code ?? null,
+        controlCode: mapping.control?.code ?? null,
+        confidence: mapping.confidence,
+        rationale: mapping.rationale,
       },
       finding: {
         status: gap.status,

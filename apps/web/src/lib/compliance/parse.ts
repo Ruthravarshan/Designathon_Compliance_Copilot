@@ -1,28 +1,26 @@
 import type { SourceClause } from "./types";
 
 const SECTION_PATTERN =
-  /^(?:Section|Clause|Chapter|Regulation|Article)\s+([\w().\-/]+)(?:\s*[:\-–]\s*(.+))?/i;
-const NUMBERED_PATTERN = /^(\d+(?:\.\d+)*)(?:[.)])?\s+(.*)$/;
+  /^(?:Section|Clause|Chapter|Regulation|Article)\s+(?<identifier>[\w().\-/]+)(?:\s*[:\-–—]\s*(?<heading>.+))?/i;
+const NUMBERED_PATTERN = /^(?<number>\d+(?:\.\d+)*)(?:[.)])?\s+/;
 const MAX_CLAUSES = 60;
 const MIN_CLAUSE_LENGTH = 24;
 
 function sectionLabelFor(block: string, index: number): { label: string; heading?: string } {
-  const firstLine = block.split("\n")[0]?.trim() ?? "";
+  const firstLine = block.split("\n", 1).join("");
   const section = SECTION_PATTERN.exec(firstLine);
 
-  if (section) {
-    const identifier = section[1] ?? String(index + 1);
-    const heading = section[2]?.trim();
+  if (section?.groups) {
+    const heading = section.groups.heading?.trim();
     return {
-      label: `Section ${identifier}`,
+      label: `Section ${section.groups.identifier}`,
       ...(heading ? { heading } : {}),
     };
   }
 
   const numbered = NUMBERED_PATTERN.exec(firstLine);
-  if (numbered) {
-    const identifier = numbered[1] ?? String(index + 1);
-    return { label: `Clause ${identifier}` };
+  if (numbered?.groups) {
+    return { label: `Clause ${numbered.groups.number}` };
   }
 
   return { label: `Clause ${index + 1}` };

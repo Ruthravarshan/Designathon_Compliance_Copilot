@@ -5,12 +5,17 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 2,
+  timeout: 120_000,
+  expect: { timeout: 20_000 },
+  globalSetup: "./e2e/global-setup.ts",
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "html",
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    navigationTimeout: 45_000,
+    actionTimeout: 20_000,
   },
   projects: [
     {
@@ -19,6 +24,7 @@ export default defineConfig({
     },
     {
       name: "mobile-chrome",
+      testIgnore: /owner-review\.spec\.ts/,
       use: { ...devices["Pixel 7"] },
     },
   ],

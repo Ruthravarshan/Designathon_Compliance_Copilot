@@ -194,11 +194,14 @@ Details and budgets: [SCALABILITY.md](SCALABILITY.md).
 
 - Local: Docker Compose for Postgres, Redis, and Mailpit; `npm run dev`; `npm run email:process` drains
   the outbox into Mailpit.
-- Preview: Vercel preview per pull request, or a Docker container per environment.
+- Hosted demo: Next.js on **Vercel** (Root Directory `apps/web`) with **Supabase Postgres**.
+  `DATABASE_URL` is the transaction pooler (`:6543`, serverless); `DIRECT_URL` is the session pooler
+  used by `db:push` / `db:deploy` / seed. Vercel Cron calls `GET /api/cron/email` with
+  `Authorization: Bearer $CRON_SECRET`.
 - Production: managed Postgres with backups, pooled connections, health checks, and a rollback path.
 - Migrations: `prisma migrate deploy` in the release step, never `db push` in production.
 
-Details: [DEPLOYMENT.md](DEPLOYMENT.md).
+Decision: [ADR 0002](decisions/0002-supabase-vercel.md). Details: [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Architecture decision records
 

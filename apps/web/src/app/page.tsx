@@ -1,453 +1,386 @@
-import { ArrowRight, ArrowUpRight, Check, TerminalWindow } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  CheckCircle,
+  FileText,
+  LockKey,
+  Scales,
+  Warning,
+} from "@phosphor-icons/react/dist/ssr";
 import { HexMark } from "@/components/brand/hex-mark";
+import { SeverityBadge } from "@/components/severity-badge";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-const phases = [
+const gaps = [
   {
-    id: "00",
-    time: "0:00–0:15",
-    name: "Intake",
-    gate: "Raw statement captured, constraints named",
-    output: "00-problem-statement.md",
+    severity: "CRITICAL" as const,
+    regulator: "IRDAI + CERT-In",
+    source: "Section 4.2 / Section 6",
+    obligation: "Report critical cyber incidents within six hours of detection.",
+    policy: "POL-SEC-02 · Incident Response and Reporting Policy",
+    conflict: "Escalates and reports within 72 hours — twelve times the permitted window.",
   },
   {
-    id: "01",
-    time: "0:15–0:55",
-    name: "Explore",
-    gate: "Users, jobs, alternatives, assumptions",
-    output: "01-opportunity-map.md",
+    severity: "CRITICAL" as const,
+    regulator: "RBI",
+    source: "Section 4.1, Page 21",
+    obligation: "Store payment system data only on servers located within India.",
+    policy: "POL-CLOUD-05 · Cloud Services and Data Residency Policy",
+    conflict: "Production and backups run in AWS ap-southeast-1, outside India.",
   },
   {
-    id: "02",
-    time: "0:55–1:20",
-    name: "Edge cases",
-    gate: "Failure matrix and abuse cases",
-    output: "02-edge-cases.md",
-  },
-  {
-    id: "03",
-    time: "1:20–1:45",
-    name: "Research",
-    gate: "Prior art, APIs, datasets, sources",
-    output: "03-research.md",
-  },
-  {
-    id: "04",
-    time: "1:45–2:15",
-    name: "Enhance PS",
-    gate: "Metrics, scope, acceptance criteria",
-    output: "04-enhanced-problem-statement.md",
-  },
-  {
-    id: "05",
-    time: "2:15–3:00",
-    name: "Solution design",
-    gate: "Architecture, data, API, risks",
-    output: "05-solution-design.md",
-  },
-  {
-    id: "06",
-    time: "3:00–3:30",
-    name: "Visual direction",
-    gate: "Design read, tokens, reference",
-    output: "06-visual-direction.md",
-  },
-  {
-    id: "07",
-    time: "3:30–6:45",
-    name: "Build",
-    gate: "Golden path works end to end",
-    output: "07-build-log.md",
-  },
-  {
-    id: "08",
-    time: "6:45–7:45",
-    name: "Harden",
-    gate: "Security, a11y, perf, scale checks",
-    output: "08-hardening-report.md",
-  },
-  {
-    id: "09",
-    time: "7:45–8:45",
-    name: "Final test",
-    gate: "Full suite green, deployed smoke",
-    output: "09-release-report.md",
-  },
-  {
-    id: "10",
-    time: "8:45–10:00",
-    name: "Demo + pitch",
-    gate: "Rehearsed twice, fallback ready",
-    output: "10-demo-script.md",
+    severity: "HIGH" as const,
+    regulator: "DPDP Act 2023",
+    source: "Section 6(4) / Section 8(7)",
+    obligation: "Honour consent withdrawal with comparable ease and erase data on withdrawal.",
+    policy: "POL-PRIV-01 · Customer Privacy and Consent Policy",
+    conflict: "Withdrawal only by email within 14 days, with an 18-month retention tail.",
   },
 ];
 
-const facts = [
-  { value: "10h", label: "Hard timebox" },
-  { value: "11", label: "Phase gates" },
-  { value: "1h", label: "Final test window" },
-  { value: "1", label: "Golden path" },
+const steps = [
+  {
+    index: "01",
+    title: "Ingest",
+    body: "Paste or register a circular. The content is checksummed, split into citable clauses, and stored with its source URL and effective date.",
+  },
+  {
+    index: "02",
+    title: "Extract",
+    body: "A deterministic parser turns each clause into atomic obligations: type, action, audience, threshold, and the exact quote that proves it.",
+  },
+  {
+    index: "03",
+    title: "Map and assess",
+    body: "Tag, term, and attribute scoring maps each obligation to a policy or control, then a gap rule sets severity, deadline, and confidence.",
+  },
+  {
+    index: "04",
+    title: "Review",
+    body: "The compliance officer approves, edits, or rejects the drafted redline. Every decision writes an immutable review event and audit row.",
+  },
+  {
+    index: "05",
+    title: "Remediate",
+    body: "Approval queues a durable remediation email to the control owner. Nothing is published to a policy register by the system.",
+  },
 ];
 
-const standards = [
-  "Strict TypeScript, zero any",
-  "Zod validation at every trust boundary",
-  "Server-side RBAC on every workspace read and write",
-  "Escalation guards and last-owner protection",
-  "Empty, loading, error, and unauthorized states",
-  "WCAG AA contrast and full keyboard paths",
-  "Cursor pagination, indexes, and no N+1 queries",
-  "Rate limits, idempotency, and audit logs on mutations",
-  "Durable email outbox with escaped, tested templates",
-  "CI green: format, lint, types, tests, build",
-  "Seeded demo data and a one-command reset",
-  "Deployed URL, health check, and rollback plan",
+const guardrails = [
+  {
+    title: "Exact citations",
+    body: "Every obligation must be a verified substring of the source clause. Unverified quotes are flagged, not smoothed over.",
+    icon: FileText,
+  },
+  {
+    title: "Calibrated confidence",
+    body: "Confidence is a published formula: citation verification, mapping score, and rule certainty. No hidden model scores.",
+    icon: Scales,
+  },
+  {
+    title: "Human sign-off",
+    body: "Approval, edits, and rejection are explicit officer actions. The system never publishes policy on its own.",
+    icon: CheckCircle,
+  },
+  {
+    title: "Tenant isolation",
+    body: "Every read and write is scoped to the signed-in workspace. A second seeded tenant proves the boundary.",
+    icon: LockKey,
+  },
+  {
+    title: "No model required",
+    body: "The extraction and gap core runs offline and deterministically. The demo path does not depend on an LLM or a prompt.",
+    icon: Warning,
+  },
 ];
 
-const quickstart = `npm install
-npm run setup
-npm run db:up
-npm run db:push
-npm run db:seed
-npm run dev`;
-
-export default function HomePage() {
+export default function LandingPage() {
   return (
-    <div className="relative min-h-[100dvh] overflow-x-clip">
+    <div className="relative min-h-dvh overflow-x-clip">
       <div aria-hidden="true" className="grid-field" />
 
-      <header className="border-b border-line/80">
-        <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-5 sm:px-8">
+      <header className="border-b border-line/70">
+        <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-4 px-5 sm:px-8">
           <a href="#main" className="group flex items-center gap-3">
             <HexMark className="size-7 text-brand" />
-            <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted transition-colors group-hover:text-fg">
-              Hexa / Designathon OS
+            <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted transition-colors group-hover:text-fg">
+              Hexa / Compliance Copilot
             </span>
           </a>
-          <div className="flex items-center gap-4">
-            <nav
-              aria-label="Primary"
-              className="hidden items-center gap-6 text-sm text-muted md:flex"
-            >
-              <a href="#workflow" className="transition-colors hover:text-fg">
-                Workflow
-              </a>
-              <a href="#principles" className="transition-colors hover:text-fg">
-                Principles
-              </a>
-              <a href="#standards" className="transition-colors hover:text-fg">
-                Standards
-              </a>
-            </nav>
-            <Badge tone="brand" dot>
-              Standby
-            </Badge>
-          </div>
+          <nav
+            aria-label="Primary"
+            className="hidden items-center gap-7 text-sm text-muted md:flex"
+          >
+            <a href="#proof" className="transition-colors hover:text-fg">
+              Demo gaps
+            </a>
+            <a href="#how" className="transition-colors hover:text-fg">
+              How it works
+            </a>
+            <a href="#guardrails" className="transition-colors hover:text-fg">
+              Guardrails
+            </a>
+            <a href="/platform" className="transition-colors hover:text-fg">
+              Build OS
+            </a>
+          </nav>
+          <LinkButton href="/signin" className="h-10 px-4">
+            Open workbench
+            <ArrowRight size={15} weight="bold" aria-hidden="true" />
+          </LinkButton>
         </div>
       </header>
 
       <main id="main">
-        <section className="mx-auto grid w-full max-w-[1200px] gap-12 px-5 pb-16 pt-16 sm:px-8 md:pt-24 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+        <section className="mx-auto grid w-full max-w-[1200px] gap-14 px-5 pb-20 pt-16 sm:px-8 md:pt-24 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div className="rise">
-            <Badge tone="outline">Operating system v1.0</Badge>
-            <h1 className="mt-6 max-w-[12ch] text-[clamp(3rem,7vw,5.75rem)] font-medium leading-[0.95] tracking-[-0.045em]">
-              Ten hours. <span className="italic text-brand">No excuses.</span>
+            <Badge tone="brand" dot>
+              Working demo · seeded workspace
+            </Badge>
+            <h1 className="mt-6 max-w-[16ch] text-[clamp(2.9rem,6.4vw,5.2rem)] font-medium leading-[0.96] tracking-[-0.045em]">
+              Regulatory change, <span className="italic text-brand">with receipts.</span>
             </h1>
-            <p className="mt-6 max-w-[46ch] text-base leading-relaxed text-muted sm:text-lg">
-              A phase-gated operating system that turns a raw problem statement into a deployed,
-              demo-ready product.
+            <p className="mt-6 max-w-[54ch] text-base leading-relaxed text-muted sm:text-lg">
+              The Compliance Copilot reads RBI, SEBI, IRDAI, CERT-In, and DPDP text, extracts
+              clause-cited obligations, maps them to your policy register, and hands an officer a
+              redline with a due date. No fabricated citations. No autonomous publishing.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <LinkButton href="#workflow">
-                Open the workflow
+              <LinkButton href="/signin">
+                Enter the workbench
                 <ArrowRight size={16} weight="bold" aria-hidden="true" />
               </LinkButton>
-              <LinkButton href="#standards" variant="secondary">
-                See the quality bar
+              <LinkButton href="#proof" variant="secondary">
+                See the seeded gaps
               </LinkButton>
             </div>
+            <dl className="mt-10 grid max-w-[520px] grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line">
+              {[
+                { value: "5", label: "Seeded circulars" },
+                { value: "4", label: "Regulators" },
+                { value: "0", label: "Autonomous publishes" },
+              ].map((fact) => (
+                <div key={fact.label} className="bg-surface px-4 py-4">
+                  <dt className="font-mono text-2xl tracking-tight text-brand">{fact.value}</dt>
+                  <dd className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                    {fact.label}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </div>
 
-          <div className="rise rise-2">
-            <Card className="overflow-hidden">
+          <div className="rise rise-2" id="sample">
+            <Card className="overflow-hidden shadow-[0_20px_60px_-30px_rgba(4,13,67,0.25)]">
               <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
                 <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
-                  Mission status
+                  Seeded finding render
                 </span>
-                <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-brand">
-                  <span aria-hidden="true" className="size-1.5 rounded-full bg-brand" />
-                  Standby
-                </span>
+                <SeverityBadge severity="CRITICAL" />
               </div>
-              <dl className="divide-y divide-line">
-                <div className="grid grid-cols-[6.5rem_1fr] gap-4 px-5 py-3.5">
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-                    Input
-                  </dt>
-                  <dd className="text-sm">Problem statement</dd>
+              <div className="space-y-5 p-5">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                    Source · IRDAI/IT/CYBER/2023 · Section 4.2
+                  </p>
+                  <blockquote className="mt-2 border-l-2 border-brand pl-4 text-sm leading-relaxed">
+                    “Critical and cyber security incidents shall be reported to the IRDAI within six
+                    hours of detection, along with the root cause and containment actions.”
+                  </blockquote>
                 </div>
-                <div className="grid grid-cols-[6.5rem_1fr] gap-4 px-5 py-3.5">
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-                    Next
-                  </dt>
-                  <dd className="font-mono text-xs text-fg">agent-prompts/MASTER-WORKFLOW.md</dd>
+                <div className="grid grid-cols-[1fr_auto] gap-3 rounded-xl bg-surface-2 p-4">
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                      Mapped policy
+                    </p>
+                    <p className="mt-1 text-sm font-medium">POL-SEC-02 · Incident response</p>
+                    <p className="mt-1 text-xs text-muted">Owner: Arjun Mehta · CISO</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                      Deadline
+                    </p>
+                    <p className="mt-1 font-mono text-xs">7 days from ingest</p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-[6.5rem_1fr] gap-4 px-5 py-3.5">
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-                    Artifacts
-                  </dt>
-                  <dd className="font-mono text-xs text-fg">docs/discovery/</dd>
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                    Drafted redline
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed">
+                    Report cyber security incidents to IRDAI and CERT-In{" "}
+                    <del className="rounded bg-danger/10 px-1 text-muted line-through decoration-danger/60">
+                      within 72 hours
+                    </del>{" "}
+                    <ins className="rounded bg-brand/10 px-1 text-fg no-underline">
+                      within 6 hours
+                    </ins>{" "}
+                    of detection.
+                  </p>
                 </div>
-                <div className="grid grid-cols-[6.5rem_1fr] gap-4 px-5 py-3.5">
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-                    Gate
-                  </dt>
-                  <dd className="text-sm">No product code before Phase 05</dd>
+                <div className="flex items-center justify-between border-t border-line pt-4">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-brand">
+                    <Check size={12} weight="bold" aria-hidden="true" />
+                    Citation verified
+                  </span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                    Confidence 0.88 · Pending review
+                  </span>
                 </div>
-              </dl>
-              <div className="border-t border-line bg-surface-2 px-5 py-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
-                  Start here
-                </p>
-                <p className="mt-1.5 font-mono text-xs text-brand">
-                  Paste the brief, then run the master workflow.
+              </div>
+              <div className="border-t border-line bg-surface-2 px-5 py-3">
+                <p className="text-xs text-muted">
+                  Illustrative rendering of the seeded IRDAI fixture. The live finding is produced
+                  by the deterministic engine and reviewed in the workbench.
                 </p>
               </div>
             </Card>
           </div>
         </section>
 
-        <section aria-label="Operating facts" className="border-y border-line bg-surface/40">
-          <div className="mx-auto grid w-full max-w-[1200px] grid-cols-2 gap-px bg-line md:grid-cols-4">
-            {facts.map((fact) => (
-              <div key={fact.label} className="bg-canvas px-5 py-6 sm:px-8">
-                <p className="font-mono text-2xl tracking-tight text-brand">{fact.value}</p>
-                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
-                  {fact.label}
+        <section id="proof" className="scroll-mt-8 border-y border-line bg-surface/40">
+          <div className="mx-auto w-full max-w-[1200px] px-5 py-20 sm:px-8 md:py-24">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+              <div className="max-w-[58ch]">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-brand">
+                  The demo actually proves something
+                </p>
+                <h2 className="mt-3 text-3xl font-medium tracking-[-0.03em] sm:text-4xl">
+                  Three real conflicts in the seed corpus.
+                </h2>
+                <p className="mt-3 text-muted">
+                  These findings are generated from the bundled circular text and internal register
+                  — not hand-written screenshots. Each card links to a clause-level review.
                 </p>
               </div>
-            ))}
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
+                5 circulars · 4 policies · 4 controls
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-4 lg:grid-cols-3">
+              {gaps.map((gap) => (
+                <Card key={gap.obligation} className="flex flex-col p-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                      {gap.regulator}
+                    </span>
+                    <SeverityBadge severity={gap.severity} />
+                  </div>
+                  <p className="mt-4 text-sm font-medium leading-relaxed">{gap.obligation}</p>
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                    {gap.source}
+                  </p>
+                  <div className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
+                    <p className="font-mono text-[11px] text-brand">{gap.policy}</p>
+                    <p className="text-muted">{gap.conflict}</p>
+                  </div>
+                  <div className="mt-auto pt-5">
+                    <Link
+                      href="/signin"
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-fg underline-offset-4 hover:text-brand hover:underline"
+                    >
+                      Review in the workbench
+                      <ArrowUpRight size={14} weight="bold" aria-hidden="true" />
+                    </Link>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </div>
         </section>
 
         <section
-          id="workflow"
+          id="how"
           className="mx-auto w-full max-w-[1200px] scroll-mt-8 px-5 py-20 sm:px-8 md:py-28"
         >
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div className="max-w-[52ch]">
-              <h2 className="text-3xl font-medium tracking-[-0.03em] sm:text-4xl">
-                The 10-hour route
-              </h2>
-              <p className="mt-3 text-muted">
-                Eleven gates. Every phase ends with an artifact, so the next hour never starts from
-                a blank page.
-              </p>
-            </div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">
-              Discovery → Design → Build → Prove
+          <div className="max-w-[58ch]">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-brand">The route</p>
+            <h2 className="mt-3 text-3xl font-medium tracking-[-0.03em] sm:text-4xl">
+              Five steps, one audit spine.
+            </h2>
+            <p className="mt-3 text-muted">
+              Every step leaves an artifact: a clause, an obligation, a mapping, a review event, or
+              a queued email. Nothing is a chat transcript.
             </p>
           </div>
 
           <ol className="mt-10 divide-y divide-line border-y border-line">
-            {phases.map((phase) => (
+            {steps.map((step) => (
               <li
-                key={phase.id}
-                className="grid gap-3 py-5 transition-colors hover:bg-surface/60 sm:grid-cols-[2.5rem_7rem_1fr_auto] sm:items-baseline sm:gap-4 sm:px-2"
+                key={step.index}
+                className="grid gap-3 py-6 sm:grid-cols-[3rem_12rem_1fr] sm:items-baseline sm:gap-6"
               >
-                <span className="font-mono text-xs text-muted">{phase.id}</span>
-                <span className="font-mono text-xs text-brand">{phase.time}</span>
-                <div>
-                  <p className="font-medium">{phase.name}</p>
-                  <p className="mt-1 text-sm text-muted">{phase.gate}</p>
-                </div>
-                <span className="font-mono text-[11px] text-muted sm:text-right">
-                  {phase.output}
-                </span>
+                <span className="font-mono text-xs text-brand">{step.index}</span>
+                <span className="text-lg font-medium tracking-[-0.01em]">{step.title}</span>
+                <p className="max-w-[68ch] text-sm leading-relaxed text-muted">{step.body}</p>
               </li>
             ))}
           </ol>
         </section>
 
-        <section id="principles" className="scroll-mt-8 border-t border-line">
+        <section id="guardrails" className="scroll-mt-8 border-t border-line bg-surface/40">
           <div className="mx-auto w-full max-w-[1200px] px-5 py-20 sm:px-8 md:py-28">
-            <div className="max-w-[52ch]">
-              <h2 className="text-3xl font-medium tracking-[-0.03em] sm:text-4xl">
-                How the work gets done
+            <div className="max-w-[58ch]">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-brand">
+                Guardrails
+              </p>
+              <h2 className="mt-3 text-3xl font-medium tracking-[-0.03em] sm:text-4xl">
+                Built for a regulated reader.
               </h2>
               <p className="mt-3 text-muted">
-                Four rules keep a ten-hour build from turning into a ten-hour demo.
+                A compliance officer has to defend every line. These are the constraints the product
+                refuses to trade away for a better demo.
               </p>
             </div>
 
-            <div className="mt-10 grid gap-4 lg:grid-cols-12">
-              <Card className="p-7 lg:col-span-7">
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
-                  01 / Discovery
-                </p>
-                <h3 className="mt-4 text-2xl font-medium tracking-[-0.02em]">
-                  Explore before you build.
-                </h3>
-                <p className="mt-3 max-w-[54ch] text-sm leading-relaxed text-muted">
-                  The first 90 minutes belong to the problem, not the stack. Users, jobs,
-                  alternatives, constraints, edge cases, prior art. Build starts only after the
-                  enhanced problem statement is written.
-                </p>
-              </Card>
-
-              <Card className="p-7 lg:col-span-5">
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
-                  02 / Evidence
-                </p>
-                <h3 className="mt-4 text-2xl font-medium tracking-[-0.02em]">
-                  Evidence over vibes.
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-muted">
-                  Every claim gets a source, a test, or a measured result. Anything unverifiable in
-                  ten hours is an assumption, and assumptions go in the risk register.
-                </p>
-              </Card>
-
-              <Card className="p-7 lg:col-span-5">
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
-                  03 / Production
-                </p>
-                <h3 className="mt-4 text-2xl font-medium tracking-[-0.02em]">
-                  Production is a feature.
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-muted">
-                  Auth, tenancy, validation, error states, observability, and a rollback path are
-                  part of the product, not a stretch goal.
-                </p>
-              </Card>
-
-              <Card className="border-brand bg-brand p-7 text-brand-ink lg:col-span-7">
-                <div className="flex items-start justify-between gap-6">
-                  <div>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-brand-ink/70">
-                      04 / Demo
-                    </p>
-                    <h3 className="mt-4 text-2xl font-medium tracking-[-0.02em]">
-                      The demo is the product.
+            <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+              {guardrails.map((guardrail, index) => {
+                const Icon = guardrail.icon;
+                return (
+                  <Card
+                    key={guardrail.title}
+                    className={index < 2 ? "p-6 lg:col-span-3" : "p-6 lg:col-span-2"}
+                  >
+                    <Icon size={20} weight="bold" aria-hidden="true" className="text-brand" />
+                    <h3 className="mt-4 text-lg font-medium tracking-[-0.01em]">
+                      {guardrail.title}
                     </h3>
-                    <p className="mt-3 max-w-[48ch] text-sm leading-relaxed text-brand-ink/75">
-                      One golden path, rehearsed twice, with a fallback recording. Judges remember
-                      the story and the live moment, not the feature count.
-                    </p>
-                  </div>
-                  <ArrowUpRight
-                    size={28}
-                    weight="bold"
-                    aria-hidden="true"
-                    className="mt-1 shrink-0"
-                  />
-                </div>
-              </Card>
+                    <p className="mt-2 text-sm leading-relaxed text-muted">{guardrail.body}</p>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </section>
 
-        <section id="standards" className="scroll-mt-8 border-t border-line bg-surface/40">
-          <div className="mx-auto w-full max-w-[1200px] px-5 py-20 sm:px-8 md:py-28">
-            <div className="max-w-[52ch]">
-              <h2 className="text-3xl font-medium tracking-[-0.03em] sm:text-4xl">
-                The quality bar
-              </h2>
-              <p className="mt-3 text-muted">
-                If it is not on this list, it is not done. The release gate is mechanical, not a
-                vibe check.
-              </p>
-            </div>
-
-            <div className="mt-10 grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
-              <Card className="p-6 sm:p-8">
-                <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-                  {standards.map((item) => (
-                    <li key={item} className="flex gap-3 text-sm leading-relaxed text-muted">
-                      <Check
-                        size={16}
-                        weight="bold"
-                        aria-hidden="true"
-                        className="mt-0.5 shrink-0 text-brand"
-                      />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-
-              <Card className="flex flex-col justify-between p-6 sm:p-8">
-                <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
-                    Release gate
-                  </p>
-                  <h3 className="mt-3 text-xl font-medium tracking-[-0.02em]">
-                    Last hour, no new features.
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-muted">
-                    The final test window is protected. Run the full suite, smoke the deployed URL,
-                    then rehearse the demo twice.
-                  </p>
-                </div>
-                <div className="mt-6 space-y-2 border-t border-line pt-5 font-mono text-xs text-fg">
-                  <p>
-                    <span className="text-brand">$</span> npm run check
-                  </p>
-                  <p>
-                    <span className="text-brand">$</span> npm run test:e2e
-                  </p>
-                  <p>
-                    <span className="text-brand">$</span> npm run release:check
-                  </p>
-                </div>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="commands"
-          className="mx-auto w-full max-w-[1200px] scroll-mt-8 px-5 py-20 sm:px-8 md:py-28"
-        >
-          <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+        <section className="border-t border-line">
+          <div className="mx-auto flex w-full max-w-[1200px] flex-col justify-between gap-8 px-5 py-16 sm:px-8 md:flex-row md:items-center">
             <div>
-              <h2 className="text-3xl font-medium tracking-[-0.03em] sm:text-4xl">
-                From clone to running.
+              <h2 className="text-2xl font-medium tracking-[-0.02em] sm:text-3xl">
+                Open the seeded workspace.
               </h2>
-              <p className="mt-3 max-w-[42ch] text-muted">
-                One command chain. Docker for the database, Prisma for the schema, seeded demo data
-                for the walkthrough.
-              </p>
-              <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
-                Full setup: docs/PREREQUISITES.md
-              </p>
-              <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
-                Mailpit: localhost:8025
+              <p className="mt-2 max-w-[52ch] text-sm text-muted">
+                Five personas, one real tenant and one isolation tenant. Start as the Head of
+                Compliance and walk a critical finding to sign-off.
               </p>
             </div>
-
-            <Card className="overflow-hidden">
-              <div className="flex items-center justify-between border-b border-line px-5 py-3">
-                <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
-                  <TerminalWindow size={14} aria-hidden="true" />
-                  Fresh machine
-                </span>
-                <Badge tone="outline">6 steps</Badge>
-              </div>
-              <pre className="overflow-x-auto p-5 font-mono text-[13px] leading-7 text-fg">
-                <code>{quickstart}</code>
-              </pre>
-            </Card>
+            <LinkButton href="/signin">
+              Choose a persona
+              <ArrowRight size={16} weight="bold" aria-hidden="true" />
+            </LinkButton>
           </div>
         </section>
       </main>
 
       <footer className="border-t border-line">
         <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-3 px-5 py-8 text-xs text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p className="font-mono uppercase tracking-[0.16em]">Hexa Designathon OS</p>
-          <p>Discovery first. Ship last. Test before you demo.</p>
+          <p className="font-mono uppercase tracking-[0.16em]">Hexa Compliance Copilot</p>
+          <p>Built for the Hexa Designathon · demo data only · human sign-off required</p>
         </div>
       </footer>
     </div>

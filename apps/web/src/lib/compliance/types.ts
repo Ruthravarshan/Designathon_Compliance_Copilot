@@ -110,6 +110,12 @@ export interface FindingDraft {
     citationVerified: boolean;
     criticNotes: string;
   };
+  mapping: {
+    policyCode: string | null;
+    controlCode: string | null;
+    confidence: number;
+    rationale: string;
+  };
   finding: {
     status: GapStatus;
     severity: Severity;

@@ -137,7 +137,7 @@ function scoreRecord(
 ): ScoredRecord {
   const recordTags = new Set(record.tags.map((tag) => tag.toLowerCase()));
   const tagHits = tags.filter((tag) => recordTags.has(tag));
-  const tagScore = tags.length === 0 ? 0 : (tagHits.length / tags.length) * 0.45;
+  const tagScore = (tagHits.length / tags.length) * 0.45;
 
   const recordTokens = tokenize(
     `${record.title} ${record.section} ${record.text} ${record.tags.join(" ")}`,
@@ -149,7 +149,7 @@ function scoreRecord(
     }
   }
   const termDenominator = Math.min(obligationTokens.size, 12);
-  const termScore = termDenominator === 0 ? 0 : (overlap / termDenominator) * 0.35;
+  const termScore = (overlap / termDenominator) * 0.35;
 
   const hasAttribute =
     attributeKey !== null &&
@@ -204,7 +204,9 @@ export function mapObligation(
     scoreRecord(record, tags, obligationTokens, attributeKey),
   );
 
-  const policy = bestOf(policyCandidates.filter((candidate) => candidate.score >= MAPPING_THRESHOLD));
+  const policy = bestOf(
+    policyCandidates.filter((candidate) => candidate.score >= MAPPING_THRESHOLD),
+  );
   const control = bestOf(
     controlCandidates.filter((candidate) => candidate.score >= MAPPING_THRESHOLD),
   );

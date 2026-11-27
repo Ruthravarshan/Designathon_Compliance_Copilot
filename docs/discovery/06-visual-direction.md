@@ -1,121 +1,92 @@
 # 06 — Visual direction
 
-> Phase 06 · 3:00–3:30 · Source: `agent-prompts/06-VISUAL-DIRECTION.md`
-> Lock the visual system before building UI. Load `design-taste-frontend` with the skill tool, plus
-> one reference skill (`imagegen-frontend-web` or `imagegen-frontend-mobile`).
-> Brand lock: palette, typeface, and logo rules come from `docs/BRAND.md`. Record roles; never invent
-> hex values or a second accent.
+> Phase 06. The locked Hexaware system applied to a compliance workbench. Reference assets: none
+> generated — the shipped screens are the reference (see fallback note).
 
 ## Design read
 
-- Page kind:
-- Audience:
-- Vibe in three words:
-- Aesthetic family:
-- What it must not look like:
+- **Audience:** a compliance officer, CISO, and board auditor. They read for evidence, not delight.
+- **Job of the interface:** make provenance obvious and decisions feel consequential without drama.
+- **Register:** precise, editorial, calm. Dense tables and monospace metadata; one saturated accent.
+- **Anti-patterns rejected:** chatbot-first layout, gradient hero text, glassmorphism, fake dashboards,
+  emoji status, dark-mode-only, purple-on-white "AI" clichés beyond the fixed Hexaware blue.
 
-## Dials
+## Tokens (source of truth: `apps/web/src/app/globals.css`)
 
-| Dial | Setting (1–5) | Why |
-| ---- | ------------- | --- |
-| Variance |  |  |
-| Motion |    |  |
-| Density |   |  |
+| Token | Value | Role |
+| ----- | ----- | ---- |
+| `--color-canvas` | `#f8f8f9` | Page field |
+| `--color-surface` | `#ffffff` | Cards, panels |
+| `--color-surface-2` | `#eeeff2` | Inset blocks, table header |
+| `--color-line` | `#cbd0e5` | Hairlines and borders |
+| `--color-fg` | `#040d43` | Primary text |
+| `--color-muted` | `#535983` | Secondary text |
+| `--color-brand` | `#3c2cda` | Hexaware blue; links, accents, focus |
+| `--color-brand-hover` | `#3224bd` | Primary hover |
+| `--color-brand-ink` | `#ffffff` | Text on brand |
+| `--color-danger` | `#da2d2c` | Critical severity, destructive validation |
 
-## Tokens
+No component may hard-code a hex. Severity uses tokens: CRITICAL danger, HIGH brand, MEDIUM
+surface-2, LOW muted.
 
-### Color
+## Type
 
-| Token | Value | Use |
-| ----- | ----- | --- |
-| `canvas` | `#F8F8F9` | Page background |
-| `surface` | `#FFFFFF` | Cards and sheets |
-| `surface-2` | `#EEEFF2` | Inset, skeleton, hover |
-| `line` | `#CBD0E5` | Borders and dividers |
-| `fg` | `#040D43` | Primary text |
-| `muted` | `#535983` | Secondary text |
-| `brand` | `#3C2CDA` | Single accent, CTAs, links, focus |
-| `brand-hover` | `#3224BD` | Hover and pressed |
-| `brand-ink` | `#FFFFFF` | Text on the brand fill |
-| `danger` | `#DA2D2C` | Error and destructive states |
+- **Manrope Variable** for UI and headings; **Geist Mono** for metadata, references, counts, and
+  dates. Mono is the "evidence" voice.
+- Scale: `clamp` display headings on marketing surfaces; `text-3xl/4xl` page titles; 13–15px body in
+  the workbench; 9–11px uppercase mono labels with `0.14em` tracking.
+- Numbers are tabular via mono; no custom numerals.
 
-One accent. Contrast checked against WCAG AA. Dark surfaces, if used, follow `docs/BRAND.md`.
+## Layout
 
-### Type
+- Marketing: 1200px max width, asymmetric hero (copy + seeded finding render), proof cards, 5-step
+  route, guardrail grid. A faint fixed grid field sits behind the hero.
+- Workbench: sticky top bar, vertical nav on `lg`, horizontal scroll nav on mobile; content max width
+  with 5-unit spacing rhythm; tables collapse to stacked cards under `xl`.
+- Finding detail: two columns — evidence and redline left, confidence, remediation, review right.
+- Empty, loading, error, and unauthorized states are designed, not incidental.
 
-| Role | Family | Size | Weight | Tracking |
-| ---- | ------ | ---- | ------ | -------- |
-| Display | Manrope |  | 300–600 |  |
-| Body | Manrope |  | 400–500 |  |
-| Mono | Geist Mono |  | 400 |  |
+## Motion
 
-No other typeface. No 700 or 800 weights.
+- One entrance: `.rise` / `.rise-2` translate-and-fade on marketing sections.
+- Transitions limited to color, border, and shadow (150–200ms). No layout animation in the
+  workbench.
+- `prefers-reduced-motion` removes entrance animation and smooth scrolling.
+- Spinners only inside buttons with pending copy ("Recording decision").
 
-### Spacing and shape
+## Interaction and accessibility
 
-- Spacing scale:
-- Radius rule:
-- Elevation rule:
-- Border rule:
+- Visible focus: 2px brand outline with 3px offset on every interactive element.
+- Skip link to `#main`; landmarks (`header`, `main`, `nav`, `footer`); one `h1` per page.
+- Severity never relies on color alone: text badge plus label.
+- Redline uses `<del>/<ins>` with an `sr-only` legend and a visible removed/added key.
+- Contrast: fg on canvas, muted on surface, white on brand meet WCAG AA at body sizes.
+- Keyboard: forms are native controls; review options are buttons with `aria-pressed`.
 
-### Motion
+## States inventory
 
-| Animation | Reason | Duration / easing | Reduced-motion fallback |
-| --------- | ------ | ----------------- | ----------------------- |
-|           |        |                   |                         |
+| Surface | Loading | Empty | Error | Unauthorized |
+| ------- | ------- | ----- | ----- | ------------ |
+| App shell | `app/loading.tsx` skeleton | — | `error.tsx` with reset | redirect to `/signin` |
+| Findings | route loading | "No findings yet." + clear filters | error boundary | 403 card with persona switch |
+| Circulars | route loading | "No circulars ingested yet." | error boundary | read-only badge for non-ingest roles |
+| Finding detail | route loading | not applicable | 404 "not in this workspace" | read-only review state |
+| Audit | route loading | "No audit events yet." | error boundary | "The audit trail is restricted." |
+| Data / Q&A | route loading | empty catalog / escalation answer | error boundary | 403 card |
 
-## Layout families
+## Reference assets and fallback
 
-| Screen / section | Layout family | Why it differs from the previous section |
-| ---------------- | ------------- | --------------------------------------- |
-|                  |               |                                         |
-
-## UI states
-
-| View / action | Loading | Empty | Error | Unauthorized | Pending | Success |
-| ------------- | ------- | ----- | ----- | ------------ | ------- | ------- |
-|               |         |       |       |              |         |         |
-
-## Email direction
-
-- Layout:
-- Type and color:
-- Plain-text version:
-- Escaping and link policy:
-
-## References
-
-- Reference images: `docs/discovery/assets/`
-- Generated with:
-- Source assets (licensed or generated):
-
-## Anti-slop check
-
-- [ ] No AI-purple gradient.
-- [ ] No generic glass card stack.
-- [ ] No three equal feature cards unless the content demands it.
-- [ ] No eyebrow spam.
-- [ ] No fake screenshots or device mockups.
-- [ ] No lorem ipsum or invented metrics.
-- [ ] No dead buttons or placeholder links.
-- [ ] One icon family, one radius rule, one accent.
-
-## Accessibility check
-
-- [ ] WCAG AA contrast on text and controls.
-- [ ] Full keyboard path with visible focus.
-- [ ] Reduced motion supported.
-- [ ] Labels on every input.
-- [ ] Semantic headings and landmarks.
-- [ ] Touch targets at least 44px on mobile.
+`docs/discovery/assets/` is empty. The image-generation phase skill was not run; per the runtime
+fallback rule, the implementation follows `docs/DESIGN-SYSTEM.md` directly and the live seeded
+screens serve as the reference. The landing hero contains an explicitly labelled illustrative
+finding render; it is not presented as a screenshot.
 
 ## Gate
 
-- [ ] The design read is specific, not generic.
-- [ ] Tokens are complete.
-- [ ] Each section uses a deliberate layout family.
-- [ ] Motion has a reason and a fallback.
-- [ ] Reference assets are saved.
-- [ ] Anti-slop and accessibility checks pass.
+- [x] Design read names audience, tone, and rejected patterns.
+- [x] Tokens match `globals.css` and the brand contract.
+- [x] Motion and reduced-motion behaviour defined.
+- [x] All data surfaces have loading/empty/error/unauthorized states.
+- [x] Fallback for reference assets stated.
 
-Next: `agent-prompts/07-BUILD.md` → `docs/discovery/07-build-log.md`
+Next: `07-build-log.md`

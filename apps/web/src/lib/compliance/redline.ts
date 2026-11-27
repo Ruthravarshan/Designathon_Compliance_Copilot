@@ -1,4 +1,10 @@
-import type { ExtractedObligation, GapStatus, MappingResult, Requirement, RedlineDraft } from "./types";
+import type {
+  ExtractedObligation,
+  GapStatus,
+  MappingResult,
+  Requirement,
+  RedlineDraft,
+} from "./types";
 
 export interface RedlineInput {
   obligation: ExtractedObligation;
@@ -93,7 +99,12 @@ function taskTitle(requirement: Requirement): string {
  * wording (or an explicit gap statement); `after` keeps the citation attached
  * so the approved change is traceable.
  */
-export function draftRedline({ obligation, mapping, citation, status }: RedlineInput): RedlineDraft {
+export function draftRedline({
+  obligation,
+  mapping,
+  citation,
+  status,
+}: RedlineInput): RedlineDraft {
   const record = mapping.best;
   const before = record
     ? `${record.code} ${record.section} — ${record.text}`
@@ -143,20 +154,20 @@ export function diffWords(before: string, after: string): DiffToken[] {
 
   if (beforeTokens.length > MAX_DIFF_TOKENS || afterTokens.length > MAX_DIFF_TOKENS) {
     return [
-      ...beforeTokens.map((value): DiffToken => ({ value, type: "removed" })),
-      ...afterTokens.map((value): DiffToken => ({ value, type: "added" })),
+      ...(beforeTokens.length > 0
+        ? [{ value: beforeTokens.join(" "), type: "removed" as const }]
+        : []),
+      ...(afterTokens.length > 0 ? [{ value: afterTokens.join(" "), type: "added" as const }] : []),
     ];
   }
 
   const rows = beforeTokens.length + 1;
   const cols = afterTokens.length + 1;
   const matrix: number[][] = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
-  const get = (row: number, col: number): number => matrix[row]?.[col] ?? 0;
+  // Row and column bounds are fixed by the loops below, so the lookups always resolve.
+  const get = (row: number, col: number): number => matrix[row]![col]!;
   const set = (row: number, col: number, value: number): void => {
-    const target = matrix[row];
-    if (target) {
-      target[col] = value;
-    }
+    matrix[row]![col] = value;
   };
 
   for (let row = 1; row < rows; row += 1) {

@@ -73,6 +73,24 @@ describe("email templates", () => {
     expect(rendered.html).toContain(`${appUrl}/settings/email`);
   });
 
+  it("renders an approved remediation task with a due date and no publish claim", () => {
+    const rendered = renderEmail("finding.remediation_task", {
+      assigneeName: "Arjun Mehta",
+      workspaceName: "Hexa Demo",
+      taskTitle: "Cut incident reporting to 6 hours",
+      findingReference: "OBL-IRDAI-irdai-cyber-2023-01-01",
+      dueDate: "17 Nov 2026",
+      reviewerName: "Meera Krishnan",
+      workspaceUrl: `${appUrl}/app/findings/f_1`,
+    });
+
+    expect(rendered.subject).toBe("Remediation task: Cut incident reporting to 6 hours");
+    expect(rendered.html).toContain("Meera Krishnan approved a policy redline");
+    expect(rendered.html).toContain("Target date: 17 Nov 2026");
+    expect(rendered.html).toContain("does not publish a policy");
+    expect(rendered.text).toContain("Arjun Mehta");
+  });
+
   it("escapes user-controlled content", () => {
     const rendered = renderEmail("welcome", {
       name: "<script>alert(1)</script>",

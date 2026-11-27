@@ -10,7 +10,7 @@ export default function Loading() {
         <div className="mt-6 h-14 w-full max-w-[560px] rounded-xl bg-surface" />
         <div className="mt-3 h-14 w-full max-w-[420px] rounded-xl bg-surface" />
         <p className="mt-8 font-mono text-[11px] uppercase tracking-[0.2em] text-muted">
-          Loading the operating system
+          Loading the compliance workbench
         </p>
       </div>
     </main>

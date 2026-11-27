@@ -1,12 +1,13 @@
 import "server-only";
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 import { env } from "@/lib/env";
+import { createPrismaClient } from "@/server/prisma-client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const db =
   globalForPrisma.prisma ??
-  new PrismaClient({
+  createPrismaClient({
     log: env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 

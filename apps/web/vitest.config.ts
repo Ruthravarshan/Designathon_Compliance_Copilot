@@ -17,10 +17,13 @@ export default defineConfig({
         "src/lib/rate-limit.ts",
         "src/lib/load-balancer.ts",
         "src/lib/errors.ts",
+        "src/lib/session.ts",
+        "src/lib/compliance/**/*.ts",
         "src/server/auth/rbac.ts",
       ],
       exclude: ["**/*.test.ts"],
       thresholds: {
+        perFile: true,
         statements: 95,
         branches: 95,
         functions: 95,

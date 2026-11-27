@@ -67,7 +67,7 @@ function layout({
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${BRAND.canvas};padding:32px 16px;">
 <tr><td align="center">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background-color:${BRAND.surface};border:1px solid ${BRAND.line};border-radius:16px;overflow:hidden;">
-<tr><td style="padding:22px 28px;border-bottom:1px solid ${BRAND.line};font:600 11px/1.4 Arial,Helvetica,sans-serif;letter-spacing:0.18em;text-transform:uppercase;color:${BRAND.muted};">HEXA / DESIGNATHON OS</td></tr>
+<tr><td style="padding:22px 28px;border-bottom:1px solid ${BRAND.line};font:600 11px/1.4 Arial,Helvetica,sans-serif;letter-spacing:0.18em;text-transform:uppercase;color:${BRAND.muted};">HEXA / COMPLIANCE COPILOT</td></tr>
 <tr><td style="padding:32px 28px;">
 <h1 style="margin:0 0 18px;font:600 24px/1.25 Arial,Helvetica,sans-serif;letter-spacing:-0.02em;color:${BRAND.fg};">${escapeHtml(heading)}</h1>
 ${body}
@@ -217,6 +217,39 @@ const renderers: Renderers = {
         footer: footerFor("notification.digest"),
       }),
       text: `Hi ${name},\n\nLatest activity in ${workspaceName}:\n${summary}\n\nOpen the workspace: ${workspaceUrl}\nManage email preferences: ${preferencesUrl}\n`,
+    };
+  },
+
+  "finding.remediation_task": ({
+    assigneeName,
+    workspaceName,
+    taskTitle,
+    findingReference,
+    dueDate,
+    reviewerName,
+    workspaceUrl,
+  }) => {
+    const heading = "A remediation task is ready";
+    const body = [
+      paragraph(
+        `${reviewerName} approved a policy redline in ${workspaceName} and assigned you a remediation task.`,
+      ),
+      paragraph(`${taskTitle} (${findingReference}). Target date: ${dueDate}.`),
+      paragraph(
+        "Open the finding to review the clause citation, the drafted redline, and the audit trail. Approval in the workbench does not publish a policy.",
+      ),
+    ].join("");
+
+    return {
+      subject: sanitizeHeader(`Remediation task: ${taskTitle}`),
+      html: layout({
+        preview: `${taskTitle} is assigned to you.`,
+        heading,
+        body,
+        cta: { label: "Open finding", url: workspaceUrl },
+        footer: footerFor("finding.remediation_task"),
+      }),
+      text: `Hi ${assigneeName},\n\n${reviewerName} approved a policy redline in ${workspaceName} and assigned you: ${taskTitle} (${findingReference}).\n\nTarget date: ${dueDate}.\n\nOpen the finding: ${workspaceUrl}\n\nApproval in the workbench does not publish a policy.\n`,
     };
   },
 };

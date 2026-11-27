@@ -31,7 +31,13 @@ function isIndiaRegion(value: string): boolean {
   return /india|ap-south-1|ap-south-2|mumbai|hyderabad|central/i.test(value);
 }
 
-const COMPARABLE_CONSENT = new Set(["one_click", "one-click", "self_service", "self-service", "comparable_ease"]);
+const COMPARABLE_CONSENT = new Set([
+  "one_click",
+  "one-click",
+  "self_service",
+  "self-service",
+  "comparable_ease",
+]);
 
 const BYOK_MODES = new Set(["byok", "customer_managed", "customer-managed", "hyok"]);
 
@@ -100,7 +106,10 @@ function assessment(
   const confidence = round2(
     Math.min(
       1,
-      Math.max(0, 0.4 * (citationVerified ? 1 : 0) + 0.35 * mappingConfidence + 0.25 * ruleCertainty),
+      Math.max(
+        0,
+        0.4 * (citationVerified ? 1 : 0) + 0.35 * mappingConfidence + 0.25 * ruleCertainty,
+      ),
     ),
   );
 
@@ -129,7 +138,7 @@ function missing(
     "No internal policy or control carries the required attribute.",
     0.93,
     citationVerified,
-    mapping.confidence,
+    mapping.best === null ? 0 : mapping.confidence,
   );
 }
 
@@ -144,7 +153,12 @@ export function assessGap(
   citationVerified: boolean,
 ): GapAssessment {
   if (mapping.best === null) {
-    return missing(obligation, mapping, citationVerified, "No internal policy or control covers this obligation");
+    return missing(
+      obligation,
+      mapping,
+      citationVerified,
+      "No internal policy or control covers this obligation",
+    );
   }
 
   const attributes = mapping.best.attributes;
@@ -162,7 +176,12 @@ export function assessGap(
       const label = requirementLabel(requirement);
 
       if (internal === null || internal <= 0) {
-        return missing(obligation, mapping, citationVerified, `No internal cadence is recorded for ${label}`);
+        return missing(
+          obligation,
+          mapping,
+          citationVerified,
+          `No internal cadence is recorded for ${label}`,
+        );
       }
 
       if (internal <= requirement.months) {
@@ -259,7 +278,12 @@ export function assessGap(
     case "data_residency": {
       const region = stringAttribute(attributes, "dataRegion");
       if (region === null) {
-        return missing(obligation, mapping, citationVerified, "No data region is recorded for regulated data");
+        return missing(
+          obligation,
+          mapping,
+          citationVerified,
+          "No data region is recorded for regulated data",
+        );
       }
 
       if (isIndiaRegion(region)) {
@@ -369,7 +393,9 @@ export function assessGap(
       }
 
       const retention =
-        retentionMonths === null ? "" : ` Data is retained for ${retentionMonths} months after closure.`;
+        retentionMonths === null
+          ? ""
+          : ` Data is retained for ${retentionMonths} months after closure.`;
       return assessment(
         "PARTIAL_GAP",
         "HIGH",
@@ -384,7 +410,12 @@ export function assessGap(
     case "log_retention_days": {
       const internal = numberAttribute(attributes, "logRetentionDays");
       if (internal === null || internal <= 0) {
-        return missing(obligation, mapping, citationVerified, "No log retention period is recorded");
+        return missing(
+          obligation,
+          mapping,
+          citationVerified,
+          "No log retention period is recorded",
+        );
       }
 
       if (internal >= requirement.days) {
@@ -437,7 +468,12 @@ export function assessGap(
     case "key_management": {
       const mode = stringAttribute(attributes, "keyManagement");
       if (mode === null) {
-        return missing(obligation, mapping, citationVerified, "No key management model is recorded");
+        return missing(
+          obligation,
+          mapping,
+          citationVerified,
+          "No key management model is recorded",
+        );
       }
 
       const normalized = mode.toLowerCase().replace(/\s+/g, "_");
@@ -467,12 +503,7 @@ export function assessGap(
     case "board_reporting": {
       const boardLevel = booleanAttribute(attributes, "cisoReportsToBoard");
       if (boardLevel === null) {
-        return missing(
-          obligation,
-          mapping,
-          citationVerified,
-          "No CISO reporting line is recorded",
-        );
+        return missing(obligation, mapping, citationVerified, "No CISO reporting line is recorded");
       }
 
       return assessment(

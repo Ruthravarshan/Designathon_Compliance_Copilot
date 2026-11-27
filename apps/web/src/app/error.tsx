@@ -13,11 +13,11 @@ export default function GlobalError({
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-[720px] flex-col justify-center px-5 py-16 sm:px-8">
       <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand">500</p>
       <h1 className="mt-4 text-4xl font-medium tracking-[-0.03em] sm:text-5xl">
-        The run hit an error.
+        The workbench hit an error.
       </h1>
-      <p className="mt-4 max-w-[46ch] text-muted">
-        The failure was logged with a request id. Retry the step; if it repeats, check the server
-        logs before changing code.
+      <p className="mt-4 max-w-[52ch] text-muted">
+        The failure was logged with a request id. Retry the view; if it repeats, check the server
+        logs and the seeded database before changing code.
       </p>
       {error.digest ? (
         <p className="mt-4 font-mono text-xs text-muted">digest: {error.digest}</p>

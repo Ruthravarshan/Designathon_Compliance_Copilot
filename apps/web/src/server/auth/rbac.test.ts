@@ -36,6 +36,22 @@ describe("RBAC permission matrix", () => {
     expect(can("MEMBER", "workspace:delete")).toBe(false);
   });
 
+  it("separates compliance read access from review authority", () => {
+    expect(can("MEMBER", "finding:read")).toBe(true);
+    expect(can("MEMBER", "assistant:ask")).toBe(true);
+    expect(can("MEMBER", "finding:review")).toBe(false);
+    expect(can("MEMBER", "document:ingest")).toBe(false);
+    expect(can("MEMBER", "data:scan")).toBe(false);
+    expect(can("VIEWER", "finding:read")).toBe(true);
+    expect(can("VIEWER", "finding:review")).toBe(false);
+    expect(can("VIEWER", "assistant:ask")).toBe(false);
+    expect(can("VIEWER", "audit:read")).toBe(false);
+    expect(can("ADMIN", "finding:review")).toBe(true);
+    expect(can("ADMIN", "document:ingest")).toBe(true);
+    expect(can("ADMIN", "data:scan")).toBe(true);
+    expect(can("OWNER", "finding:review")).toBe(true);
+  });
+
   it("lets an admin manage members and projects but not billing or workspace deletion", () => {
     expect(can("ADMIN", "member:invite")).toBe(true);
     expect(can("ADMIN", "member:update_role")).toBe(true);

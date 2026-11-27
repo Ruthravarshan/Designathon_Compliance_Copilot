@@ -1,10 +1,13 @@
 import "server-only";
 import { z } from "zod";
 
+const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+const defaultAppUrl = vercelHost ? `https://${vercelHost}` : "http://localhost:3000";
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-    APP_URL: z.string().url().default("http://localhost:3000"),
+    APP_URL: z.string().url().default(defaultAppUrl),
     APP_VERSION: z.string().min(1).default("0.1.0"),
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
     DATABASE_URL: z
