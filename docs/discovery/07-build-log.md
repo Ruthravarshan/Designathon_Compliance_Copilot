@@ -186,3 +186,34 @@ Next: `08-hardening-report.md`
   `compliance@hexa.example`, matching the test).
 - Evidence: `typecheck` clean, `lint` clean, 436/436 unit tests. Live probe against a real provider
   not yet evidenced — owner must supply Graph consent and the Drive key first.
+
+## 2026-11-28 — Assistant: grounded generation with verified citations
+
+- Retrieval is hybrid and deterministic (`src/lib/compliance/qa.ts`): BM25 (k1 1.2, b 0.75) over
+  synonym-collapsed, stemmed tokens, label boost, kind prior, bigram phrase bonus, minimum-score
+  gate, 1–6 passages. Off-topic questions escalate instead of matching noise.
+- Grounded path (`src/server/llm/qa.ts`) sends the question and escaped `<passage>` blocks to Gemini
+  with `responseSchema`, temperature 0.2, 1,024 output tokens, 12s timeout, one retry on 429/5xx,
+  and a system instruction that treats the question and passages as untrusted data. Answers are
+  Zod-validated, then `verifyGroundedAnswer` drops any citation that is not a verbatim substring of
+  its passage; zero surviving citations is a refusal, not an ungrounded answer.
+- Provider findings (measured with curl against the live key): Gemini 3.8-flash ignores the 12s
+  budget on a real 6-passage payload (22s once, >40s twice); 3.5-flash answered in 2.4–3.9s and
+  flash-lite in 1.5–1.9s. Default is now `gemini-3.5-flash` (`ASSISTANT_MODEL` can override, still
+  allowlisted). Gemini 3 thinking is pinned to `thinkingLevel: "low"`; 2.x models do not get that
+  field.
+- `additionalProperties` is rejected by the provider inside `responseSchema` (HTTP 400). Removed
+  from both `GROUNDED_ANSWER_SCHEMA` and `GEMINI_RESPONSE_SCHEMA`; Zod `.strict()` still rejects
+  unknown fields after generation.
+- Live smoke (owner session, seeded corpus): 4/4 questions grounded in 1.7–4.6s with verified
+  citations; one burst-window call hit a provider quota error and served the deterministic
+  retrieval answer instead (733ms), which is the designed fallback.
+- New `e2e/assistant.spec.ts` drives the real UI in Chromium: grounded answer with citation badges
+  and footer, plus the refusal path. 2/2 passing.
+- Merge hygiene: a parallel session committed unresolved markers into `assistant-panel.tsx`.
+  Resolved by keeping the multi-turn thread model and integrating the other side's copy button,
+  Ctrl+Enter submit, shimmer skeleton, and trash-clear control.
+- Concurrent dev servers on this checkout kept corrupting the shared `.next` cache. `next.config.ts`
+  now honors `NEXT_DIST_DIR` so each server gets its own dist dir; ESLint ignores `.next*/`.
+- Evidence: `typecheck` clean, `lint` clean, 54 unit files green at 99.88% statements, production
+  build green (`/app/assistant` 8.87 kB), assistant e2e 2/2, live grounded smoke above.

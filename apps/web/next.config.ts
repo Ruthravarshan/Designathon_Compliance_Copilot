@@ -44,6 +44,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   output: "standalone",
+  // Concurrent dev servers (e.g. two agent sessions on one checkout) corrupt a
+  // shared .next cache. Set NEXT_DIST_DIR to isolate a server; default unchanged.
+  distDir: process.env.NEXT_DIST_DIR?.trim() || ".next",
   outputFileTracingRoot: repoRoot,
   outputFileTracingIncludes: {
     "/api/**": [prismaWasm],

@@ -58,3 +58,4 @@ artifacts/
 
 # Local-only discovery notes (never commit secrets or customer data)
 docs/discovery/private/
+.next-*/
