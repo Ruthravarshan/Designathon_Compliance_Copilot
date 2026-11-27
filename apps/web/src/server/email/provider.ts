@@ -36,19 +36,31 @@ function createSmtpProvider(): EmailProvider {
   }
 
   const transport = nodemailer.createTransport(env.SMTP_URL);
+  const SMTP_DEADLINE_MS = 15_000;
 
   return {
     name: "smtp",
     async send(message) {
-      const info = await transport.sendMail({
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const delivery = transport.sendMail({
         from: message.from,
         to: message.to,
         subject: message.subject,
         html: message.html,
         text: message.text,
       });
+      const deadline = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("SMTP delivery timed out")), SMTP_DEADLINE_MS);
+      });
 
-      return { id: info.messageId };
+      try {
+        const info = await Promise.race([delivery, deadline]);
+        return { id: info.messageId };
+      } finally {
+        if (timer) {
+          clearTimeout(timer);
+        }
+      }
     },
   };
 }

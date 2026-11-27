@@ -50,6 +50,16 @@ describe("toPublicError", () => {
     expect(result.body.error).not.toHaveProperty("requestId");
   });
 
+  it("carries explicit response headers (e.g. rate-limit headers)", () => {
+    const result = toPublicError(
+      new AppError(ERROR_CODES.RATE_LIMITED, "Slow down", {
+        headers: { "retry-after": "30" },
+      }),
+    );
+
+    expect(result.headers).toEqual({ "retry-after": "30" });
+  });
+
   it("includes request id on internal errors", () => {
     const result = toPublicError(new Error("boom"), "req_999");
 

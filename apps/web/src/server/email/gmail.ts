@@ -384,17 +384,21 @@ async function getValidAccessToken(
   };
 }
 
-async function findSenderAccount(
-  workspaceId: string | null | undefined,
-): Promise<GmailAccount | null> {
-  if (workspaceId) {
-    return db.gmailAccount.findUnique({ where: { workspaceId } });
+async function findSenderAccount(workspaceId: string | null | undefined): Promise<GmailAccount> {
+  // Never fall back to an arbitrary connected mailbox: that would send one
+  // tenant's mail through another tenant's connected account.
+  if (!workspaceId) {
+    throw new AppError(ERROR_CODES.BAD_REQUEST, "A workspace is required to send email.");
   }
 
-  return db.gmailAccount.findFirst({
-    where: { status: "CONNECTED" },
-    orderBy: { connectedAt: "desc" },
-  });
+  const account = await db.gmailAccount.findUnique({ where: { workspaceId } });
+  if (!account) {
+    throw new AppError(
+      ERROR_CODES.CONFLICT,
+      "Gmail is not connected. Open Settings -> Email and connect a mailbox.",
+    );
+  }
+  return account;
 }
 
 const sendResponseSchema = z.object({ id: z.string().min(1) });

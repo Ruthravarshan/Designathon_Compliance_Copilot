@@ -1,6 +1,8 @@
 import "server-only";
+import { isIP } from "node:net";
+import { env } from "@/lib/env";
 import { AppError, ERROR_CODES } from "@/lib/errors";
-import { RateLimiter } from "@/lib/rate-limit";
+import { RateLimiter, rateLimitHeaders } from "@/lib/rate-limit";
 
 export const authLimiter = new RateLimiter({ limit: 10, windowMs: 60_000, name: "auth" });
 export const reviewLimiter = new RateLimiter({ limit: 20, windowMs: 60_000, name: "review" });
@@ -11,11 +13,21 @@ export const watchLimiter = new RateLimiter({ limit: 3, windowMs: 10 * 60_000, n
 export const storageLimiter = new RateLimiter({ limit: 10, windowMs: 60_000, name: "storage" });
 
 export function clientKey(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0]?.trim() || "unknown";
+  // Forwarding headers are attacker-controlled unless a trusted proxy or the
+  // hosting platform overwrites them. Trust them in dev/test or only when
+  // explicitly enabled in production; key authenticated routes by user id.
+  const trustProxyHeaders =
+    env.NODE_ENV !== "production" || env.TRUST_PROXY_HEADERS === "true" || Boolean(env.VERCEL);
+
+  if (trustProxyHeaders) {
+    const forwarded = request.headers.get("x-forwarded-for");
+    const candidate = forwarded?.split(",")[0]?.trim() || request.headers.get("x-real-ip");
+    if (candidate) {
+      return env.NODE_ENV === "production" && !isIP(candidate) ? "local" : candidate;
+    }
   }
-  return request.headers.get("x-real-ip") || "local";
+
+  return "local";
 }
 
 export async function enforceLimit(limiter: RateLimiter, key: string): Promise<void> {
@@ -23,6 +35,7 @@ export async function enforceLimit(limiter: RateLimiter, key: string): Promise<v
   if (!result.allowed) {
     throw new AppError(ERROR_CODES.RATE_LIMITED, "Too many requests. Try again shortly.", {
       details: { retryAfterSeconds: result.retryAfterSeconds },
+      headers: rateLimitHeaders(result),
     });
   }
 }

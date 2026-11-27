@@ -134,18 +134,9 @@ export function HeroTelemetry() {
                 return (
                   <g
                     key={stage.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={selected}
-                    aria-label={`Inspect stage ${stage.step}: ${stage.label}`}
-                    className="cursor-pointer focus:outline-none"
+                    aria-hidden="true"
+                    className="cursor-pointer"
                     onClick={() => setActiveStage(stage.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        setActiveStage(stage.id);
-                      }
-                    }}
                   >
                     <rect
                       x={cx - 34}

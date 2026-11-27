@@ -14,6 +14,12 @@ describe("session tokens", () => {
     expect(payload?.userId).toBe("user_1");
     expect(payload?.workspaceId).toBe("ws_1");
     expect(payload?.exp).toBe(Math.floor(now / 1000) + 8 * 60 * 60);
+    expect(payload?.version).toBe(0);
+  });
+
+  it("round-trips the user's session version", () => {
+    const token = signSession({ ...input, version: 3 }, secret, now);
+    expect(verifySession(token, secret, now)?.version).toBe(3);
   });
 
   it("rejects a tampered payload", () => {
@@ -54,6 +60,16 @@ describe("session tokens", () => {
 
   it("rejects a correctly signed but invalid payload", () => {
     const payload = Buffer.from(JSON.stringify({ userId: "user_1" }), "utf8").toString("base64url");
+    const token = `${payload}.${createHmac("sha256", secret).update(payload).digest("base64url")}`;
+
+    expect(verifySession(token, secret, now)).toBeNull();
+  });
+
+  it("rejects a signed payload with an invalid session version", () => {
+    const payload = Buffer.from(
+      JSON.stringify({ ...input, exp: 9999999999, version: "1" }),
+      "utf8",
+    ).toString("base64url");
     const token = `${payload}.${createHmac("sha256", secret).update(payload).digest("base64url")}`;
 
     expect(verifySession(token, secret, now)).toBeNull();

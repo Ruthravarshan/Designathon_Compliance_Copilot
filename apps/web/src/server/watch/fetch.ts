@@ -1,4 +1,6 @@
 import "server-only";
+import http from "node:http";
+import https from "node:https";
 import { lookup } from "node:dns/promises";
 import { AppError, ERROR_CODES } from "@/lib/errors";
 import type { SourceClause } from "@/lib/compliance/types";
@@ -37,14 +39,25 @@ function userAgent(): string {
   );
 }
 
-async function assertPublicHost(url: URL): Promise<void> {
-  if (isDisallowedHostname(url.hostname)) {
+interface PinnedResponse {
+  status: number;
+  headers: Record<string, string>;
+  bytes: Buffer;
+}
+
+/**
+ * Resolve once and return a public address to connect to. The address is pinned
+ * for the actual connection so a DNS rebinding hostname cannot swap a validated
+ * public IP for loopback or a cloud metadata address between check and connect.
+ */
+async function resolvePublicAddress(hostname: string): Promise<string> {
+  if (isDisallowedHostname(hostname)) {
     throw new AppError(ERROR_CODES.BAD_REQUEST, "The source host is not allowed.");
   }
 
   let records: Array<{ address: string }>;
   try {
-    records = await lookup(url.hostname, { all: true, verbatim: true });
+    records = await lookup(hostname, { all: true, verbatim: true });
   } catch {
     throw new AppError(ERROR_CODES.BAD_REQUEST, "The source host could not be resolved.");
   }
@@ -55,42 +68,90 @@ async function assertPublicHost(url: URL): Promise<void> {
   if (records.some((record) => isPrivateIp(record.address))) {
     throw new AppError(ERROR_CODES.BAD_REQUEST, "The source host resolves to a private address.");
   }
+
+  const address = records[0]?.address;
+  if (!address) {
+    throw new AppError(ERROR_CODES.BAD_REQUEST, "The source host has no usable address.");
+  }
+  return address;
 }
 
-async function readCapped(response: Response, maxBytes: number): Promise<Buffer> {
-  if (!response.body) {
-    const buffer = Buffer.from(await response.arrayBuffer());
-    if (buffer.byteLength > maxBytes) {
-      throw new AppError(ERROR_CODES.BAD_REQUEST, "The source response is too large.");
-    }
-    return buffer;
-  }
+/** Direct request to the pinned IP; TLS still verifies the original hostname. */
+function pinnedRequest(
+  url: URL,
+  address: string,
+  options: { timeoutMs: number; maxBytes: number; userAgent: string; accept: string },
+): Promise<PinnedResponse> {
+  return new Promise<PinnedResponse>((resolve, reject) => {
+    const secure = url.protocol === "https:";
+    const port = url.port ? Number.parseInt(url.port, 10) : secure ? 443 : 80;
+    const baseOptions: http.RequestOptions = {
+      host: address,
+      port,
+      method: "GET",
+      path: `${url.pathname || "/"}${url.search}`,
+      headers: {
+        host: url.host,
+        "user-agent": options.userAgent,
+        accept: options.accept,
+        connection: "close",
+      },
+    };
 
-  const reader = response.body.getReader();
-  const chunks: Buffer[] = [];
-  let total = 0;
-
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-    if (value) {
-      total += value.byteLength;
-      if (total > maxBytes) {
-        await reader.cancel().catch(() => undefined);
-        throw new AppError(ERROR_CODES.BAD_REQUEST, "The source response is too large.");
+    const onResponse = (response: http.IncomingMessage): void => {
+      const status = response.statusCode ?? 0;
+      const headers: Record<string, string> = {};
+      for (const [key, value] of Object.entries(response.headers)) {
+        if (typeof value === "string") {
+          headers[key.toLowerCase()] = value;
+        } else if (Array.isArray(value)) {
+          headers[key.toLowerCase()] = value.join(", ");
+        }
       }
-      chunks.push(Buffer.from(value));
-    }
-  }
 
-  return Buffer.concat(chunks);
+      if (REDIRECT_STATUS.has(status)) {
+        response.resume();
+        resolve({ status, headers, bytes: Buffer.alloc(0) });
+        return;
+      }
+
+      const chunks: Buffer[] = [];
+      let total = 0;
+      response.on("data", (chunk: Buffer) => {
+        total += chunk.length;
+        if (total > options.maxBytes) {
+          response.destroy();
+          reject(new AppError(ERROR_CODES.BAD_REQUEST, "The source response is too large."));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      response.on("end", () => resolve({ status, headers, bytes: Buffer.concat(chunks) }));
+      response.on("error", () =>
+        reject(new AppError(ERROR_CODES.BAD_REQUEST, "The source response could not be read.")),
+      );
+    };
+
+    const request = secure
+      ? https.request({ ...baseOptions, servername: url.hostname }, onResponse)
+      : http.request(baseOptions, onResponse);
+
+    const timer = setTimeout(() => {
+      request.destroy();
+      reject(new AppError(ERROR_CODES.BAD_REQUEST, "The source took too long to respond."));
+    }, options.timeoutMs);
+    request.on("close", () => clearTimeout(timer));
+    request.on("error", () =>
+      reject(new AppError(ERROR_CODES.BAD_REQUEST, "The source could not be reached.")),
+    );
+    request.end();
+  });
 }
 
 /**
  * Fetch a remote document with SSRF guards: http(s) only, allow-listed host,
- * public DNS only (checked on every redirect hop), bounded size and timeout.
+ * public DNS resolved and pinned on every redirect hop, bounded size and an
+ * absolute timeout (not just socket inactivity).
  */
 export async function safeFetchBytes(input: string, options: FetchOptions): Promise<FetchedBytes> {
   let current = parseHttpUrl(input);
@@ -101,52 +162,42 @@ export async function safeFetchBytes(input: string, options: FetchOptions): Prom
     throw new AppError(ERROR_CODES.BAD_REQUEST, "The URL host is not on the allowlist.");
   }
 
-  const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const requestOptions = {
+    maxBytes: options.maxBytes ?? DEFAULT_MAX_BYTES,
+    timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    userAgent: userAgent(),
+    accept: "text/html,application/xhtml+xml,application/pdf;q=0.9,*/*;q=0.5",
+  };
 
-  try {
-    for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
-      await assertPublicHost(current);
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+    const address = await resolvePublicAddress(current.hostname);
+    const response = await pinnedRequest(current, address, requestOptions);
 
-      const response = await fetch(current, {
-        redirect: "manual",
-        signal: controller.signal,
-        headers: {
-          "user-agent": userAgent(),
-          accept: "text/html,application/xhtml+xml,application/pdf;q=0.9,*/*;q=0.5",
-        },
-      }).catch(() => {
-        throw new AppError(ERROR_CODES.BAD_REQUEST, "The source could not be reached.");
-      });
-
-      if (REDIRECT_STATUS.has(response.status)) {
-        const location = response.headers.get("location");
-        if (!location) {
-          throw new AppError(ERROR_CODES.BAD_REQUEST, "The source returned an empty redirect.");
-        }
-        const next = parseHttpUrl(new URL(location, current).href);
-        if (!next || !hostAllowed(next, options.allowedDomains)) {
-          throw new AppError(ERROR_CODES.BAD_REQUEST, "The source redirected to a blocked host.");
-        }
-        current = next;
-        continue;
+    if (REDIRECT_STATUS.has(response.status)) {
+      const location = response.headers["location"];
+      if (!location) {
+        throw new AppError(ERROR_CODES.BAD_REQUEST, "The source returned an empty redirect.");
       }
-
-      if (!response.ok) {
-        throw new AppError(ERROR_CODES.BAD_REQUEST, `The source returned HTTP ${response.status}.`);
+      const next = parseHttpUrl(new URL(location, current).href);
+      if (!next || !hostAllowed(next, options.allowedDomains)) {
+        throw new AppError(ERROR_CODES.BAD_REQUEST, "The source redirected to a blocked host.");
       }
-
-      const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
-      const bytes = await readCapped(response, maxBytes);
-      return { finalUrl: current.href, contentType, bytes };
+      current = next;
+      continue;
     }
 
-    throw new AppError(ERROR_CODES.BAD_REQUEST, "The source redirected too many times.");
-  } finally {
-    clearTimeout(timer);
+    if (response.status < 200 || response.status >= 300) {
+      throw new AppError(ERROR_CODES.BAD_REQUEST, `The source returned HTTP ${response.status}.`);
+    }
+
+    return {
+      finalUrl: current.href,
+      contentType: (response.headers["content-type"] ?? "").toLowerCase(),
+      bytes: response.bytes,
+    };
   }
+
+  throw new AppError(ERROR_CODES.BAD_REQUEST, "The source redirected too many times.");
 }
 
 function looksLikePdf(contentType: string, bytes: Buffer): boolean {

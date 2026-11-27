@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const bodySchema = z.object({
+  sourceId: z.string().trim().min(1).max(64),
   url: z
     .string()
     .trim()

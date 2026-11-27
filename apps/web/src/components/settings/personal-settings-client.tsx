@@ -18,19 +18,26 @@ export function PersonalSettingsClient({
 }) {
   const router = useRouter();
 
-  async function handleSignOut() {
+  async function handleSignOut(): Promise<{ ok: boolean; error?: string }> {
     try {
-      await fetch("/api/auth/signout", {
+      const response = await fetch("/api/auth/signout", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: "{}",
       });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: { message?: string };
+        };
+        return { ok: false, error: body.error?.message ?? "Sign out failed. Try again." };
+      }
     } catch {
-      // Redirect even if network call fails.
-    } finally {
-      router.push("/signin");
-      router.refresh();
+      return { ok: false, error: "Check your connection and try again." };
     }
+
+    router.push("/signin");
+    router.refresh();
+    return { ok: true };
   }
 
   return (

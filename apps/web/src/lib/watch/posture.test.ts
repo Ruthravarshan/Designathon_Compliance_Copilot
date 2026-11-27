@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePosture } from "./posture";
+import { computePosture, postureFromCounts } from "./posture";
 
 const NOW = new Date("2026-11-28T00:00:00.000Z");
 
@@ -64,5 +64,22 @@ describe("computePosture", () => {
     );
     expect(posture.score).toBe(0);
     expect(posture.band).toBe("CRITICAL");
+  });
+});
+
+describe("postureFromCounts", () => {
+  it("matches computePosture for aggregated rows", () => {
+    const findings = [
+      { severity: "CRITICAL" as const, reviewStatus: "PENDING_REVIEW", dueDate: "2026-11-01" },
+      { severity: "HIGH" as const, reviewStatus: "PENDING_REVIEW", dueDate: "2026-12-20" },
+      { severity: "HIGH" as const, reviewStatus: "APPROVED", dueDate: "2026-11-01" },
+    ];
+    const fromRows = computePosture(findings, NOW);
+    const fromCounts = postureFromCounts([
+      { severity: "CRITICAL", open: 1, overdue: 1 },
+      { severity: "HIGH", open: 1, overdue: 0 },
+    ]);
+
+    expect(fromCounts).toEqual(fromRows);
   });
 });

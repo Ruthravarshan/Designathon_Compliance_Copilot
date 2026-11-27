@@ -146,22 +146,32 @@ export function WorkbenchShell({
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   async function handleSignOut() {
     setSigningOut(true);
+    setSignOutError(null);
     try {
-      await fetch("/api/auth/signout", {
+      const response = await fetch("/api/auth/signout", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: "{}",
       });
-    } catch {
-      // Proceed to sign-in route even if network request fails.
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: { message?: string };
+        };
+        throw new Error(body.error?.message ?? "Sign out failed. Try again.");
+      }
+    } catch (error) {
+      setSignOutError(error instanceof Error ? error.message : "Sign out failed. Try again.");
+      return;
     } finally {
       setSigningOut(false);
-      router.push("/signin");
-      router.refresh();
     }
+
+    router.push("/signin");
+    router.refresh();
   }
 
   return (
@@ -208,6 +218,15 @@ export function WorkbenchShell({
           </div>
         </div>
       </header>
+
+      {signOutError ? (
+        <div
+          role="alert"
+          className="border-b border-danger/30 bg-danger/10 px-4 py-2 text-center text-xs text-fg"
+        >
+          Could not sign out: {signOutError}
+        </div>
+      ) : null}
 
       <div className="mx-auto flex w-full max-w-[1440px] gap-8 px-4 py-6 sm:px-6 lg:py-8">
         <aside className="hidden w-[228px] shrink-0 flex-col justify-between gap-6 lg:sticky lg:top-24 lg:flex lg:max-h-[calc(100dvh-7rem)] lg:self-start lg:overflow-y-auto">

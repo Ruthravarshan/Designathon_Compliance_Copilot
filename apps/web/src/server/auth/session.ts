@@ -11,9 +11,13 @@ import { authSecret } from "./secret";
 
 export const SESSION_COOKIE = "hexa_session";
 
-export async function createSession(userId: string, workspaceId: string): Promise<void> {
+export async function createSession(
+  userId: string,
+  workspaceId: string,
+  version = 0,
+): Promise<void> {
   const store = await cookies();
-  store.set(SESSION_COOKIE, signSession({ userId, workspaceId }, authSecret()), {
+  store.set(SESSION_COOKIE, signSession({ userId, workspaceId, version }, authSecret()), {
     httpOnly: true,
     sameSite: "lax",
     secure: env.NODE_ENV === "production",

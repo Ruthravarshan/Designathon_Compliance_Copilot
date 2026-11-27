@@ -77,3 +77,37 @@ export function computePosture(findings: readonly PostureFinding[], now: Date): 
 
   return { score, band, open, overdue, criticalOverdue, highOverdue, counts };
 }
+
+export interface PostureCount {
+  severity: Severity;
+  open: number;
+  overdue: number;
+}
+
+/** Same scoring as computePosture, fed by database aggregates instead of full rows. */
+export function postureFromCounts(rows: readonly PostureCount[]): PostureSummary {
+  let open = 0;
+  let overdue = 0;
+  let criticalOverdue = 0;
+  let highOverdue = 0;
+  let penalty = 0;
+  const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+
+  for (const row of rows) {
+    open += row.open;
+    overdue += row.overdue;
+    penalty += WEIGHT[row.severity] * row.open + OVERDUE_EXTRA[row.severity] * row.overdue;
+    counts[row.severity.toLowerCase() as keyof typeof counts] += row.open;
+    if (row.severity === "CRITICAL") {
+      criticalOverdue += row.overdue;
+    } else if (row.severity === "HIGH") {
+      highOverdue += row.overdue;
+    }
+  }
+
+  const score = Math.max(0, Math.min(100, Math.round(100 - penalty)));
+  const band: PostureBand =
+    score >= 85 ? "STRONG" : score >= 65 ? "FAIR" : score >= 40 ? "AT_RISK" : "CRITICAL";
+
+  return { score, band, open, overdue, criticalOverdue, highOverdue, counts };
+}

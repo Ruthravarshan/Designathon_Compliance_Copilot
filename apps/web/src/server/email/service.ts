@@ -44,16 +44,21 @@ export async function enqueueEmail<K extends EmailEvent>(
   const toEmail = normalizeEmail(input.to);
   const category = EMAIL_CATEGORIES[input.event];
 
-  if (input.userId && category !== "transactional") {
-    const preference = await db.emailPreference.findUnique({
-      where: { userId: input.userId },
-    });
+  if (category !== "transactional") {
+    // Resolve the owner by email when the caller did not supply a user id. An
+    // arbitrary address in a tenant-editable field must still get a preference
+    // check rather than bypassing it entirely.
+    const userId =
+      input.userId ??
+      (await db.user.findUnique({ where: { email: toEmail }, select: { id: true } }))?.id ??
+      null;
+    const preference = userId ? await db.emailPreference.findUnique({ where: { userId } }) : null;
 
     const allowed =
       category === "product" ? (preference?.product ?? true) : (preference?.marketing ?? false);
 
     if (!allowed) {
-      logger.info({ event: input.event, userId: input.userId }, "email skipped by preference");
+      logger.info({ event: input.event, userId }, "email skipped by preference");
       return { status: "skipped", id: null };
     }
   }

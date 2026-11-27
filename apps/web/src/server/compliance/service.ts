@@ -69,68 +69,75 @@ export interface DashboardData {
 }
 
 export async function getDashboard(actor: Actor): Promise<DashboardData> {
-  const [documentCount, clauseCount, findings, scans, documents, urgent] = await Promise.all([
-    db.regulatoryDocument.count({ where: { workspaceId: actor.workspaceId } }),
-    db.documentClause.count({ where: { workspaceId: actor.workspaceId } }),
-    db.finding.findMany({
-      where: { workspaceId: actor.workspaceId },
-      select: { severity: true, reviewStatus: true },
-    }),
-    db.dataFieldScan.findMany({
-      where: { workspaceId: actor.workspaceId },
-      select: { riskLevel: true, consented: true },
-    }),
-    db.regulatoryDocument.findMany({
-      where: { workspaceId: actor.workspaceId },
-      orderBy: { publishedAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        title: true,
-        reference: true,
-        regulator: true,
-        publishedAt: true,
-        _count: { select: { clauses: true, findings: true } },
-      },
-    }),
-    db.finding.findMany({
-      where: {
-        workspaceId: actor.workspaceId,
-        reviewStatus: "PENDING_REVIEW",
-        severity: { in: ["CRITICAL", "HIGH"] },
-      },
-      orderBy: [{ severity: "asc" }, { dueDate: "asc" }],
-      take: 5,
-      include: {
-        obligation: { select: { plainLanguage: true } },
-        document: { select: { reference: true } },
-      },
-    }),
-  ]);
+  const [documentCount, clauseCount, findingGroups, scanGroups, documents, urgent] =
+    await Promise.all([
+      db.regulatoryDocument.count({ where: { workspaceId: actor.workspaceId } }),
+      db.documentClause.count({ where: { workspaceId: actor.workspaceId } }),
+      // Aggregate in the database; never load the whole finding/scan table into
+      // memory just to count it on the dashboard's hot path.
+      db.finding.groupBy({
+        by: ["severity", "reviewStatus"],
+        where: { workspaceId: actor.workspaceId },
+        _count: { _all: true },
+      }),
+      db.dataFieldScan.groupBy({
+        by: ["riskLevel", "consented"],
+        where: { workspaceId: actor.workspaceId },
+        _count: { _all: true },
+      }),
+      db.regulatoryDocument.findMany({
+        where: { workspaceId: actor.workspaceId },
+        orderBy: { publishedAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          title: true,
+          reference: true,
+          regulator: true,
+          publishedAt: true,
+          _count: { select: { clauses: true, findings: true } },
+        },
+      }),
+      db.finding.findMany({
+        where: {
+          workspaceId: actor.workspaceId,
+          reviewStatus: "PENDING_REVIEW",
+          severity: { in: ["CRITICAL", "HIGH"] },
+        },
+        orderBy: [{ severity: "asc" }, { dueDate: "asc" }],
+        take: 5,
+        include: {
+          obligation: { select: { plainLanguage: true } },
+          document: { select: { reference: true } },
+        },
+      }),
+    ]);
 
-  const count = (predicate: (row: (typeof findings)[number]) => boolean) =>
-    findings.filter(predicate).length;
+  const findingSum = (predicate: (row: (typeof findingGroups)[number]) => boolean) =>
+    findingGroups.reduce((total, row) => (predicate(row) ? total + row._count._all : total), 0);
+  const scanSum = (predicate: (row: (typeof scanGroups)[number]) => boolean) =>
+    scanGroups.reduce((total, row) => (predicate(row) ? total + row._count._all : total), 0);
 
   return {
     documentCount,
     clauseCount,
     findings: {
-      total: findings.length,
-      pending: count((row) => row.reviewStatus === "PENDING_REVIEW"),
-      critical: count((row) => row.severity === "CRITICAL"),
-      high: count((row) => row.severity === "HIGH"),
-      medium: count((row) => row.severity === "MEDIUM"),
-      low: count((row) => row.severity === "LOW"),
-      approved: count(
+      total: findingSum(() => true),
+      pending: findingSum((row) => row.reviewStatus === "PENDING_REVIEW"),
+      critical: findingSum((row) => row.severity === "CRITICAL"),
+      high: findingSum((row) => row.severity === "HIGH"),
+      medium: findingSum((row) => row.severity === "MEDIUM"),
+      low: findingSum((row) => row.severity === "LOW"),
+      approved: findingSum(
         (row) => row.reviewStatus === "APPROVED" || row.reviewStatus === "APPROVED_WITH_EDITS",
       ),
-      rejected: count((row) => row.reviewStatus === "REJECTED"),
+      rejected: findingSum((row) => row.reviewStatus === "REJECTED"),
     },
     scans: {
-      total: scans.length,
-      critical: scans.filter((row) => row.riskLevel === "CRITICAL").length,
-      high: scans.filter((row) => row.riskLevel === "HIGH").length,
-      unconsented: scans.filter((row) => !row.consented).length,
+      total: scanSum(() => true),
+      critical: scanSum((row) => row.riskLevel === "CRITICAL"),
+      high: scanSum((row) => row.riskLevel === "HIGH"),
+      unconsented: scanSum((row) => !row.consented),
     },
     documents: documents.map((document) => ({
       id: document.id,
@@ -166,10 +173,22 @@ export interface DocumentListItem {
   criticalCount: number;
 }
 
-export async function listDocuments(actor: Actor): Promise<DocumentListItem[]> {
+export interface DocumentPage {
+  items: DocumentListItem[];
+  nextCursor: string | null;
+}
+
+/** Cursor-paginated circular list: bounded page, no nested row arrays, no N+1. */
+export async function listDocuments(
+  actor: Actor,
+  options: { cursor?: string; limit?: number } = {},
+): Promise<DocumentPage> {
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 50);
   const documents = await db.regulatoryDocument.findMany({
     where: { workspaceId: actor.workspaceId },
-    orderBy: { publishedAt: "desc" },
+    orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
+    take: limit + 1,
+    ...(options.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
     select: {
       id: true,
       title: true,
@@ -180,23 +199,42 @@ export async function listDocuments(actor: Actor): Promise<DocumentListItem[]> {
       effectiveAt: true,
       status: true,
       _count: { select: { clauses: true, findings: true } },
-      findings: { select: { severity: true } },
     },
   });
 
-  return documents.map((document) => ({
-    id: document.id,
-    title: document.title,
-    reference: document.reference,
-    regulator: document.regulator,
-    summary: document.summary,
-    publishedAt: document.publishedAt,
-    effectiveAt: document.effectiveAt,
-    status: document.status,
-    clauseCount: document._count.clauses,
-    findingCount: document._count.findings,
-    criticalCount: document.findings.filter((finding) => finding.severity === "CRITICAL").length,
-  }));
+  const hasMore = documents.length > limit;
+  const page = hasMore ? documents.slice(0, limit) : documents;
+  const last = page.at(-1);
+
+  const criticalCounts = await db.finding.groupBy({
+    by: ["documentId"],
+    where: {
+      workspaceId: actor.workspaceId,
+      documentId: { in: page.map((document) => document.id) },
+      severity: "CRITICAL",
+    },
+    _count: { _all: true },
+  });
+  const criticalByDocument = new Map(
+    criticalCounts.map((row) => [row.documentId, row._count._all]),
+  );
+
+  return {
+    items: page.map((document) => ({
+      id: document.id,
+      title: document.title,
+      reference: document.reference,
+      regulator: document.regulator,
+      summary: document.summary,
+      publishedAt: document.publishedAt,
+      effectiveAt: document.effectiveAt,
+      status: document.status,
+      clauseCount: document._count.clauses,
+      findingCount: document._count.findings,
+      criticalCount: criticalByDocument.get(document.id) ?? 0,
+    })),
+    nextCursor: hasMore && last ? last.id : null,
+  };
 }
 
 export interface DocumentClauseView {

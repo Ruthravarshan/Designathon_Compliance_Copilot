@@ -4,6 +4,8 @@ export interface SessionPayload {
   userId: string;
   workspaceId: string;
   exp: number;
+  /** Must match the user's current sessionVersion; bumped on sign-out/privilege change. */
+  version: number;
 }
 
 export const SESSION_TTL_SECONDS = 60 * 60 * 8;
@@ -30,19 +32,27 @@ function decodePayload(value: string): SessionPayload | null {
       typeof candidate.workspaceId !== "string" ||
       candidate.workspaceId.length === 0 ||
       typeof candidate.exp !== "number" ||
-      !Number.isFinite(candidate.exp)
+      !Number.isFinite(candidate.exp) ||
+      typeof candidate.version !== "number" ||
+      !Number.isInteger(candidate.version) ||
+      candidate.version < 0
     ) {
       return null;
     }
 
-    return { userId: candidate.userId, workspaceId: candidate.workspaceId, exp: candidate.exp };
+    return {
+      userId: candidate.userId,
+      workspaceId: candidate.workspaceId,
+      exp: candidate.exp,
+      version: candidate.version,
+    };
   } catch {
     return null;
   }
 }
 
 export function signSession(
-  input: { userId: string; workspaceId: string },
+  input: { userId: string; workspaceId: string; version?: number },
   secret: string,
   now = Date.now(),
 ): string {
@@ -50,6 +60,7 @@ export function signSession(
     userId: input.userId,
     workspaceId: input.workspaceId,
     exp: Math.floor(now / 1000) + SESSION_TTL_SECONDS,
+    version: input.version ?? 0,
   });
 
   return `${payload}.${sign(payload, secret)}`;

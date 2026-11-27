@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@fontsource-variable/manrope";
 import { GeistMono } from "geist/font/mono";
 import { ThemeScript } from "@/components/theme/theme-script";
+import { NavigationProgress } from "@/components/ui/navigation-progress";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ThemeScript />
       </head>
       <body className="min-h-dvh bg-canvas font-sans text-fg antialiased">
+        <NavigationProgress />
         <a href="#main" className="skip-link">
           Skip to content
         </a>

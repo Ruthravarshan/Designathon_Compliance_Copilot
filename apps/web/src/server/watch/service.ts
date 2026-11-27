@@ -5,7 +5,7 @@ import { env } from "@/lib/env";
 import { AppError, ERROR_CODES } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import type { RegulatorKey } from "@/lib/compliance/types";
-import { computePosture, type PostureSummary } from "@/lib/watch/posture";
+import { postureFromCounts, type PostureSummary } from "@/lib/watch/posture";
 import { deriveReference } from "@/lib/watch/reference";
 import { summarizeRevision } from "@/lib/watch/revision";
 import { directCandidate, extractCandidateLinks } from "@/lib/watch/discover";
@@ -186,11 +186,27 @@ async function resolveOwnerActor(workspaceId: string): Promise<Actor | null> {
 }
 
 async function workspacePosture(workspaceId: string, now: Date): Promise<PostureSummary> {
-  const findings = await db.finding.findMany({
-    where: { workspaceId },
-    select: { severity: true, reviewStatus: true, dueDate: true },
-  });
-  return computePosture(findings, now);
+  // Two bounded aggregate queries instead of loading the whole finding table.
+  const [openGroups, overdueGroups] = await Promise.all([
+    db.finding.groupBy({
+      by: ["severity"],
+      where: { workspaceId, reviewStatus: "PENDING_REVIEW" },
+      _count: { _all: true },
+    }),
+    db.finding.groupBy({
+      by: ["severity"],
+      where: { workspaceId, reviewStatus: "PENDING_REVIEW", dueDate: { lt: now } },
+      _count: { _all: true },
+    }),
+  ]);
+  const overdueBySeverity = new Map(overdueGroups.map((row) => [row.severity, row._count._all]));
+  return postureFromCounts(
+    openGroups.map((row) => ({
+      severity: row.severity,
+      open: row._count._all,
+      overdue: overdueBySeverity.get(row.severity) ?? 0,
+    })),
+  );
 }
 
 async function processCandidate(
@@ -750,16 +766,29 @@ export async function toggleSource(
 
 export async function ingestFromUrl(
   actor: Actor,
-  input: { url: string; regulator?: RegulatorKey; title?: string },
+  input: { sourceId: string; url: string; regulator?: RegulatorKey; title?: string },
 ): Promise<{ id: string; reference: string; findings: number; clauses: number }> {
+  // The URL allowlist comes from the workspace's tracked source registry, never
+  // from the URL itself. A self-referential allowlist would permit any host.
+  const source = await db.regulatorySource.findFirst({
+    where: { id: input.sourceId, workspaceId: actor.workspaceId },
+    select: { id: true, allowedDomains: true },
+  });
+  if (!source) {
+    throw new AppError(ERROR_CODES.NOT_FOUND, "Tracked source not found.");
+  }
+
   const parsed = parseHttpUrl(input.url);
-  if (!parsed || !hostAllowed(parsed, [parsed.hostname])) {
-    throw new AppError(ERROR_CODES.BAD_REQUEST, "That URL is not allowed.");
+  if (!parsed || !hostAllowed(parsed, source.allowedDomains)) {
+    throw new AppError(
+      ERROR_CODES.BAD_REQUEST,
+      "That URL is not on the tracked source's allowed domains.",
+    );
   }
 
   const regulator = input.regulator ?? inferRegulator(parsed.hostname);
   const fetched = await safeFetchBytes(parsed.toString(), {
-    allowedDomains: [parsed.hostname],
+    allowedDomains: source.allowedDomains,
   });
   const extracted = await extractDocument(fetched);
 
@@ -799,7 +828,12 @@ export async function ingestFromUrl(
     action: "watch.direct_ingest",
     entity: "RegulatoryDocument",
     entityId: result.id,
-    metadata: { url: fetched.finalUrl, reference: result.reference, regulator },
+    metadata: {
+      url: fetched.finalUrl,
+      reference: result.reference,
+      regulator,
+      sourceId: source.id,
+    },
   });
 
   return {

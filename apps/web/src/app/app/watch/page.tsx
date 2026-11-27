@@ -120,14 +120,14 @@ export default async function WatchPage() {
             <div>
               <h2 className="text-sm font-medium text-fg">Fetch a document directly</h2>
               <p className="mt-1 text-xs text-muted">
-                Paste a public RBI, SEBI, IRDAI, or MeitY URL. The server fetches it with SSRF,
-                size, and timeout guards before ingesting.
+                Pick a tracked source, then paste a URL on its allowed domains. The server fetches
+                it with DNS-pinned SSRF, size, and timeout guards before ingesting.
               </p>
             </div>
             <Badge tone="outline">paste &amp; fetch</Badge>
           </CardHeader>
           <CardBody>
-            <DirectIngestForm />
+            <DirectIngestForm sources={overview.sources} />
           </CardBody>
         </Card>
       ) : null}

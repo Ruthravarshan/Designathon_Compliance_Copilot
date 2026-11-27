@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { BrandLockup } from "@/components/brand/brand-lockup";
+import { AmbientBackdrop } from "@/components/landing/ambient-backdrop";
 import { HeroReceiptSnapshot } from "@/components/landing/hero-receipt-snapshot";
 import { HeroWorkbenchPreview } from "@/components/landing/hero-workbench-preview";
 import {
@@ -50,7 +51,7 @@ export default async function LandingPage() {
 
   return (
     <div className="relative min-h-dvh overflow-x-clip bg-canvas text-fg">
-      <div aria-hidden="true" className="pp-backdrop-grid" />
+      <AmbientBackdrop />
 
       <header className="sticky top-0 z-40 border-b border-line/80 bg-canvas/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-3 px-4 sm:px-8">
@@ -82,7 +83,7 @@ export default async function LandingPage() {
         </div>
       </header>
 
-      <main id="main">
+      <main id="main" className="relative z-10">
         {/* Hero: Focused value proposition + compact live citation receipt */}
         <section className="mx-auto w-full max-w-[1200px] px-4 pb-14 pt-10 sm:px-8 md:pb-20 md:pt-16">
           <div className="grid items-center gap-10 lg:grid-cols-[1.06fr_0.94fr] lg:gap-12">
@@ -198,7 +199,7 @@ export default async function LandingPage() {
         </section>
 
         {/* Interactive Workbench Preview: Dedicated full-width simulator section */}
-        <section id="workbench" className="scroll-mt-20 border-t border-line bg-canvas">
+        <section id="workbench" className="scroll-mt-20 border-t border-line bg-canvas/55">
           <div className="mx-auto w-full max-w-[1200px] px-4 py-16 sm:px-8 md:py-24">
             <Reveal>
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -250,7 +251,7 @@ export default async function LandingPage() {
         </section>
 
         {/* Workspace Modules: Regulatory Watch, Policy Checks, Grounded Q&A, Storage & Outbox */}
-        <section id="platform" className="scroll-mt-20 border-t border-line bg-canvas">
+        <section id="platform" className="scroll-mt-20 border-t border-line bg-canvas/55">
           <div className="mx-auto w-full max-w-[1200px] px-4 py-16 sm:px-8 md:py-24">
             <Reveal>
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -308,7 +309,7 @@ export default async function LandingPage() {
         </section>
 
         {/* Bottom CTA */}
-        <section className="border-t border-line bg-surface">
+        <section className="border-t border-line bg-surface/75">
           <Reveal>
             <div className="mx-auto flex w-full max-w-[1200px] flex-col justify-between gap-6 px-4 py-14 sm:px-8 md:flex-row md:items-center">
               <div>
@@ -334,7 +335,7 @@ export default async function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-line bg-canvas">
+      <footer className="relative z-10 border-t border-line bg-canvas/80">
         <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-3 px-4 py-8 text-xs text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <BrandLockup appName="PolicyPulse" compact />
           <p>Enterprise regulatory compliance · Human sign-off required</p>

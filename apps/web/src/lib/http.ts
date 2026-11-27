@@ -15,5 +15,12 @@ export function noContent() {
 
 export function fail(error: unknown, requestId?: string) {
   const result = toPublicError(error, requestId);
-  return NextResponse.json(result.body, { status: result.status });
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: {
+      "cache-control": "no-store",
+      ...(requestId ? { "x-request-id": requestId } : {}),
+      ...result.headers,
+    },
+  });
 }
