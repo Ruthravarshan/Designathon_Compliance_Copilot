@@ -2,11 +2,14 @@ import "server-only";
 import nodemailer from "nodemailer";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { createGmailProvider } from "./gmail";
 import type { RenderedEmail } from "./render";
 
 export type OutboundEmail = RenderedEmail & {
   to: string;
   from: string;
+  /** Routes a workspace-owned message to that workspace's connected mailbox. */
+  workspaceId?: string | null;
 };
 
 export interface EmailProvider {
@@ -91,11 +94,13 @@ const globalForEmail = globalThis as unknown as { emailProvider?: EmailProvider 
 export function getEmailProvider(): EmailProvider {
   if (!globalForEmail.emailProvider) {
     globalForEmail.emailProvider =
-      env.EMAIL_PROVIDER === "resend"
-        ? createResendProvider()
-        : env.EMAIL_PROVIDER === "smtp"
-          ? createSmtpProvider()
-          : createConsoleProvider();
+      env.EMAIL_PROVIDER === "gmail"
+        ? createGmailProvider()
+        : env.EMAIL_PROVIDER === "resend"
+          ? createResendProvider()
+          : env.EMAIL_PROVIDER === "smtp"
+            ? createSmtpProvider()
+            : createConsoleProvider();
   }
 
   return globalForEmail.emailProvider;

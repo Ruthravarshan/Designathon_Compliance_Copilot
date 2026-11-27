@@ -12,8 +12,11 @@ Browser ──HTTPS──▶ Vercel (Next.js, apps/web)
                       │
                       ├─ Prisma + pg adapter ──▶ Supabase pooler :6543 (DATABASE_URL)
                       │
-                      └─ Vercel Cron ──▶ GET /api/cron/email ──▶ outbox drain ──▶ Resend
+                      └─ Vercel Cron ──▶ GET /api/cron/email ──▶ outbox drain ──▶ Gmail API or Resend
 ```
+
+Gmail sending uses Google OAuth 2.0 (Web application) plus the Gmail API. The exact Google
+Cloud Console and Vercel steps are in [GMAIL-OAUTH.md](GMAIL-OAUTH.md).
 
 ## Environments
 
@@ -24,6 +27,11 @@ Browser ──HTTPS──▶ Vercel (Next.js, apps/web)
 | Production  | Judged demo and submission     | Supabase project                | Vercel production  |
 
 Never point local or preview at the production database.
+
+Supabase **publishable** and **secret** API keys are not database URLs and are not needed by
+Prisma. Copy `DATABASE_URL` and `DIRECT_URL` from **Project Settings → Database → Connection
+string**. This app does not use Supabase Auth or Storage; identity is the demo persona session
+and authorization is enforced server-side.
 
 ## Supabase setup
 
@@ -95,9 +103,14 @@ NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable key>
 SUPABASE_SERVICE_ROLE_KEY=<server-only secret>
 DEMO_MODE=true                                 # demo login still requires the DB demoLoginEnabled flag
-EMAIL_PROVIDER=resend                          # or console for a no-email dry run
+EMAIL_PROVIDER=gmail                           # gmail | resend | smtp | console
 EMAIL_FROM="PolicyPulse <no-reply@<verified-domain>>"
-RESEND_API_KEY=re_...
+GOOGLE_CLIENT_ID=<web application client id>   # required for EMAIL_PROVIDER=gmail
+GOOGLE_CLIENT_SECRET=<client secret>           # server-only
+TOKEN_ENCRYPTION_KEY=<32-byte base64>          # encrypts OAuth tokens at rest
+GMAIL_FROM_NAME=PolicyPulse
+# GOOGLE_REDIRECT_URI=https://<project>.vercel.app/api/integrations/gmail/callback
+# RESEND_API_KEY=re_...                        # only for EMAIL_PROVIDER=resend
 CRON_SECRET=<openssl rand -hex 24>             # protects /api/cron/worker
 MSFT_GRAPH_TENANT_ID=<tenant>
 MSFT_GRAPH_CLIENT_ID=<client>
@@ -129,10 +142,16 @@ the Prisma engine and is ignored by the `pg` driver adapter, hence the explicit 
 
 ### Email on Vercel
 
-Resend is the recommended provider on serverless. Verify the sending domain (SPF, DKIM, DMARC) in
-Resend, then set `EMAIL_PROVIDER=resend`. The outbox pattern is unchanged: the request only writes a
-`QUEUED` row; the cron drain marks `SENT`/`FAILED` and retries are idempotent
-(`finding-task:<findingId>`). No recipient address or token is logged.
+**Gmail (default for the judged demo):** set `EMAIL_PROVIDER=gmail` plus the three Google values,
+then connect the mailbox once at **Settings → Email** as the workspace owner. Access and refresh
+tokens are stored encrypted and refreshed automatically. `gmail.send` is the only scope, so the app
+cannot read the mailbox. Google's testing-mode refresh tokens expire after 7 days; reconnect or
+publish/verify the OAuth app. Full steps: [GMAIL-OAUTH.md](GMAIL-OAUTH.md).
+
+**Resend:** verify the sending domain (SPF, DKIM, DMARC), then set `EMAIL_PROVIDER=resend`.
+The outbox pattern is unchanged: the request only writes a `QUEUED` row; the cron drain marks
+`SENT`/`FAILED` and retries are idempotent (`finding-task:<findingId>`). No recipient address or
+token is logged.
 
 ## Local development (unchanged)
 
@@ -211,7 +230,7 @@ Record the URL, smoke timestamp, and results in `docs/discovery/09-release-repor
 | Cron returns 401            | `CRON_SECRET` set in Vercel; header is `Authorization: Bearer ...` |
 | Cron returns 503            | `CRON_SECRET` missing at runtime; set it and redeploy             |
 | Demo data missing           | Rerun the seed against Supabase                                   |
-| Emails not delivered        | Resend domain verification, `EMAIL_FROM`, outbox status           |
+| Emails not delivered        | Gmail connection status, `gmail.send` scope, outbox row, or Resend domain verification |
 | Supabase paused             | Restore the project, warm `/api/health`, reseed if needed         |
 
 ## Submission URLs

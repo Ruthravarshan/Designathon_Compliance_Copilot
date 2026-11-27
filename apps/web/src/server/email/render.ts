@@ -252,6 +252,30 @@ const renderers: Renderers = {
       text: `Hi ${assigneeName},\n\n${reviewerName} approved a policy redline in ${workspaceName} and assigned you: ${taskTitle} (${findingReference}).\n\nTarget date: ${dueDate}.\n\nOpen the finding: ${workspaceUrl}\n\nApproval in the workbench does not publish a policy.\n`,
     };
   },
+
+  "email.test": ({ name, mailboxEmail, workspaceName, appUrl }) => {
+    const heading = "Gmail sending works";
+    const body = [
+      paragraph(
+        `Hi ${name}, PolicyPulse sent this message through the Gmail mailbox connected to ${workspaceName}: ${mailboxEmail}.`,
+      ),
+      paragraph(
+        "Access and refresh tokens are stored encrypted, refreshed automatically, and never exposed to the browser.",
+      ),
+    ].join("");
+
+    return {
+      subject: sanitizeHeader("PolicyPulse Gmail test"),
+      html: layout({
+        preview: "Your Gmail connection can send automated email.",
+        heading,
+        body,
+        cta: { label: "Open PolicyPulse", url: appUrl },
+        footer: footerFor("email.test"),
+      }),
+      text: `Hi ${name},\n\nPolicyPulse sent this test through the Gmail mailbox connected to ${workspaceName}: ${mailboxEmail}.\n\nOpen PolicyPulse: ${appUrl}\n`,
+    };
+  },
 };
 
 export function renderEmail<K extends EmailEvent>(

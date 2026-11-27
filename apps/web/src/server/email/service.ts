@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { env } from "@/lib/env";
+import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
 import { EMAIL_CATEGORIES, isEmailEvent, type EmailEvent, type EmailPayloads } from "./events";
@@ -88,6 +89,79 @@ export async function enqueueEmail<K extends EmailEvent>(
   return { status: "queued", id: message.id };
 }
 
+type DeliveryOutcome = "sent" | "retried" | "failed" | "skipped";
+
+async function deliverQueuedEmail(id: string): Promise<DeliveryOutcome> {
+  const claim = await db.emailMessage.updateMany({
+    where: { id, status: "QUEUED" },
+    data: { status: "SENDING", attempts: { increment: 1 } },
+  });
+
+  if (claim.count === 0) {
+    return "skipped";
+  }
+
+  const message = await db.emailMessage.findUnique({ where: { id } });
+  if (!message) {
+    return "skipped";
+  }
+
+  try {
+    const template = message.template;
+    if (!isEmailEvent(template)) {
+      throw new Error("Unknown email template");
+    }
+
+    const rendered = renderEmail(template, message.payload as EmailPayloads[typeof template]);
+    const provider = getEmailProvider();
+    const sent = await provider.send({
+      ...rendered,
+      to: message.toEmail,
+      from: env.EMAIL_FROM,
+      workspaceId: message.workspaceId,
+    });
+
+    await db.emailMessage.update({
+      where: { id: message.id },
+      data: {
+        status: "SENT",
+        sentAt: new Date(),
+        provider: provider.name,
+        providerMessageId: sent.id,
+        lastError: null,
+      },
+    });
+
+    logger.info({ emailId: message.id, template, provider: provider.name }, "email sent");
+    return "sent";
+  } catch (error) {
+    const finalAttempt = message.attempts >= MAX_ATTEMPTS;
+    const delayMs = Math.min(2 ** message.attempts * 60_000, 60 * 60_000);
+
+    await db.emailMessage.update({
+      where: { id: message.id },
+      data: {
+        status: finalAttempt ? "FAILED" : "QUEUED",
+        lastError: error instanceof AppError ? error.code.toLowerCase() : "provider_error",
+        scheduledAt: new Date(Date.now() + delayMs),
+      },
+    });
+
+    logger.error(
+      {
+        emailId: message.id,
+        template: message.template,
+        attempts: message.attempts,
+        finalAttempt,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      },
+      "email send failed",
+    );
+
+    return finalAttempt ? "failed" : "retried";
+  }
+}
+
 export async function processEmailQueue(limit = 25): Promise<ProcessEmailQueueResult> {
   const safeLimit = Math.min(Math.max(1, limit), 100);
   const candidates = await db.emailMessage.findMany({
@@ -107,80 +181,32 @@ export async function processEmailQueue(limit = 25): Promise<ProcessEmailQueueRe
   };
 
   for (const candidate of candidates) {
-    const claim = await db.emailMessage.updateMany({
-      where: { id: candidate.id, status: "QUEUED" },
-      data: { status: "SENDING", attempts: { increment: 1 } },
-    });
-
-    if (claim.count === 0) {
+    const outcome = await deliverQueuedEmail(candidate.id);
+    if (outcome === "skipped") {
       continue;
     }
 
     result.processed += 1;
-
-    const message = await db.emailMessage.findUnique({ where: { id: candidate.id } });
-    if (!message) {
-      continue;
-    }
-
-    try {
-      const template = message.template;
-      if (!isEmailEvent(template)) {
-        throw new Error("Unknown email template");
-      }
-
-      const rendered = renderEmail(template, message.payload as EmailPayloads[typeof template]);
-      const provider = getEmailProvider();
-      const sent = await provider.send({
-        ...rendered,
-        to: message.toEmail,
-        from: env.EMAIL_FROM,
-      });
-
-      await db.emailMessage.update({
-        where: { id: message.id },
-        data: {
-          status: "SENT",
-          sentAt: new Date(),
-          provider: provider.name,
-          providerMessageId: sent.id,
-          lastError: null,
-        },
-      });
-
+    if (outcome === "sent") {
       result.sent += 1;
-      logger.info({ emailId: message.id, template, provider: provider.name }, "email sent");
-    } catch (error) {
-      const finalAttempt = message.attempts >= MAX_ATTEMPTS;
-      const delayMs = Math.min(2 ** message.attempts * 60_000, 60 * 60_000);
-
-      await db.emailMessage.update({
-        where: { id: message.id },
-        data: {
-          status: finalAttempt ? "FAILED" : "QUEUED",
-          lastError: "provider_error",
-          scheduledAt: new Date(Date.now() + delayMs),
-        },
-      });
-
-      if (finalAttempt) {
-        result.failed += 1;
-      } else {
-        result.retried += 1;
-      }
-
-      logger.error(
-        {
-          emailId: message.id,
-          template: message.template,
-          attempts: message.attempts,
-          finalAttempt,
-          errorName: error instanceof Error ? error.name : "UnknownError",
-        },
-        "email send failed",
-      );
+    } else if (outcome === "retried") {
+      result.retried += 1;
+    } else {
+      result.failed += 1;
     }
   }
 
   return result;
+}
+
+/** Drains one specific outbox row, used by the admin "send test" action. */
+export async function processEmailById(id: string): Promise<ProcessEmailQueueResult> {
+  const outcome = await deliverQueuedEmail(id);
+
+  return {
+    processed: outcome === "skipped" ? 0 : 1,
+    sent: outcome === "sent" ? 1 : 0,
+    retried: outcome === "retried" ? 1 : 0,
+    failed: outcome === "failed" ? 1 : 0,
+  };
 }

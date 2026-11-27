@@ -40,6 +40,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...(actorCan(actor, "audit:read")
       ? [{ href: "/app/audit", label: "Audit trail", index: "05" }]
       : []),
+    ...(actorCan(actor, "email:send")
+      ? [{ href: "/app/settings/email", label: "Email settings", index: "06" }]
+      : []),
   ];
 
   return (

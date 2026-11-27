@@ -24,6 +24,12 @@ enum EmailStatus {
   CANCELED
 }
 
+enum GmailStatus {
+  CONNECTED
+  REVOKED
+  ERROR
+}
+
 enum Regulator {
   RBI
   SEBI
@@ -93,6 +99,7 @@ model User {
   emailPreference EmailPreference?
   reviewedFindings Finding[]       @relation("FindingReviewer")
   reviewEvents     ReviewEvent[]   @relation("ReviewActor")
+  gmailConnections GmailAccount[]  @relation("GmailConnectedBy")
 }
 
 model Workspace {
@@ -111,6 +118,7 @@ model Workspace {
   findings    Finding[]
   reviewEvents ReviewEvent[]
   dataScans   DataFieldScan[]
+  gmailAccount GmailAccount?
 }
 
 model Membership {
@@ -188,6 +196,30 @@ model EmailSuppression {
   email     String   @unique
   reason    String
   createdAt DateTime @default(now())
+}
+
+model GmailAccount {
+  id              String      @id @default(cuid())
+  workspaceId     String      @unique
+  email           String
+  accessTokenEnc  String
+  refreshTokenEnc String
+  tokenType       String      @default("Bearer")
+  scope           String
+  expiresAt       DateTime
+  status          GmailStatus @default(CONNECTED)
+  lastErrorCode   String?
+  connectedById   String?
+  connectedAt     DateTime    @default(now())
+  lastRefreshedAt DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  workspace       Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connectedBy     User?       @relation("GmailConnectedBy", fields: [connectedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([email])
 }
 
 model RegulatoryDocument {

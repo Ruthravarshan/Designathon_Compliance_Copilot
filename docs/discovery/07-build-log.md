@@ -109,3 +109,23 @@ curl -i https://<project>.vercel.app/api/health
 3. Demo auth is persona-based and must never be presented as production authentication.
 
 Next: `08-hardening-report.md`
+
+## 2026-11-27 — Gmail OAuth sender (Qoder lane)
+
+- Added `GmailAccount` (workspace-unique) with encrypted access/refresh tokens, status, scope,
+  expiry, last error, and connector; idempotent SQL in `prisma/sql/002-gmail-account.sql` and
+  `init.sql`.
+- Google OAuth 2.0 web flow: `GET /api/integrations/gmail/connect` (owner-only, HMAC state cookie,
+  offline + consent), `GET .../callback` (state + session re-check, code exchange, verified email),
+  `GET .../status` (optional live check), `POST .../disconnect` (revoke + delete), `POST .../test`.
+- Gmail sender is the `gmail` outbox provider: RFC 2822 multipart, `gmail.send` scope, AES-256-GCM
+  token encryption, 60s pre-expiry refresh, one retry on 401, `invalid_grant` marks the connection
+  `REVOKED`.
+- Settings → Email page: connect/reconnect, test send, disconnect with complete states; owner-only
+  mutations, admin test; audit rows for connect, disconnect, and test.
+- Evidence: `npm run check` green (format, lint, typecheck, 254 unit tests, production build with the
+  five Gmail routes and `/app/settings/email`); local route smoke — owner status
+  `{configured:false, connected:false}`, analyst status 403, admin disconnect 403, test without
+  config 503; `GmailAccount` applied to local Postgres (16 tables).
+- Not yet evidenced: real Google consent and a real Gmail delivery. They require the operator's
+  OAuth client ID/secret and a connected mailbox; steps are in [GMAIL-OAUTH.md](../GMAIL-OAUTH.md).

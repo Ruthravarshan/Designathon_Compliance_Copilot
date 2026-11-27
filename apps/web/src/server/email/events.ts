@@ -6,6 +6,7 @@ export const EMAIL_EVENTS = [
   "password.reset",
   "notification.digest",
   "finding.remediation_task",
+  "email.test",
 ] as const;
 
 export type EmailEvent = (typeof EMAIL_EVENTS)[number];
@@ -54,6 +55,12 @@ export type EmailPayloads = {
     reviewerName: string;
     workspaceUrl: string;
   };
+  "email.test": {
+    name: string;
+    mailboxEmail: string;
+    workspaceName: string;
+    appUrl: string;
+  };
 };
 
 export const EMAIL_CATEGORIES: Record<EmailEvent, EmailCategory> = {
@@ -64,6 +71,7 @@ export const EMAIL_CATEGORIES: Record<EmailEvent, EmailCategory> = {
   "password.reset": "transactional",
   "notification.digest": "product",
   "finding.remediation_task": "product",
+  "email.test": "transactional",
 };
 
 export function isEmailEvent(value: string): value is EmailEvent {
