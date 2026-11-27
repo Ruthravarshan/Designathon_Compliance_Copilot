@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { HardDrives, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import { StorageSettingsClient } from "@/components/settings/storage-settings-client";
+import { StorageBrowser } from "@/components/settings/storage-browser";
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -80,6 +81,19 @@ export default async function StorageSettingsPage() {
       ) : null}
 
       <StorageSettingsClient connections={connections} env={storageEnvironmentStatus()} />
+
+      {connections.length > 0 ? (
+        <StorageBrowser
+          connections={connections.map((connection) => ({
+            id: connection.id,
+            provider: connection.provider,
+            status: connection.status ?? null,
+            isDefault: connection.isDefault,
+            isFallback: connection.isFallback ?? false,
+          }))}
+          canManage
+        />
+      ) : null}
 
       <Card className="flex items-start gap-3 p-5">
         <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand dark:text-accent">

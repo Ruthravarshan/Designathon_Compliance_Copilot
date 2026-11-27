@@ -26,7 +26,10 @@ export async function POST(request: Request) {
     await enforceLimit(authLimiter, actor.userId);
     const body = await readJson(request, bodySchema);
 
-    if (!isGmailConfigured()) {
+    // Local and resend deployments send without a Gmail OAuth connection; only
+    // the gmail provider requires the owner to connect the sending mailbox.
+    const usesGmail = env.EMAIL_PROVIDER === "gmail";
+    if (usesGmail && !isGmailConfigured()) {
       throw new AppError(
         ERROR_CODES.INTERNAL,
         "Gmail sending is not configured on this deployment.",
@@ -35,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     const connection = await getGmailStatus(actor.workspaceId);
-    if (!connection.connected || !connection.email) {
+    if (usesGmail && (!connection.connected || !connection.email)) {
       throw new AppError(
         ERROR_CODES.CONFLICT,
         "Connect a Gmail mailbox before sending a test email.",
@@ -49,6 +52,7 @@ export async function POST(request: Request) {
         "Test emails can only be sent to your own address.",
       );
     }
+    const mailboxEmail = usesGmail ? (connection.email ?? env.EMAIL_FROM) : env.EMAIL_FROM;
     const to = body.to ?? actor.email;
     const queued = await enqueueEmail({
       event: "email.test",
@@ -58,7 +62,7 @@ export async function POST(request: Request) {
       idempotencyKey: `email-test:${actor.workspaceId}:${crypto.randomUUID()}`,
       payload: {
         name: actor.name,
-        mailboxEmail: connection.email,
+        mailboxEmail,
         workspaceName: actor.workspaceName,
         appUrl: env.APP_URL,
       },
@@ -77,7 +81,9 @@ export async function POST(request: Request) {
     if (message?.status !== "SENT") {
       throw new AppError(
         ERROR_CODES.INTERNAL,
-        "The test email was not delivered. Check the mailbox connection and try again.",
+        usesGmail
+          ? "The test email was not delivered. Check the mailbox connection and try again."
+          : "The test email was not delivered. Check the SMTP settings (Mailpit at localhost:1025) and try again.",
         { status: 502, details: { queueStatus: message?.status ?? "UNKNOWN" } },
       );
     }
@@ -89,7 +95,7 @@ export async function POST(request: Request) {
       action: "email.test_sent",
       entity: "EmailMessage",
       entityId: queued.id,
-      metadata: { provider: "gmail" },
+      metadata: { provider: env.EMAIL_PROVIDER },
       ip: meta.ip,
       userAgent: meta.userAgent,
     });

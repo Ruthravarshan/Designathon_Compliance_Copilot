@@ -12,7 +12,7 @@ test("assistant answers from the register with checkable citations", async ({ pa
   await page.getByRole("button", { name: "Ask", exact: true }).click();
 
   const thread = page.locator('[aria-live="polite"]');
-  await expect(thread.getByText("Grounded answer")).toBeVisible({ timeout: 60_000 });
+  await expect(thread.getByText("Grounded answer").first()).toBeVisible({ timeout: 60_000 });
   await expect(thread.getByText(/\d+ citations/)).toBeVisible();
   await expect(thread.getByText("Citations", { exact: true })).toBeVisible();
   await expect(thread.getByText(/(Grounded by|Extractive retrieval)/)).toBeVisible();
@@ -25,7 +25,7 @@ test("assistant refuses when nothing in the register matches", async ({ page }) 
 
   await page
     .getByLabel(/Ask the register/)
-    .fill("What does our quantum satellite telemetry policy say?");
+    .fill("What does our xylophone zucchini barista policy say?");
   await page.getByRole("button", { name: "Ask", exact: true }).click();
 
   const thread = page.locator('[aria-live="polite"]');

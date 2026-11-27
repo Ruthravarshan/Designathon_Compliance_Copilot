@@ -3,9 +3,12 @@ import { IngestionError, type IngestionErrorCode } from "@/server/ingestion/erro
 import { assertConnectionWorkspace, checksumOf, readConnectionConfig } from "./config";
 import type {
   StorageConnection,
+  StorageListInput,
+  StorageListResult,
   StorageProvider,
   StorageReadInput,
   StorageReadResult,
+  StorageStat,
   StorageUploadInput,
   StoredObject,
 } from "./types";
@@ -28,6 +31,27 @@ const driveSchema = z.object({ id: z.string().min(1) });
 const sharedItemSchema = z.object({
   id: z.string().min(1),
   parentReference: z.object({ driveId: z.string().min(1).optional() }).optional(),
+});
+const childrenSchema = z.object({
+  value: z.array(
+    z.object({
+      id: z.string().min(1),
+      name: z.string(),
+      size: z.number().optional(),
+      lastModifiedDateTime: z.string().optional(),
+      webUrl: z.string().url().optional(),
+      folder: z.object({}).optional(),
+      file: z.object({ mimeType: z.string().optional() }).optional(),
+    }),
+  ),
+  "@odata.nextLink": z.string().url().optional(),
+});
+const statSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  size: z.number().optional(),
+  lastModifiedDateTime: z.string().optional(),
+  webUrl: z.string().url().optional(),
 });
 
 export type GraphFetch = (url: string, init: RequestInit) => Promise<Response>;
@@ -359,6 +383,90 @@ export function createGraphProvider(
         webUrl: parsed.data.webUrl,
         path: input.path,
         checksum,
+      };
+    },
+
+    async list(input: StorageListInput): Promise<StorageListResult> {
+      const resolved = await target();
+      const folderItemId = input.folderId ?? resolved.folderItemId;
+      let path: string;
+      if (folderItemId) {
+        path = `/drives/${encodeURIComponent(resolved.driveId)}/items/${encodeURIComponent(folderItemId)}/children`;
+      } else if (resolved.folderPath) {
+        path = `/drives/${encodeURIComponent(resolved.driveId)}/root:/${encodePath(resolved.folderPath)}:/children`;
+      } else {
+        path = `/drives/${encodeURIComponent(resolved.driveId)}/root/children`;
+      }
+      const url = input.pageToken
+        ? input.pageToken
+        : `${path}?$select=id,name,size,lastModifiedDateTime,webUrl,folder,file&$top=${Math.min(Math.max(input.limit ?? 100, 1), 200)}`;
+      const response = url.startsWith("http")
+        ? await httpFetch(url, {
+            method: "GET",
+            headers: { authorization: `Bearer ${await token()}` },
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+            cache: "no-store",
+          })
+        : await request("GET", url);
+      if (!response.ok) {
+        throw new IngestionError(
+          graphErrorCode(response.status),
+          "The SharePoint folder could not be listed.",
+        );
+      }
+      const parsed = childrenSchema.safeParse(await response.json());
+      if (!parsed.success) {
+        throw new IngestionError(
+          "STORAGE_UNAVAILABLE",
+          "The storage provider returned an incomplete folder listing.",
+        );
+      }
+      return {
+        entries: parsed.data.value.map((item) => ({
+          id: item.id,
+          name: item.name,
+          kind: item.folder ? "folder" : "file",
+          ...(typeof item.size === "number" ? { size: item.size } : {}),
+          ...(item.file?.mimeType ? { contentType: item.file.mimeType } : {}),
+          ...(item.lastModifiedDateTime ? { modifiedAt: item.lastModifiedDateTime } : {}),
+          ...(item.webUrl ? { webUrl: item.webUrl } : {}),
+        })),
+        ...(parsed.data["@odata.nextLink"]
+          ? { nextPageToken: parsed.data["@odata.nextLink"] }
+          : {}),
+      };
+    },
+
+    async stat(itemId: string): Promise<StorageStat | null> {
+      const { driveId } = await target();
+      const response = await request(
+        "GET",
+        `/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(itemId)}?$select=id,name,size,lastModifiedDateTime,webUrl`,
+      );
+      if (response.status === 404) {
+        return null;
+      }
+      if (!response.ok) {
+        throw new IngestionError(
+          graphErrorCode(response.status),
+          "The stored file could not be inspected.",
+        );
+      }
+      const parsed = statSchema.safeParse(await response.json());
+      if (!parsed.success) {
+        throw new IngestionError(
+          "STORAGE_UNAVAILABLE",
+          "The storage provider returned incomplete file details.",
+        );
+      }
+      return {
+        id: parsed.data.id,
+        name: parsed.data.name,
+        ...(typeof parsed.data.size === "number" ? { size: parsed.data.size } : {}),
+        ...(parsed.data.lastModifiedDateTime
+          ? { modifiedAt: parsed.data.lastModifiedDateTime }
+          : {}),
+        ...(parsed.data.webUrl ? { webUrl: parsed.data.webUrl } : {}),
       };
     },
 

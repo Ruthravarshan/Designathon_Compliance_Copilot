@@ -233,6 +233,31 @@ Next: `08-hardening-report.md`
   `apps/web/.env`, and neither Docker nor a local Postgres is installed. `npx playwright install
   chromium` was run and browsers are now available.
 
+## 2026-11-28 — Real corpus, hybrid retrieval, storage sync, email
+
+- Deleted the hand-written circular corpus (`DEMO_DOCUMENTS` and five fabricated clause sets).
+  `REAL_DOCUMENTS` now points at two checked-in regulator PDFs in `apps/web/prisma/fixtures/`:
+  IRDAI Information and Cyber Security Guidelines 2023 (`IRDAI/GA&HR/GDL/MISC/88/04/2023`) and SEBI
+  CSCRF (`SEBI/HO/ITD-1/ITD_CSC_EXT/P/CIR/2024/113`). The seed parses them with the same extractor as
+  live ingestion, keeps the English clauses of the bilingual SEBI PDF, archives the bytes for the
+  authorized PDF route, and embeds through Gemini (`gemini-embedding-001`, 768 dims) in paced
+  batches; throttling retries with 5/15/45s backoff. Result: 1,039 clauses and 672 findings across
+  287+205 pages.
+- Extraction cap raised from 40 clauses to 600 per PDF (`MAX_PDF_CLAUSES`): 40 clauses previously
+  stopped at the cover pages of any long regulator circular and made retrieval answer from titles.
+  Extraction helpers moved to `src/lib/watch/extract.ts`; embeddings and the vector literal moved to
+  `src/lib/llm` / `src/lib/search` so the seed and the app share one implementation (server modules
+  re-export, `server-only` stays on request paths).
+- Email: `/api/integrations/gmail/test` is provider-aware (SMTP/Resend/Gmail) and `enqueueEmail`
+  drains the outbox asynchronously for non-console providers. `/app/settings/email` shows the active
+  provider and Mailpit inbox instead of demanding Gmail OAuth locally. SMTP leg verified: Mailpit
+  received `SMTP check | smtp-check@hexa.local`.
+- Storage: browse/import routes, the 30-minute `syncAllWorkspaceStorage()` cron, and the docs in
+  `docs/STORAGE-SETUP.md` cover change detection (stat → read → text checksum → re-index) and the
+  credentials each provider needs.
+- Local reset: `public` schema dropped and rebuilt from `prisma/sql` (Prisma engines are stubbed on
+  this corporate network), then reseeded.
+
 ## 2026-11-28 — Review fixes from incoming commits
 
 - Sign-out in `workbench-shell.tsx` and `personal-settings-client.tsx` used to redirect in `finally`,
@@ -248,3 +273,55 @@ Next: `08-hardening-report.md`
   typecheck, tests, and production build all exit 0, and browser smoke is 8/8. Intermittent
   `ENOENT`/missing `.next/types` build failures were caused by two `next build` processes sharing
   `.next` at the same time, not by source defects.
+
+## 2026-11-28 — End-to-end verification (real corpus)
+
+- Retrieval and citations: asked "What are the incident reporting timelines for cyber security
+  incidents?" as the owner. Gemini answered from the IRDAI PDF (Clause 501, p. 187) and cited
+  `https://irdai.gov.in/web/guest/document-detail?documentId=3314780` plus
+  `/api/documents/<id>/pdf`; the policy register passage also cited POL-SEC-02. The PDF proxy served
+  the archived 3,081,705-byte file byte-identical to the fixture (`%PDF-` magic) and answered a
+  `Range: bytes=0-99` request with `206` and `content-range: bytes 0-99/3081705`.
+- Authorization: anonymous `/api/assistant/ask` and `/api/documents/<id>/pdf` return `401`; the
+  dashboard, assistant, circulars, findings, watch, and email settings pages render `200` for the
+  owner.
+- Email: `POST /api/integrations/gmail/test` returned `SENT` and Mailpit received "PolicyPulse Gmail
+  test" plus the seeded welcome email; the Gmail route now keeps both the open-relay guard and the
+  provider-aware sending mailbox after the merge.
+- Storage: `/app/settings/storage` lists SharePoint/Drive/Supabase provider cards; with no connection
+  configured, `/api/storage/browse` returns the honest `NOT_FOUND` and `/api/cron/storage` reports
+  `workspaces: 0` instead of fabricating a listing.
+- Embedding quota: the free-tier Gemini key allows 1,000 embedding requests/day. Today's run embedded
+  IRDAI 600/600 (`READY`) and SEBI 292/439 before the provider returned `429 … resets in ~9h`.
+  SEBI is left `FAILED` deliberately; its 439 clauses remain fully available to BM25 and the missing
+  vectors complete on the next `indexDocument` pass once quota resets. A billed key avoids the pause.
+- Tooling: `prisma generate` only works with `PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1` plus the two
+  stubbed engine paths exported in the shell (the corporate proxy blocks binaries.prisma.sh). The
+  local database also received `hardening-session-version.sql` and `hardening-indexes.sql` before the
+  regenerated client could sign anyone in.
+- A stale `.next` from two concurrent `next build`s caused false e2e sign-in failures; clearing
+  `.next` and restarting `next dev` resolved them (the same failure mode noted above).
+
+## 2026-11-28 — Final gates (real corpus, hybrid retrieval, storage sync, email)
+
+- Unit and coverage: `vitest run --coverage` green — 54 files, 479/479 tests, 99.88% statements,
+  98.17% branches, 100% functions, 99.88% lines. `src/lib/compliance/qa.ts` now at 100%
+  statements/lines/functions and 98.05% branches after adding fusion tests (fallback without vector
+  hits, weighted score addition, semantic-only passages, rejecting weak/non-finite/unknown hits,
+  kind-then-label tie-breaks, limit clamping 1..24, citation link propagation).
+- Static gates: `eslint .` exit 0; `tsc --noEmit` exit 0; Prettier clean on every file touched this
+  session. The repo-wide `format:check` still reports pre-existing drift from earlier merges, so
+  `npm run check` was run component-by-component instead of via the aggregate script.
+- Build: `npm run build` (including `prisma-generate.mjs`) exit 0 with all routes compiled.
+- End-to-end: `playwright test --workers=1` 21/21 pass (chromium + mobile-chrome) against the
+  reseeded real corpus. `e2e/support.ts` now caches the signed-in session per persona per worker so
+  the suite stays under the 10 sign-ins/minute auth limiter; the first use per worker still drives
+  the real sign-in UI. The assistant refusal spec now asks about terms genuinely absent from the
+  corpus (its old "quantum satellite" question matches real SEBI post-quantum clauses), and the
+  tenant-isolation spec asserts the overview's visible "Scoped to Northwind Assurance" text because
+  the header workspace chip is intentionally hidden below the `sm` breakpoint.
+- Reseed: `db:seed` with `GEMINI_API_KEY` masked reset findings and clauses deterministically
+  (2 real regulator documents, 5 policies, 4 controls, 672 findings, 12 data fields). Documents are
+  marked `SKIPPED` for embeddings until quota resets or a billed key is supplied; retrieval during
+  the e2e run was lexical over the full corpus and citations, PDF proxy, copy formats, email and
+  tenant isolation all passed on that path.

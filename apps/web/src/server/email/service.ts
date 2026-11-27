@@ -91,6 +91,20 @@ export async function enqueueEmail<K extends EmailEvent>(
     },
   });
 
+  // Drain asynchronously so a user-facing event sends without blocking the
+  // request; the outbox row remains the durable record if this attempt fails.
+  if (env.EMAIL_PROVIDER !== "console") {
+    void processEmailQueue(5).catch((error: unknown) => {
+      logger.warn(
+        {
+          event: input.event,
+          errorName: error instanceof Error ? error.name : "UnknownError",
+        },
+        "email auto-drain failed; the outbox row stays queued",
+      );
+    });
+  }
+
   return { status: "queued", id: message.id };
 }
 

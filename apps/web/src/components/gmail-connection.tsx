@@ -15,15 +15,18 @@ export function GmailConnectionActions({
   connected,
   canManage,
   recipient,
+  provider,
 }: {
   connected: boolean;
   canManage: boolean;
   recipient: string;
+  provider: string;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState<Pending>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; message: string } | null>(null);
+  const testReady = provider === "gmail" ? connected : provider !== "console";
 
   async function sendTest() {
     setPending("test");
@@ -45,7 +48,13 @@ export function GmailConnectionActions({
         return;
       }
 
-      setFeedback({ kind: "ok", message: `Test email sent to ${recipient}.` });
+      setFeedback({
+        kind: "ok",
+        message:
+          provider === "smtp"
+            ? `Test email sent to ${recipient}. Open Mailpit at http://localhost:8025 to read it.`
+            : `Test email sent to ${recipient}.`,
+      });
       router.refresh();
     } catch {
       setFeedback({ kind: "error", message: "The server did not respond. Try again." });
@@ -86,7 +95,7 @@ export function GmailConnectionActions({
         <button
           type="button"
           onClick={sendTest}
-          disabled={!connected || pending !== null}
+          disabled={!testReady || pending !== null}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-brand px-5 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending === "test" ? (

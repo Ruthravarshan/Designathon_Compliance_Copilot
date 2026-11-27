@@ -335,7 +335,7 @@ export function CircularDetailView({
                       <p className="mt-2.5 text-sm text-fg">{finding.gapDescription}</p>
                       <div className="mt-3">
                         <Link
-                          href={`/app/compliance/${finding.id}`}
+                          href={`/app/findings/${finding.id}`}
                           className="text-xs font-medium text-brand hover:underline"
                         >
                           Open finding review

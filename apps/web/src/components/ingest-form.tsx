@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowCounterClockwise,
   ArrowRight,
-  Sparkle,
+  Paperclip,
   SpinnerGap,
   WarningCircle,
 } from "@phosphor-icons/react";
@@ -21,49 +21,14 @@ interface ApiErrorBody {
   };
 }
 
-interface CircularPreset {
-  label: string;
-  regulator: "RBI" | "SEBI" | "IRDAI" | "MEITY";
-  reference: string;
-  title: string;
-  summary: string;
-  sourceUrl: string;
-  pageCount: number;
-  content: string;
+const MAX_PDF_BYTES = 20 * 1024 * 1024;
+
+function humanSize(bytes: number): string {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
-
-const PRESETS: readonly CircularPreset[] = [
-  {
-    label: "IRDAI Cyber SLA",
-    regulator: "IRDAI",
-    reference: "IRDAI/IT/CYBER/2026/04",
-    title: "Information and Cyber Security Guidelines — Incident Reporting",
-    summary:
-      "Requires insurers to report critical cyber incidents within 6 hours and retain system audit logs for at least 180 days.",
-    sourceUrl: "https://irdai.gov.in/document-detail?documentId=cyber-2026-04",
-    pageCount: 4,
-    content: `Section 4.2 — Incident reporting
-Critical and cyber security incidents shall be reported to IRDAI and CERT-In within six hours of detection, along with initial containment actions.
-
-Section 5.1 — Security log retention
-System and network security logs for regulated insurance workloads shall be retained for at least 180 days in tamper-evident storage.`,
-  },
-  {
-    label: "DPDP Breach & Erasure",
-    regulator: "MEITY",
-    reference: "MEITY/DPDP/RULES/2026/02",
-    title: "Digital Personal Data Protection — Breach & Consent Withdrawal",
-    summary:
-      "Mandates prompt breach notification to the Data Protection Board and affected Data Principals, plus one-click consent withdrawal.",
-    sourceUrl: "https://www.meity.gov.in/dpdp-rules-2026-02",
-    pageCount: 3,
-    content: `Section 7.1 — Breach notification
-In the event of a personal data breach, the Data Fiduciary shall notify the Data Protection Board of India and each affected Data Principal without delay.
-
-Section 8.3 — Erasure on withdrawal
-Upon withdrawal of consent by a Data Principal, personal data shall be erased within thirty days unless retention is required by law.`,
-  },
-];
 
 export function IngestForm() {
   const router = useRouter();
@@ -77,6 +42,7 @@ export function IngestForm() {
   const [effectiveAt, setEffectiveAt] = useState("");
   const [pageCount, setPageCount] = useState(1);
   const [content, setContent] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,18 +57,24 @@ export function IngestForm() {
     };
   }, [content]);
 
-  function applyPreset(preset: CircularPreset) {
-    const suffix = Math.floor(100 + Math.random() * 900);
-    setRegulator(preset.regulator);
-    setReference(`${preset.reference}-${suffix}`);
-    setTitle(preset.title);
-    setSummary(preset.summary);
-    setSourceUrl(preset.sourceUrl);
-    setPublishedAt(today);
-    setEffectiveAt("");
-    setPageCount(preset.pageCount);
-    setContent(preset.content);
+  function onFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0] ?? null;
     setError(null);
+    if (!selected) {
+      setFile(null);
+      return;
+    }
+    if (selected.size > MAX_PDF_BYTES) {
+      setError("The PDF is larger than the 20 MB limit.");
+      setFile(null);
+      return;
+    }
+    if (!selected.name.toLowerCase().endsWith(".pdf")) {
+      setError("Select a PDF file.");
+      setFile(null);
+      return;
+    }
+    setFile(selected);
   }
 
   function resetForm() {
@@ -115,6 +87,7 @@ export function IngestForm() {
     setEffectiveAt("");
     setPageCount(1);
     setContent("");
+    setFile(null);
     setError(null);
   }
 
@@ -126,30 +99,48 @@ export function IngestForm() {
       setError("Summary must be at least 20 characters.");
       return;
     }
-    if (content.trim().length < 80) {
-      setError("Circular text must be at least 80 characters.");
+    if (!file && content.trim().length < 80) {
+      setError("Attach the official PDF or paste at least 80 characters of circular text.");
       return;
     }
 
     setPending(true);
-    const body = {
-      regulator,
-      title: title.trim(),
-      reference: reference.trim(),
-      summary: summary.trim(),
-      sourceUrl: sourceUrl.trim(),
-      publishedAt,
-      ...(effectiveAt ? { effectiveAt } : {}),
-      pageCount,
-      content: content.trim(),
-    };
 
+    let response: Response;
     try {
-      const response = await fetch("/api/documents", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      if (file) {
+        const form = new FormData();
+        form.set("regulator", regulator);
+        form.set("title", title.trim());
+        form.set("reference", reference.trim());
+        form.set("summary", summary.trim());
+        form.set("sourceUrl", sourceUrl.trim());
+        form.set("publishedAt", publishedAt);
+        if (effectiveAt) {
+          form.set("effectiveAt", effectiveAt);
+        }
+        if (pageCount > 1) {
+          form.set("pageCount", String(pageCount));
+        }
+        form.set("file", file, file.name);
+        response = await fetch("/api/documents", { method: "POST", body: form });
+      } else {
+        response = await fetch("/api/documents", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            regulator,
+            title: title.trim(),
+            reference: reference.trim(),
+            summary: summary.trim(),
+            sourceUrl: sourceUrl.trim(),
+            publishedAt,
+            ...(effectiveAt ? { effectiveAt } : {}),
+            pageCount,
+            content: content.trim(),
+          }),
+        });
+      }
 
       if (!response.ok) {
         const result = (await response.json().catch(() => ({}))) as ApiErrorBody;
@@ -173,30 +164,13 @@ export function IngestForm() {
   }
 
   return (
-    <div className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
-            <Sparkle
-              size={12}
-              weight="bold"
-              aria-hidden="true"
-              className="text-brand dark:text-support"
-            />
-            Sample templates
-          </span>
-          {PRESETS.map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              disabled={pending}
-              onClick={() => applyPreset(preset)}
-              className="rounded-full border border-line bg-surface-2 px-3 py-1.5 text-xs font-medium text-fg transition-colors hover:border-brand/40 hover:bg-surface disabled:opacity-50"
-            >
-              Load {preset.label}
-            </button>
-          ))}
-        </div>
+        <p className="max-w-[70ch] text-xs leading-relaxed text-muted">
+          Upload the official PDF: its text is extracted server-side, the file is mirrored to your
+          primary storage connection, and clauses are embedded for retrieval. Or paste the text on
+          the right.
+        </p>
         <button
           type="button"
           disabled={pending}
@@ -208,7 +182,7 @@ export function IngestForm() {
         </button>
       </div>
 
-      <form onSubmit={onSubmit} className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <Card className="p-5 sm:p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Regulator" htmlFor="regulator">
@@ -237,7 +211,7 @@ export function IngestForm() {
                 disabled={pending}
                 value={reference}
                 onChange={(event) => setReference(event.target.value)}
-                placeholder="IRDAI/IT/CYBER/2026/04"
+                placeholder="SEBI/HO/ITD-1/ITD_CSC_EXT/P/CIR/2024/113"
                 pattern="[A-Za-z0-9/._\-]+"
                 maxLength={60}
               />
@@ -251,7 +225,7 @@ export function IngestForm() {
                 disabled={pending}
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Information and Cyber Security Guidelines, 2026"
+                placeholder="Cybersecurity and Cyber Resilience Framework (CSCRF)"
                 minLength={4}
                 maxLength={160}
               />
@@ -286,7 +260,7 @@ export function IngestForm() {
                 disabled={pending}
                 value={sourceUrl}
                 onChange={(event) => setSourceUrl(event.target.value)}
-                placeholder="https://irdai.gov.in/..."
+                placeholder="https://www.sebi.gov.in/..."
               />
             </Field>
 
@@ -313,14 +287,19 @@ export function IngestForm() {
               />
             </Field>
 
-            <Field label="Page count" htmlFor="pageCount">
+            <Field
+              label="Page count"
+              htmlFor="pageCount"
+              hint={file ? "Detected from the PDF." : "From the source document."}
+              className="sm:col-span-2"
+            >
               <Input
                 id="pageCount"
                 name="pageCount"
                 type="number"
                 min={1}
                 max={5000}
-                disabled={pending}
+                disabled={pending || Boolean(file)}
                 value={pageCount}
                 onChange={(event) => setPageCount(Math.max(1, Number(event.target.value) || 1))}
                 className={inputClass}
@@ -330,24 +309,52 @@ export function IngestForm() {
         </Card>
 
         <Card className="flex flex-col p-5 sm:p-6">
-          <Field
-            label="Circular text"
-            htmlFor="content"
-            hint={`${clauseStats.clauses} clause${clauseStats.clauses === 1 ? "" : "s"} detected · ${clauseStats.chars}/50,000 chars (min 80). Separate clauses with a blank line.`}
-          >
-            <Textarea
-              id="content"
-              name="content"
-              required
+          <div className="border-b border-line pb-4">
+            <label
+              htmlFor="file"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-surface-2 px-4 py-2 text-sm font-medium text-fg transition-colors hover:border-brand/40 hover:bg-surface"
+            >
+              <Paperclip size={15} weight="bold" aria-hidden="true" />
+              {file ? "Replace PDF" : "Attach official PDF"}
+            </label>
+            <input
+              id="file"
+              name="file"
+              type="file"
+              accept="application/pdf,.pdf"
               disabled={pending}
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              minLength={80}
-              maxLength={50_000}
-              className="min-h-[320px] font-mono text-[12px] leading-6"
-              placeholder={`Section 4.2 — Incident reporting\nCritical and cyber security incidents shall be reported to the Authority within six hours of detection.\n\nSection 5.1 — Board oversight\nThe Chief Information Security Officer shall report directly to the Board at least once a quarter.`}
+              onChange={onFileChange}
+              className="sr-only"
             />
-          </Field>
+            <p className="mt-2 text-xs leading-relaxed text-muted">
+              {file
+                ? `${file.name} · ${humanSize(file.size)} — text is extracted and indexed.`
+                : "PDF up to 20 MB. Text must be selectable, not a scan."}
+            </p>
+          </div>
+
+          <div className="mt-4 flex-1">
+            <Field
+              label={file ? "Circular text (optional)" : "Circular text"}
+              htmlFor="content"
+              hint={
+                file
+                  ? "Leave empty to use the text extracted from the PDF."
+                  : `${clauseStats.clauses} clause${clauseStats.clauses === 1 ? "" : "s"} detected · ${clauseStats.chars}/50,000 chars (min 80). Separate clauses with a blank line.`
+              }
+            >
+              <Textarea
+                id="content"
+                name="content"
+                disabled={pending}
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                maxLength={50_000}
+                className="min-h-[240px] font-mono text-[12px] leading-6"
+                placeholder={`Section 4.2 — Incident reporting\nCritical and cyber security incidents shall be reported to the Authority within six hours of detection.\n\nSection 5.1 — Board oversight\nThe Chief Information Security Officer shall report directly to the Board at least once a quarter.`}
+              />
+            </Field>
+          </div>
 
           {error ? (
             <div
@@ -368,8 +375,8 @@ export function IngestForm() {
 
           <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="max-w-[38ch] text-xs leading-relaxed text-muted">
-              Ingestion writes an audit row. Findings start as pending review; no policy is
-              modified.
+              Ingestion writes an audit row and embeds clauses for the assistant. Findings start as
+              pending review; no policy is modified.
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <Link
@@ -403,7 +410,7 @@ export function IngestForm() {
             </div>
           </div>
         </Card>
-      </form>
-    </div>
+      </div>
+    </form>
   );
 }

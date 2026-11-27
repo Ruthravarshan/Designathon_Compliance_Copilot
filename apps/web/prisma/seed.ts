@@ -1,19 +1,22 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { Prisma, ReviewAction as PrismaReviewAction, ReviewStatus, Role } from "@prisma/client";
 import { analyzeClause } from "../src/lib/compliance/pipeline";
 import { scanCatalog } from "../src/lib/compliance/data-scan";
-import { summarizeRevision } from "../src/lib/watch/revision";
-import type { ComplianceRecord, FindingDraft } from "../src/lib/compliance/types";
+import { embedTexts, embeddingModel, isEmbeddingConfigured } from "../src/lib/llm/embeddings";
+import { toVectorLiteral } from "../src/lib/search/vector";
+import type { ComplianceRecord, FindingDraft, SourceClause } from "../src/lib/compliance/types";
+import { extractDocument } from "../src/lib/watch/extract";
 import { createPrismaClient } from "../src/server/prisma-client";
 import {
   DEMO_CONTROLS,
   DEMO_DATA_CATALOG,
-  DEMO_DOCUMENTS,
   DEMO_NOW,
   DEMO_PERSONAS,
   DEMO_POLICIES,
   DEMO_SOURCES,
   DEMO_WORKSPACES,
+  REAL_DOCUMENTS,
   documentContent,
 } from "../src/server/compliance/corpus";
 
@@ -169,15 +172,142 @@ async function seedRegister(workspaceId: string) {
   };
 }
 
+const DEVANAGARI = /[\u0900-\u097F]/g;
+
+/** The SEBI CSCRF attaches Hindi and English versions; embed the English text. */
+function englishClauses(clauses: readonly SourceClause[]): SourceClause[] {
+  return clauses.filter((clause) => {
+    const dense = clause.text.replace(/\s+/g, "");
+    if (dense.length === 0) {
+      return false;
+    }
+    const devanagari = (clause.text.match(DEVANAGARI) ?? []).length;
+    return devanagari / dense.length < 0.1;
+  });
+}
+
+/** Embeds seeded clauses with the same provider and model the app uses. */
+async function indexSeededDocument(workspaceId: string, documentId: string): Promise<void> {
+  if (!isEmbeddingConfigured()) {
+    await db.regulatoryDocument.update({
+      where: { id: documentId },
+      data: { indexStatus: "SKIPPED" },
+    });
+    console.log("  embedding skipped: GEMINI_API_KEY is not set");
+    return;
+  }
+
+  const clauses = await db.documentClause.findMany({
+    where: { workspaceId, documentId },
+    orderBy: { orderIndex: "asc" },
+    select: { id: true, text: true, sectionLabel: true, heading: true },
+  });
+  const model = embeddingModel();
+  const CHUNK = 20;
+  const BACKOFF_MS = [5_000, 15_000, 45_000];
+  let embedded = 0;
+
+  try {
+    for (let start = 0; start < clauses.length; start += CHUNK) {
+      const chunk = clauses.slice(start, start + CHUNK);
+      let vectors: number[][] | null = null;
+      let lastError: unknown = null;
+
+      for (let attempt = 0; attempt <= BACKOFF_MS.length && vectors === null; attempt += 1) {
+        try {
+          vectors = await embedTexts(
+            chunk.map((clause) => {
+              const prefix = [clause.sectionLabel, clause.heading].filter(Boolean).join(" — ");
+              return prefix.length > 0 ? `${prefix}\n${clause.text}` : clause.text;
+            }),
+            { taskType: "RETRIEVAL_DOCUMENT", batchSize: CHUNK },
+          );
+        } catch (error) {
+          lastError = error;
+          const delay = BACKOFF_MS[attempt];
+          if (delay === undefined) {
+            break;
+          }
+          console.log(
+            `  embedding throttled, retrying in ${delay / 1000}s: ${error instanceof Error ? error.message : "unknown error"}`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+
+      if (vectors === null) {
+        throw lastError ?? new Error("The embedding request failed.");
+      }
+      if (vectors.length !== chunk.length) {
+        throw new Error("Embedding count did not match the clause count.");
+      }
+
+      for (const [index, clause] of chunk.entries()) {
+        const vector = vectors[index];
+        if (!vector) {
+          continue;
+        }
+        await db.$executeRaw(Prisma.sql`
+          UPDATE "DocumentClause"
+          SET "embedding" = ${toVectorLiteral(vector)}::vector,
+              "embeddingModel" = ${model},
+              "embeddedAt" = NOW()
+          WHERE "id" = ${clause.id}
+            AND "workspaceId" = ${workspaceId}
+        `);
+        embedded += 1;
+      }
+
+      // Gemini free tier throttles bursts; pace between chunks.
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
+    }
+
+    await db.regulatoryDocument.update({
+      where: { id: documentId },
+      data: { indexStatus: "READY", indexedAt: new Date() },
+    });
+    console.log(`  embedded ${embedded} of ${clauses.length} clauses`);
+  } catch (error) {
+    await db.regulatoryDocument.update({
+      where: { id: documentId },
+      data: { indexStatus: "FAILED", indexedAt: new Date() },
+    });
+    console.error(
+      `  embedding stopped after ${embedded} clauses, lexical retrieval remains: ${error instanceof Error ? error.message : "unknown error"}`,
+    );
+  }
+}
+
 async function seedDocuments(
   workspaceId: string,
   register: Awaited<ReturnType<typeof seedRegister>>,
 ): Promise<number> {
   let findingCount = 0;
 
-  for (const documentSeed of DEMO_DOCUMENTS) {
-    const content = documentContent(documentSeed.clauses);
+  const references = REAL_DOCUMENTS.map((documentSeed) => documentSeed.reference);
+  const removed = await db.regulatoryDocument.deleteMany({
+    where: { workspaceId, reference: { notIn: references } },
+  });
+  if (removed.count > 0) {
+    console.log(`Removed ${removed.count} document(s) that are not part of the real corpus.`);
+  }
+
+  for (const documentSeed of REAL_DOCUMENTS) {
+    const bytes = new Uint8Array(readFileSync(documentSeed.fixture));
+    const extracted = await extractDocument({ contentType: documentSeed.contentType, bytes });
+    const clauses = englishClauses(extracted.clauses);
+    if (clauses.length === 0) {
+      throw new Error(`No extractable clauses in ${documentSeed.fixture}.`);
+    }
+
+    const content = documentContent(clauses);
     const checksum = createHash("sha256").update(content).digest("hex");
+    const fileChecksum = createHash("sha256").update(bytes).digest("hex");
+    const filename = documentSeed.fixture.split("/").pop() ?? "document.pdf";
+
+    console.log(
+      `${documentSeed.reference}: ${extracted.pageCount} pages, ${clauses.length} English clauses`,
+    );
 
     const document = await db.regulatoryDocument.upsert({
       where: {
@@ -192,8 +322,13 @@ async function seedDocuments(
         effectiveAt: new Date(documentSeed.effectiveAt),
         status: "ANALYZED",
         content,
-        pageCount: documentSeed.pageCount,
+        pageCount: extracted.pageCount,
         checksum,
+        fileBytes: new Uint8Array(bytes),
+        fileChecksum,
+        filename,
+        fileContentType: documentSeed.contentType,
+        indexStatus: "PENDING",
         ingestedAt: DEMO_NOW,
       },
       create: {
@@ -207,8 +342,13 @@ async function seedDocuments(
         effectiveAt: new Date(documentSeed.effectiveAt),
         status: "ANALYZED",
         content,
-        pageCount: documentSeed.pageCount,
+        pageCount: extracted.pageCount,
         checksum,
+        fileBytes: new Uint8Array(bytes),
+        fileChecksum,
+        filename,
+        fileContentType: documentSeed.contentType,
+        indexStatus: "PENDING",
         ingestedAt: DEMO_NOW,
       },
     });
@@ -216,7 +356,7 @@ async function seedDocuments(
     await db.obligation.deleteMany({ where: { workspaceId, documentId: document.id } });
     await db.documentClause.deleteMany({ where: { workspaceId, documentId: document.id } });
 
-    for (const [index, clause] of documentSeed.clauses.entries()) {
+    for (const [index, clause] of clauses.entries()) {
       const clauseRow = await db.documentClause.create({
         data: {
           workspaceId,
@@ -307,20 +447,28 @@ async function seedDocuments(
           action: "document.ingested",
           entity: "RegulatoryDocument",
           entityId: document.id,
-          metadata: { reference: documentSeed.reference, clauses: documentSeed.clauses.length },
+          metadata: { reference: documentSeed.reference, clauses: clauses.length },
         },
       });
     }
+
+    await indexSeededDocument(workspaceId, document.id);
   }
 
   return findingCount;
 }
 
 async function seedPreReviewedFinding(workspaceId: string, ownerId: string) {
-  const logFinding = await db.finding.findFirst({
-    where: { workspaceId, obligation: { obligationType: "LOGGING" } },
-    include: { obligation: true },
-  });
+  const logFinding =
+    (await db.finding.findFirst({
+      where: { workspaceId, obligation: { obligationType: "LOGGING" } },
+      include: { obligation: true },
+    })) ??
+    (await db.finding.findFirst({
+      where: { workspaceId },
+      orderBy: { createdAt: "desc" },
+      include: { obligation: true },
+    }));
 
   if (!logFinding) {
     return;
@@ -328,7 +476,7 @@ async function seedPreReviewedFinding(workspaceId: string, ownerId: string) {
 
   const reviewedAt = new Date("2026-11-12T10:15:00.000Z");
   const comments =
-    "Approved the 180-day log retention edit. Budget for the extra storage is tracked under CTRL-SEC-09 follow-up.";
+    "Approved the wording update. Budget for the extra control effort is tracked in the remediation plan.";
 
   await db.finding.update({
     where: { id: logFinding.id },
@@ -452,48 +600,6 @@ async function seedWatchSources(workspaceId: string): Promise<number> {
   return DEMO_SOURCES.length;
 }
 
-async function seedRevision(workspaceId: string): Promise<boolean> {
-  const document = await db.regulatoryDocument.findFirst({
-    where: { workspaceId, reference: "CERT-IN/2022/01" },
-  });
-  if (!document) {
-    return false;
-  }
-
-  const existing = await db.regulatoryRevision.findFirst({
-    where: { workspaceId, documentId: document.id },
-  });
-  if (existing) {
-    return false;
-  }
-
-  const newContent = `${document.content}\n\nCovered entities shall maintain an updated asset inventory and produce it to CERT-In on request.\n`;
-  const revision = summarizeRevision(document.content, newContent);
-  const checksum = createHash("sha256").update(newContent).digest("hex");
-
-  await db.$transaction([
-    db.regulatoryRevision.create({
-      data: {
-        workspaceId,
-        documentId: document.id,
-        previousChecksum: document.checksum,
-        newChecksum: checksum,
-        previousContent: document.content,
-        newContent,
-        summary: revision.summary,
-        diff: revision.diff as unknown as Prisma.InputJsonValue,
-        detectedAt: new Date("2026-10-21T06:00:00.000Z"),
-      },
-    }),
-    db.regulatoryDocument.update({
-      where: { id: document.id },
-      data: { content: newContent, checksum },
-    }),
-  ]);
-
-  return true;
-}
-
 async function main() {
   const workspaces = await seedWorkspaces();
   const userIds = await seedPeople(workspaces);
@@ -511,7 +617,6 @@ async function main() {
   await seedPreReviewedFinding(primary.id, ownerId);
   const scanCount = await seedDataScans(primary.id);
   const sourceCount = await seedWatchSources(primary.id);
-  const revisionSeeded = await seedRevision(primary.id);
 
   const seededAudit = await db.auditLog.count({
     where: { workspaceId: primary.id, action: "workspace.seeded" },
@@ -525,7 +630,7 @@ async function main() {
         action: "workspace.seeded",
         entity: "Workspace",
         entityId: primary.id,
-        metadata: { source: "prisma/seed.ts", documents: DEMO_DOCUMENTS.length },
+        metadata: { source: "prisma/seed.ts", documents: REAL_DOCUMENTS.length },
       },
     });
   }
@@ -533,7 +638,7 @@ async function main() {
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
 
   await db.emailMessage.upsert({
-    where: { idempotencyKey: `welcome:meera:seed` },
+    where: { idempotencyKey: `welcome:owner:seed` },
     update: {},
     create: {
       workspaceId: primary.id,
@@ -542,17 +647,15 @@ async function main() {
       template: "welcome",
       subject: "Welcome to PolicyPulse",
       payload: { name: "Rajeshwari", loginUrl: `${appUrl}/signin` },
-      idempotencyKey: "welcome:meera:seed",
+      idempotencyKey: "welcome:owner:seed",
     },
   });
 
   console.log(`Seeded "${primary.name}" and the isolation tenant "${isolation.name}".`);
   console.log(
-    `${DEMO_DOCUMENTS.length} circulars, ${register.policies.length} policies, ${register.controls.length} controls, ${findingCount} findings, ${scanCount} data fields.`,
+    `${REAL_DOCUMENTS.length} real regulator documents, ${register.policies.length} policies, ${register.controls.length} controls, ${findingCount} findings, ${scanCount} data fields.`,
   );
-  console.log(
-    `${sourceCount} watch sources, ${revisionSeeded ? "1 seeded revision" : "revision already present"}.`,
-  );
+  console.log(`${sourceCount} watch sources.`);
   console.log("Queued one welcome email. Process it with: npm run email:process");
 }
 

@@ -65,15 +65,28 @@ export default async function CircularDetailPage({ params }: { params: Promise<{
           </h1>
           <p className="mt-3 max-w-[76ch] text-sm leading-relaxed text-muted">{document.summary}</p>
         </div>
-        <a
-          href={document.sourceUrl}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-muted/50 hover:text-fg"
-        >
-          <span className="max-w-[24ch] truncate">{host}</span>
-          <ArrowUpRight size={13} weight="bold" aria-hidden="true" />
-        </a>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {document.pdf.available ? (
+            <a
+              href={`/api/documents/${document.id}/pdf`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-xs font-medium text-brand-ink transition-colors hover:bg-brand-hover"
+            >
+              <FileText size={13} weight="bold" aria-hidden="true" />
+              Open archived PDF
+            </a>
+          ) : null}
+          <a
+            href={document.sourceUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-xs font-medium text-muted transition-colors hover:border-muted/50 hover:text-fg"
+          >
+            <span className="max-w-[24ch] truncate">{host}</span>
+            <ArrowUpRight size={13} weight="bold" aria-hidden="true" />
+          </a>
+        </div>
       </header>
 
       <dl className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-5">

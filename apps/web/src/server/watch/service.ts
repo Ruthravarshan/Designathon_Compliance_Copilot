@@ -16,7 +16,7 @@ import { recordAudit } from "@/server/audit";
 import { enqueueEmail } from "@/server/email/service";
 import { ingestDocument } from "@/server/compliance/service";
 import type { Actor } from "@/server/auth/actor";
-import { decodeHtml, extractDocument, safeFetchBytes } from "./fetch";
+import { decodeHtml, extractDocument, safeFetchBytes, type FetchedBytes } from "./fetch";
 
 const MAX_DISCOVERED = 80;
 const RUNNING_STALE_MS = 15 * 60_000;
@@ -122,6 +122,21 @@ function errorCodeOf(error: unknown): string {
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+/** The real fetched PDF, archived on the document so the citation link always opens it. */
+function fetchedFile(fetched: FetchedBytes, kind: "html" | "pdf" | "text") {
+  if (kind !== "pdf") {
+    return undefined;
+  }
+  const raw = new URL(fetched.finalUrl).pathname.split("/").pop() ?? "";
+  let filename = "document.pdf";
+  try {
+    filename = decodeURIComponent(raw) || filename;
+  } catch {
+    filename = raw || filename;
+  }
+  return { bytes: fetched.bytes, filename, contentType: "application/pdf" };
 }
 
 function checksumOf(text: string): string {
@@ -297,6 +312,7 @@ async function processCandidate(
 
   let result: Awaited<ReturnType<typeof ingestDocument>>;
   try {
+    const file = fetchedFile(fetched, extracted.kind);
     result = await ingestDocument(actor, {
       regulator: source.regulator,
       title,
@@ -307,6 +323,7 @@ async function processCandidate(
       pageCount: extracted.pageCount,
       content: extracted.text,
       clauses: extracted.clauses,
+      ...(file ? { file } : {}),
     });
   } catch (error) {
     if (error instanceof AppError && error.code === ERROR_CODES.CONFLICT) {
@@ -810,6 +827,7 @@ export async function ingestFromUrl(
     deriveSummary(extracted.text) ||
     `Retrieved from ${parsed.hostname} on ${todayIso()} by the regulatory watchdog.`;
 
+  const file = fetchedFile(fetched, extracted.kind);
   const result = await ingestDocument(actor, {
     regulator,
     title,
@@ -820,6 +838,7 @@ export async function ingestFromUrl(
     pageCount: extracted.pageCount,
     content: extracted.text,
     clauses: extracted.clauses,
+    ...(file ? { file } : {}),
   });
 
   await recordAudit({

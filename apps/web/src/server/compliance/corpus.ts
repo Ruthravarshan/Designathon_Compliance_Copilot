@@ -9,8 +9,9 @@ export interface DocumentSeed {
   sourceUrl: string;
   publishedAt: string;
   effectiveAt: string;
-  pageCount: number;
-  clauses: SourceClause[];
+  /** Real regulator file checked into prisma/fixtures; parsed at seed time. */
+  fixture: string;
+  contentType: string;
 }
 
 export interface PersonaSeed {
@@ -60,15 +61,6 @@ export const DEMO_SOURCES: SourceSeed[] = [
     listingUrl: "https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx",
     allowedDomains: ["rbi.org.in"],
     linkPattern: "BS_ViewMasDirections\\.aspx\\?id=",
-    schedule: "weekly",
-    enabled: true,
-  },
-  {
-    name: "RBI IT Governance Master Direction",
-    regulator: "RBI",
-    kind: "DIRECT",
-    listingUrl: "https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx?id=12562",
-    allowedDomains: ["rbi.org.in"],
     schedule: "weekly",
     enabled: true,
   },
@@ -141,158 +133,38 @@ export const DEMO_PERSONAS: PersonaSeed[] = [
   },
 ];
 
-const irdaiClauses: SourceClause[] = [
-  {
-    sectionLabel: "Section 4.2, Page 12",
-    heading: "Incident reporting to the Authority",
-    pageNumber: 12,
-    text: "Critical and cyber security incidents shall be reported to the IRDAI within six hours of detection, along with the root cause and containment actions.",
-  },
-  {
-    sectionLabel: "Section 5.1, Page 15",
-    heading: "Board oversight",
-    pageNumber: 15,
-    text: "The Chief Information Security Officer shall report directly to the Board or its Risk Management Committee at least once a quarter.",
-  },
-];
-
-const rbiClauses: SourceClause[] = [
-  {
-    sectionLabel: "Section 3.2, Page 8",
-    heading: "Security testing cadence",
-    pageNumber: 8,
-    text: "Critical systems shall undergo a vulnerability assessment at least once every six months and penetration testing at least once every twelve months.",
-  },
-  {
-    sectionLabel: "Section 4.1, Page 21",
-    heading: "Storage of payment system data",
-    pageNumber: 21,
-    text: "All regulated entities shall ensure that payment system data is stored only on servers located within India and shall not be replicated outside India.",
-  },
-  {
-    sectionLabel: "Section 5.4, Page 23",
-    heading: "Cloud outsourcing",
-    pageNumber: 23,
-    text: "Contracts with cloud service providers shall include a right to audit the provider's security controls.",
-  },
-];
-
-const certInClauses: SourceClause[] = [
-  {
-    sectionLabel: "Section 6, Page 4",
-    heading: "Incident reporting to CERT-In",
-    pageNumber: 4,
-    text: "Cyber security incidents shall be reported to CERT-In within six hours of noticing such incidents.",
-  },
-  {
-    sectionLabel: "Section 7, Page 5",
-    heading: "Log retention",
-    pageNumber: 5,
-    text: "All service providers shall retain logs of their ICT systems for a rolling period of one hundred eighty days.",
-  },
-];
-
-const sebiClauses: SourceClause[] = [
-  {
-    sectionLabel: "Section 5.3, Page 9",
-    heading: "Cyber resilience drills",
-    pageNumber: 9,
-    text: "Regulated entities shall conduct disaster recovery drills at least once every six months and submit the results to the Board.",
-  },
-  {
-    sectionLabel: "Section 6.1, Page 11",
-    heading: "Governance",
-    pageNumber: 11,
-    text: "The Board of every regulated entity shall constitute a Risk Management Committee and review its charter annually.",
-  },
-];
-
-const dpdpClauses: SourceClause[] = [
-  {
-    sectionLabel: "Section 6(4), Page 5",
-    heading: "Withdrawal of consent",
-    pageNumber: 5,
-    text: "The Data Principal shall have the right to withdraw her consent at any time, and the ease of doing so shall be comparable to the ease with which such consent was given.",
-  },
-  {
-    sectionLabel: "Section 8(7), Page 9",
-    heading: "Erasure of personal data",
-    pageNumber: 9,
-    text: "The Data Fiduciary shall erase personal data upon withdrawal of consent, unless retention is required by law.",
-  },
-  {
-    sectionLabel: "Section 16, Page 14",
-    heading: "Grievance redressal",
-    pageNumber: 14,
-    text: "The Data Fiduciary shall publish the contact details of a Data Protection Officer and a grievance officer on its website.",
-  },
-];
-
-export const DEMO_DOCUMENTS: DocumentSeed[] = [
+/**
+ * Real regulator publications, checked in under prisma/fixtures and parsed at
+ * seed time with the same extractor the ingestion pipeline uses. No clause text
+ * here is hand-written.
+ */
+export const REAL_DOCUMENTS: DocumentSeed[] = [
   {
     key: "irdai-cyber-2023",
     regulator: "IRDAI",
-    title: "Information and Cyber Security Guidelines, 2023",
-    reference: "IRDAI/IT/CYBER/2023",
+    title: "IRDAI Information and Cyber Security Guidelines, 2023",
+    reference: "IRDAI/GA&HR/GDL/MISC/88/04/2023",
     summary:
-      "IRDAI's cyber security guidelines set a six-hour incident reporting window and Board-level oversight for insurers.",
-    sourceUrl: "https://irdai.gov.in/",
+      "IRDAI's guidelines on information and cyber security for insurers, issued 24 April 2023. The official site blocks scripted downloads, so the PDF fixture is mirrored from a legal-document archive; citations open IRDAI's document detail page.",
+    sourceUrl: "https://irdai.gov.in/web/guest/document-detail?documentId=3314780",
     publishedAt: "2023-04-24T00:00:00.000Z",
-    effectiveAt: "2023-06-01T00:00:00.000Z",
-    pageCount: 42,
-    clauses: irdaiClauses,
+    effectiveAt: "2023-04-24T00:00:00.000Z",
+    fixture: "prisma/fixtures/irdai-cyber-2023.pdf",
+    contentType: "application/pdf",
   },
   {
-    key: "rbi-it-2023",
-    regulator: "RBI",
-    title: "Guidelines on Information Security and Data Localisation",
-    reference: "RBI/IT/2023/07",
-    summary:
-      "RBI requires half-yearly VAPT, payment data storage within India, and audit rights over cloud providers.",
-    sourceUrl: "https://www.rbi.org.in/",
-    publishedAt: "2023-01-10T00:00:00.000Z",
-    effectiveAt: "2023-04-01T00:00:00.000Z",
-    pageCount: 36,
-    clauses: rbiClauses,
-  },
-  {
-    key: "cert-in-2022",
-    regulator: "MEITY",
-    title: "CERT-In Directions on Cyber Incident Reporting and Logs",
-    reference: "CERT-IN/2022/01",
-    summary:
-      "CERT-In directions require six-hour incident reporting and 180-day log retention for service providers.",
-    sourceUrl: "https://www.cert-in.org.in/",
-    publishedAt: "2022-04-28T00:00:00.000Z",
-    effectiveAt: "2022-06-27T00:00:00.000Z",
-    pageCount: 9,
-    clauses: certInClauses,
-  },
-  {
-    key: "sebi-cscr-2023",
+    key: "sebi-cscrf-2024",
     regulator: "SEBI",
-    title: "Cyber Security and Cyber Resilience Framework",
-    reference: "SEBI/HO/ITD/CSCR/2023",
+    title: "Cybersecurity and Cyber Resilience Framework (CSCRF) for SEBI Regulated Entities (REs)",
+    reference: "SEBI/HO/ITD-1/ITD_CSC_EXT/P/CIR/2024/113",
     summary:
-      "SEBI's framework sets half-yearly cyber resilience drills and a Board-level Risk Management Committee.",
-    sourceUrl: "https://www.sebi.gov.in/",
-    publishedAt: "2023-06-01T00:00:00.000Z",
-    effectiveAt: "2023-07-01T00:00:00.000Z",
-    pageCount: 28,
-    clauses: sebiClauses,
-  },
-  {
-    key: "dpdp-2023",
-    regulator: "MEITY",
-    title: "Digital Personal Data Protection Act, 2023",
-    reference: "DPDP/2023/ACT",
-    summary:
-      "The DPDP Act governs consent withdrawal, erasure, and grievance redressal for Data Fiduciaries.",
-    sourceUrl: "https://www.meity.gov.in/",
-    publishedAt: "2023-08-11T00:00:00.000Z",
-    effectiveAt: "2023-08-11T00:00:00.000Z",
-    pageCount: 22,
-    clauses: dpdpClauses,
+      "SEBI's CSCRF circular dated 20 August 2024, setting cyber security and cyber resilience requirements for SEBI regulated entities.",
+    sourceUrl:
+      "https://www.sebi.gov.in/legal/circulars/aug-2024/cybersecurity-and-cyber-resilience-framework-cscrf-for-sebi-regulated-entities-res-_85964.html",
+    publishedAt: "2024-08-20T00:00:00.000Z",
+    effectiveAt: "2024-08-20T00:00:00.000Z",
+    fixture: "prisma/fixtures/sebi-cscrf-2024.pdf",
+    contentType: "application/pdf",
   },
 ];
 

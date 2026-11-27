@@ -42,7 +42,7 @@ export default async function AssistantPage() {
           </p>
         </div>
         <Badge tone={grounded ? "brand" : "outline"} dot>
-          {grounded ? "Verified generation" : "Retrieval only"}
+          {grounded ? "Grounded generation" : "Extractive answers"}
         </Badge>
       </header>
 

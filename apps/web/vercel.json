@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/watch",
       "schedule": "0 4 * * 1"
+    },
+    {
+      "path": "/api/cron/storage",
+      "schedule": "*/30 * * * *"
     }
   ]
 }
