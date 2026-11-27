@@ -36,7 +36,9 @@ const queueUploadSchema = z.object({
 
 const DEFAULT_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
-function requireConnection(connection: Awaited<ReturnType<ReturnType<typeof getRuntime>["repository"]["getConnection"]>>): NonNullable<typeof connection> {
+function requireConnection(
+  connection: Awaited<ReturnType<ReturnType<typeof getRuntime>["repository"]["getConnection"]>>,
+): NonNullable<typeof connection> {
   if (!connection) {
     throw new IngestionError("INTEGRATION_NOT_CONFIGURED", "No storage connection is configured.");
   }
@@ -68,7 +70,10 @@ export async function queueUrlIngest(
 
   const url = parseHttpUrl(value.url, source.allowHttp);
   if (!source.allowedDomains.includes(url.hostname)) {
-    throw new IngestionError("HOST_NOT_ALLOWED", "The source host is not in the configured allowlist.");
+    throw new IngestionError(
+      "HOST_NOT_ALLOWED",
+      "The source host is not in the configured allowlist.",
+    );
   }
 
   const run = await repository.createRun({
@@ -120,9 +125,14 @@ export async function queueUploadedPdf(
     return { documentId: existing.documentId, duplicate: true };
   }
 
-  const source = value.sourceId ? await repository.getSource(value.workspaceId, value.sourceId) : null;
+  const source = value.sourceId
+    ? await repository.getSource(value.workspaceId, value.sourceId)
+    : null;
   if (value.sourceId && !source) {
-    throw new IngestionError("INTEGRATION_NOT_CONFIGURED", "The ingestion source is not configured.");
+    throw new IngestionError(
+      "INTEGRATION_NOT_CONFIGURED",
+      "The ingestion source is not configured.",
+    );
   }
   const connection = await repository.getConnection(
     value.workspaceId,

@@ -69,7 +69,7 @@ export default function PlatformPage() {
               </a>
             </nav>
             <LinkButton href="/signin" variant="secondary" className="h-10 px-4">
-              Compliance Copilot
+              Open PolicyPulse
               <ArrowRight size={15} weight="bold" aria-hidden="true" />
             </LinkButton>
           </div>
@@ -84,8 +84,8 @@ export default function PlatformPage() {
               Ten hours. <span className="italic text-brand">No excuses.</span>
             </h1>
             <p className="mt-6 max-w-[60ch] text-base leading-relaxed text-muted sm:text-lg">
-              The phase-gated operating system used to build the Compliance Copilot. Eleven gates,
-              one artifact per phase, and a mechanical release check before the demo.
+              The phase-gated operating system used to build PolicyPulse. Eleven gates, one artifact
+              per phase, and a mechanical release check before the demo.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <LinkButton href="#workflow">

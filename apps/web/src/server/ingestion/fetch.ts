@@ -188,7 +188,16 @@ function blockedIpv6(value: string): boolean {
   if (groups.every((group) => group === 0)) {
     return true;
   }
-  if (g(0) === 0 && g(1) === 0 && g(2) === 0 && g(3) === 0 && g(4) === 0 && g(5) === 0 && g(6) === 0 && g(7) === 1) {
+  if (
+    g(0) === 0 &&
+    g(1) === 0 &&
+    g(2) === 0 &&
+    g(3) === 0 &&
+    g(4) === 0 &&
+    g(5) === 0 &&
+    g(6) === 0 &&
+    g(7) === 1
+  ) {
     return true;
   }
   if ((g(0) & 0xfe00) === 0xfc00) {
@@ -250,14 +259,20 @@ export function parseHttpUrl(input: string | URL, allowHttp: boolean): URL {
     throw new IngestionError("UNSUPPORTED_SCHEME", "Only https source URLs are allowed.");
   }
   if (url.username !== "" || url.password !== "") {
-    throw new IngestionError("CREDENTIALS_NOT_ALLOWED", "Source URLs must not contain credentials.");
+    throw new IngestionError(
+      "CREDENTIALS_NOT_ALLOWED",
+      "Source URLs must not contain credentials.",
+    );
   }
   const expectedPort = url.protocol === "https:" ? "443" : "80";
   if (url.port !== "" && url.port !== expectedPort) {
     throw new IngestionError("HOST_NOT_ALLOWED", "Source URLs must use the default port.");
   }
   if (url.hostname.startsWith("[") || parseIpv4(url.hostname)) {
-    throw new IngestionError("HOST_NOT_ALLOWED", "Literal IP addresses are not valid source hosts.");
+    throw new IngestionError(
+      "HOST_NOT_ALLOWED",
+      "Literal IP addresses are not valid source hosts.",
+    );
   }
   return url;
 }
@@ -282,7 +297,10 @@ async function pinnedAddress(
   const safe = records.filter((record) => !isBlockedAddress(record.address));
   const chosen = safe[0];
   if (!chosen) {
-    throw new IngestionError("PRIVATE_ADDRESS_BLOCKED", "The source host resolved to a blocked address.");
+    throw new IngestionError(
+      "PRIVATE_ADDRESS_BLOCKED",
+      "The source host resolved to a blocked address.",
+    );
   }
   return chosen;
 }
@@ -300,13 +318,7 @@ function normalizeResponseHeaders(headers: http.IncomingHttpHeaders): Record<str
 }
 
 /** Direct connection to the pinned IP; TLS uses the original hostname for SNI and verification. */
-export const defaultTransport: FetchTransport = ({
-  url,
-  address,
-  headers,
-  timeoutMs,
-  maxBytes,
-}) =>
+export const defaultTransport: FetchTransport = ({ url, address, headers, timeoutMs, maxBytes }) =>
   new Promise<TransportResult>((resolve, reject) => {
     const secure = url.protocol === "https:";
     const client = secure ? https : http;
@@ -334,7 +346,12 @@ export const defaultTransport: FetchTransport = ({
         if (total > maxBytes) {
           response.destroy();
           request.destroy();
-          reject(new IngestionError("RESPONSE_TOO_LARGE", "The source response exceeded the size limit."));
+          reject(
+            new IngestionError(
+              "RESPONSE_TOO_LARGE",
+              "The source response exceeded the size limit.",
+            ),
+          );
           return;
         }
         chunks.push(chunk);
@@ -361,13 +378,19 @@ export const defaultTransport: FetchTransport = ({
     request.end();
   });
 
-export async function fetchUrl(input: string | URL, options: FetchOptions): Promise<FetchedResource> {
+export async function fetchUrl(
+  input: string | URL,
+  options: FetchOptions,
+): Promise<FetchedResource> {
   let current = parseHttpUrl(input, options.allowHttp === true);
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   if (!isHostAllowed(current.hostname, options.allowedDomains)) {
-    throw new IngestionError("HOST_NOT_ALLOWED", "The source host is not in the configured allowlist.");
+    throw new IngestionError(
+      "HOST_NOT_ALLOWED",
+      "The source host is not in the configured allowlist.",
+    );
   }
 
   const transport = options.transport ?? defaultTransport;
@@ -393,7 +416,10 @@ export async function fetchUrl(input: string | URL, options: FetchOptions): Prom
       try {
         next = new URL(location, current);
       } catch {
-        throw new IngestionError("REDIRECT_NOT_ALLOWED", "The source redirect target is not valid.");
+        throw new IngestionError(
+          "REDIRECT_NOT_ALLOWED",
+          "The source redirect target is not valid.",
+        );
       }
       current = parseHttpUrl(next, options.allowHttp === true);
       if (!isHostAllowed(current.hostname, options.allowedDomains)) {
@@ -462,7 +488,9 @@ export function robotsAllows(path: string, rules: readonly RobotsRule[]): boolea
   if (matching.length === 0) {
     return true;
   }
-  const longest = matching.reduce((best, rule) => (rule.path.length > best.path.length ? rule : best));
+  const longest = matching.reduce((best, rule) =>
+    rule.path.length > best.path.length ? rule : best,
+  );
   return longest.allowed;
 }
 
@@ -494,7 +522,10 @@ export function createRobotsCache(now: () => number = Date.now): RobotsCache {
 }
 
 /** Listing crawls only: one robots.txt fetch per host, wildcard group only, no bypass. */
-export async function assertRobotsAllowed(target: string | URL, options: FetchOptions): Promise<void> {
+export async function assertRobotsAllowed(
+  target: string | URL,
+  options: FetchOptions,
+): Promise<void> {
   const url = target instanceof URL ? target : parseHttpUrl(target, options.allowHttp === true);
   const origin = url.origin;
   const cache = options.robotsCache ?? createRobotsCache(options.now ?? Date.now);

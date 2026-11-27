@@ -115,7 +115,7 @@ export default async function DataPage() {
                     className={
                       item.encrypted
                         ? "rounded-full border border-line bg-surface px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-muted"
-                        : "rounded-full border border-danger/25 bg-danger/5 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-danger"
+                        : "rounded-full border border-danger/35 bg-danger/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-fg"
                     }
                   >
                     {item.encrypted ? "Encrypted" : "Not encrypted"}
@@ -124,7 +124,7 @@ export default async function DataPage() {
                     className={
                       item.consented
                         ? "rounded-full border border-line bg-surface px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-muted"
-                        : "rounded-full border border-danger/25 bg-danger/5 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-danger"
+                        : "rounded-full border border-danger/35 bg-danger/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-fg"
                     }
                   >
                     {item.consented ? "Consent" : "No consent"}

@@ -62,7 +62,10 @@ describe("quote verification", () => {
   });
 
   it("accepts a quote that differs only by normalized whitespace", () => {
-    const result = verifyExtraction(candidate("bank  shall\tcomplete a\nvulnerability assessment", 1), pages);
+    const result = verifyExtraction(
+      candidate("bank  shall\tcomplete a\nvulnerability assessment", 1),
+      pages,
+    );
     expect(result.extraction.obligations[0]?.quotes[0]?.citationVerified).toBe(true);
   });
 
@@ -71,7 +74,8 @@ describe("quote verification", () => {
     expect(verifyExtraction(candidate(quote, 2), pages).extraction.citationVerified).toBe(false);
     expect(verifyExtraction(candidate(quote, 99), pages).extraction.citationVerified).toBe(false);
     expect(
-      verifyExtraction(candidate("The bank shall fund a new data centre.", 1), pages).extraction.citationVerified,
+      verifyExtraction(candidate("The bank shall fund a new data centre.", 1), pages).extraction
+        .citationVerified,
     ).toBe(false);
   });
 
@@ -112,8 +116,10 @@ describe("quote verification", () => {
       verifyExtraction(good, pages, { documentNeedsReview: true }).extraction.needsReview,
     ).toBe(true);
     expect(
-      verifyExtraction(candidate("bank shall complete a vulnerability assessment", 1, { title: null }), pages)
-        .extraction.needsReview,
+      verifyExtraction(
+        candidate("bank shall complete a vulnerability assessment", 1, { title: null }),
+        pages,
+      ).extraction.needsReview,
     ).toBe(true);
   });
 });

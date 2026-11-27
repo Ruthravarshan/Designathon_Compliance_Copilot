@@ -465,7 +465,7 @@ async function main() {
       userId: ownerId,
       toEmail: DEMO_PERSONAS[0]!.email,
       template: "welcome",
-      subject: "Welcome to Hexa Compliance Copilot",
+      subject: "Welcome to PolicyPulse",
       payload: { name: "Meera", loginUrl: `${appUrl}/signin` },
       idempotencyKey: "welcome:meera:seed",
     },

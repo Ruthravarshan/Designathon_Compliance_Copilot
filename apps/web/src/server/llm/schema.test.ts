@@ -19,7 +19,12 @@ const valid = {
       plainLanguage: "Run a test",
       actionRequired: "Run it",
       applicableTo: "CISO",
-      quotes: [{ quote: "The bank shall complete a vulnerability assessment every six months.", pageNumber: 1 }],
+      quotes: [
+        {
+          quote: "The bank shall complete a vulnerability assessment every six months.",
+          pageNumber: 1,
+        },
+      ],
     },
   ],
   policyAreas: ["security"],
@@ -51,7 +56,8 @@ describe("Gemini output schema", () => {
     const candidate = candidateExtractionSchema.parse(valid);
     expect(normalizeCandidate(candidate).publishedAt).toBe("2026-01-02");
     expect(
-      normalizeCandidate(candidateExtractionSchema.parse({ ...valid, publishedAt: "not a date" })).publishedAt,
+      normalizeCandidate(candidateExtractionSchema.parse({ ...valid, publishedAt: "not a date" }))
+        .publishedAt,
     ).toBeNull();
   });
 

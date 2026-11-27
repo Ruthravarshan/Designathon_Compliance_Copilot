@@ -5,7 +5,9 @@ import { createMemoryRuntime } from "./__fixtures__/runtime";
 import { queueUploadedPdf, queueUrlIngest, runIngestionJobs } from "./index";
 import type { PipelineOutcome } from "./pipeline";
 
-const PDF_BYTES = makeTestPdf(["The bank shall complete a vulnerability assessment every six months."]);
+const PDF_BYTES = makeTestPdf([
+  "The bank shall complete a vulnerability assessment every six months.",
+]);
 const URL = "https://regulator.example/circular.pdf";
 
 function urlInput(overrides: Record<string, unknown> = {}) {
@@ -46,7 +48,9 @@ describe("queueUrlIngest", () => {
       queueUrlIngest(urlInput({ url: "not a url" }), { repository: memory.repository }),
     ).rejects.toMatchObject({ ingestionCode: "BAD_REQUEST" });
     await expect(
-      queueUrlIngest(urlInput({ url: "ftp://regulator.example/x" }), { repository: memory.repository }),
+      queueUrlIngest(urlInput({ url: "ftp://regulator.example/x" }), {
+        repository: memory.repository,
+      }),
     ).rejects.toMatchObject({ ingestionCode: "UNSUPPORTED_SCHEME" });
     await expect(
       queueUrlIngest(urlInput({ sourceId: undefined }), { repository: memory.repository }),
@@ -109,10 +113,14 @@ describe("queueUploadedPdf", () => {
   it("rejects empty, oversized and non-PDF uploads", async () => {
     const memory = createMemoryRuntime();
     await expect(
-      queueUploadedPdf(uploadInput({ bytes: new Uint8Array(0) }), { repository: memory.repository }),
+      queueUploadedPdf(uploadInput({ bytes: new Uint8Array(0) }), {
+        repository: memory.repository,
+      }),
     ).rejects.toMatchObject({ ingestionCode: "BAD_REQUEST" });
     await expect(
-      queueUploadedPdf(uploadInput({ bytes: new Uint8Array(100) }), { repository: memory.repository }),
+      queueUploadedPdf(uploadInput({ bytes: new Uint8Array(100) }), {
+        repository: memory.repository,
+      }),
     ).rejects.toMatchObject({ ingestionCode: "INVALID_PDF" });
     await expect(
       queueUploadedPdf(uploadInput({ bytes: new Uint8Array(30) }), {
@@ -183,7 +191,9 @@ describe("runIngestionJobs export", () => {
     );
 
     expect(result).toEqual({ processed: 0, failed: 0, skipped: 0 });
-    await expect(runIngestionJobs({ limit: 99 }, { repository: memory.repository })).rejects.toMatchObject({
+    await expect(
+      runIngestionJobs({ limit: 99 }, { repository: memory.repository }),
+    ).rejects.toMatchObject({
       ingestionCode: "BAD_REQUEST",
     });
   });

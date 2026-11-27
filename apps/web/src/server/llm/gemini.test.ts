@@ -14,7 +14,12 @@ const candidate = {
       plainLanguage: "Run a test",
       actionRequired: "Run it",
       applicableTo: "CISO",
-      quotes: [{ quote: "The bank shall complete a vulnerability assessment every six months.", pageNumber: 1 }],
+      quotes: [
+        {
+          quote: "The bank shall complete a vulnerability assessment every six months.",
+          pageNumber: 1,
+        },
+      ],
     },
   ],
   policyAreas: ["security"],
@@ -49,7 +54,10 @@ describe("Gemini adapter", () => {
 
   it("fails closed with no key and a disallowed model", async () => {
     await expect(
-      generateExtraction({ prompt: "x", model: "gemini-2.5-flash" }, options({ apiKey: undefined })),
+      generateExtraction(
+        { prompt: "x", model: "gemini-2.5-flash" },
+        options({ apiKey: undefined }),
+      ),
     ).rejects.toMatchObject({ ingestionCode: "INTEGRATION_NOT_CONFIGURED" });
     await expect(
       generateExtraction({ prompt: "x", model: "../../evil" }, options()),
@@ -78,7 +86,9 @@ describe("Gemini adapter", () => {
     expect(calls[0]?.url).toBe(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
     );
-    expect((calls[0]?.init.headers as Record<string, string>)["x-goog-api-key"]).toBe("test-key-value");
+    expect((calls[0]?.init.headers as Record<string, string>)["x-goog-api-key"]).toBe(
+      "test-key-value",
+    );
     const sent = JSON.parse(String(calls[0]?.init.body)) as {
       generationConfig: { temperature: number; responseMimeType: string; maxOutputTokens: number };
     };
@@ -106,11 +116,18 @@ describe("Gemini adapter", () => {
     let attempt = 0;
     const fetchMock = async (): Promise<Response> => {
       attempt += 1;
-      return attempt < 3 ? response("provider body with secret", 503, { "retry-after": "0" }) : response(body(candidate));
+      return attempt < 3
+        ? response("provider body with secret", 503, { "retry-after": "0" })
+        : response(body(candidate));
     };
     const result = await generateExtraction(
       { prompt: "x", model: "gemini-2.5-flash" },
-      options({ fetch: fetchMock as unknown as typeof globalThis.fetch, sleep: async (ms) => { sleeps.push(ms); } }),
+      options({
+        fetch: fetchMock as unknown as typeof globalThis.fetch,
+        sleep: async (ms) => {
+          sleeps.push(ms);
+        },
+      }),
     );
     expect(attempt).toBe(3);
     expect(sleeps).toHaveLength(2);
@@ -136,11 +153,17 @@ describe("Gemini adapter", () => {
       expect(calls).toBe(1);
     }
 
-    for (const payload of ["not json", JSON.stringify({ candidates: [] }), JSON.stringify({ ...candidate, invented: true })]) {
+    for (const payload of [
+      "not json",
+      JSON.stringify({ candidates: [] }),
+      JSON.stringify({ ...candidate, invented: true }),
+    ]) {
       await expect(
         generateExtraction(
           { prompt: "x", model: "gemini-2.5-flash" },
-          options({ fetch: (async () => response(body(payload))) as unknown as typeof globalThis.fetch }),
+          options({
+            fetch: (async () => response(body(payload))) as unknown as typeof globalThis.fetch,
+          }),
         ),
       ).rejects.toMatchObject({ ingestionCode: "EXTRACTION_FAILED" });
     }
@@ -155,7 +178,10 @@ describe("Gemini adapter", () => {
         { prompt: "x", model: "gemini-2.5-flash" },
         options({ fetch: fetchMock as unknown as typeof globalThis.fetch }),
       ),
-    ).rejects.toMatchObject({ ingestionCode: "EXTRACTION_FAILED", message: expect.not.stringContaining("secret") });
+    ).rejects.toMatchObject({
+      ingestionCode: "EXTRACTION_FAILED",
+      message: expect.not.stringContaining("secret"),
+    });
   });
 
   it("uses Retry-After seconds or date, capped", () => {

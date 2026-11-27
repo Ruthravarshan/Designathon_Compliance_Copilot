@@ -119,10 +119,16 @@ export function discoverPdfs(
 }
 
 /** Listing crawl: robots first, then one HTML fetch, then bounded anchor parsing. */
-export async function fetchListing(target: string | URL, options: DiscoverOptions): Promise<DiscoveryResult> {
+export async function fetchListing(
+  target: string | URL,
+  options: DiscoverOptions,
+): Promise<DiscoveryResult> {
   const url = target instanceof URL ? target : parseHttpUrl(target, options.allowHttp === true);
   if (!isHostAllowed(url.hostname, options.allowedDomains)) {
-    throw new IngestionError("HOST_NOT_ALLOWED", "The listing host is not in the configured allowlist.");
+    throw new IngestionError(
+      "HOST_NOT_ALLOWED",
+      "The listing host is not in the configured allowlist.",
+    );
   }
   await assertRobotsAllowed(url, options);
   const response = await fetchUrl(url, {
@@ -136,7 +142,10 @@ export async function fetchListing(target: string | URL, options: DiscoverOption
 
   const result = discoverPdfs(new TextDecoder().decode(response.bytes), response.url, options);
   if (result.pdfs.length === 0) {
-    throw new IngestionError("NO_DOCUMENTS_FOUND", "No reachable PDF documents were found in the listing.");
+    throw new IngestionError(
+      "NO_DOCUMENTS_FOUND",
+      "No reachable PDF documents were found in the listing.",
+    );
   }
   return result;
 }
@@ -156,7 +165,8 @@ interface HostState {
 export function createHostLimiter(options: HostLimiterOptions = {}): HostLimiter {
   const maxConcurrency = options.maxConcurrency ?? 2;
   const minSpacingMs = options.minSpacingMs ?? 300;
-  const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  const sleep =
+    options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const now = options.now ?? Date.now;
   const hosts = new Map<string, HostState>();
 
@@ -198,10 +208,12 @@ export function createHostLimiter(options: HostLimiterOptions = {}): HostLimiter
       return new Promise<T>((resolve, reject) => {
         state.queued.push({
           run() {
-            void task().then(resolve, reject).finally(() => {
-              state.active -= 1;
-              void pump(hostKey(url), state);
-            });
+            void task()
+              .then(resolve, reject)
+              .finally(() => {
+                state.active -= 1;
+                void pump(hostKey(url), state);
+              });
           },
         });
         void pump(hostKey(url), state);

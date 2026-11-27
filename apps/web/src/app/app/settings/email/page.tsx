@@ -108,9 +108,14 @@ export default async function EmailSettingsPage({
       {errorMessage ? (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
+          className="flex items-start gap-2 rounded-xl border border-danger/35 bg-danger/10 px-4 py-3 text-sm text-fg"
         >
-          <WarningCircle size={18} weight="bold" aria-hidden="true" className="mt-0.5 shrink-0" />
+          <WarningCircle
+            size={18}
+            weight="bold"
+            aria-hidden="true"
+            className="mt-0.5 shrink-0 text-danger"
+          />
           <span>{errorMessage}</span>
         </div>
       ) : null}
@@ -168,7 +173,7 @@ export default async function EmailSettingsPage({
 
           <div className="mt-5 space-y-3 border-t border-line pt-5">
             {!status.configured ? (
-              <div className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-xs leading-relaxed text-danger">
+              <div className="rounded-xl border border-danger/35 bg-danger/10 px-4 py-3 text-xs leading-relaxed text-fg">
                 Set <code className="font-mono">GOOGLE_CLIENT_ID</code>,{" "}
                 <code className="font-mono">GOOGLE_CLIENT_SECRET</code>, and{" "}
                 <code className="font-mono">TOKEN_ENCRYPTION_KEY</code>, then set{" "}

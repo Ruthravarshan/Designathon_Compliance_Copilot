@@ -35,5 +35,5 @@ test("the second tenant sees only its own empty workspace", async ({ page }) => 
 test("anonymous visitors are redirected to sign-in", async ({ page }) => {
   await page.goto("/app");
   await expect(page).toHaveURL(/\/signin$/);
-  await expect(page.getByRole("heading", { name: /Sign in as a/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Sign in to PolicyPulse/i })).toBeVisible();
 });

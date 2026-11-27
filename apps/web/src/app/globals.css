@@ -11,6 +11,7 @@
   --pp-brand: #3c2cda;
   --pp-brand-hover: #3224bd;
   --pp-brand-ink: #ffffff;
+  --pp-support: #1d86ff;
   --pp-accent: #3c2cda;
   --pp-danger: #da2d2c;
   --pp-shadow-card: 0 1px 2px rgba(4, 13, 67, 0.04), 0 8px 24px -16px rgba(4, 13, 67, 0.14);
@@ -27,9 +28,10 @@
   --pp-brand: #3c2cda;
   --pp-brand-hover: #3224bd;
   --pp-brand-ink: #ffffff;
+  --pp-support: #1d86ff;
   --pp-accent: #14cbde;
   --pp-danger: #da2d2c;
-  --pp-shadow-card: 0 1px 2px rgba(4, 13, 67, 0.3), 0 12px 28px -18px rgba(4, 13, 67, 0.65);
+  --pp-shadow-card: 0 1px 2px rgba(4, 13, 67, 0.35), 0 14px 32px -18px rgba(4, 13, 67, 0.75);
 }
 
 @theme inline {
@@ -44,6 +46,7 @@
   --color-brand: var(--pp-brand);
   --color-brand-hover: var(--pp-brand-hover);
   --color-brand-ink: var(--pp-brand-ink);
+  --color-support: var(--pp-support);
   --color-accent: var(--pp-accent);
   --color-danger: var(--pp-danger);
 }
@@ -73,8 +76,8 @@
   }
 }
 
-/* Legacy v1 landing texture: do not use on PolicyPulse v2 product surfaces. */
-.grid-field {
+/* Architectural backdrop reserved for public landing & sign-in fields only. */
+.pp-backdrop-grid {
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -82,16 +85,16 @@
   background-image:
     linear-gradient(
       to right,
-      color-mix(in oklab, var(--color-fg) 6%, transparent) 1px,
+      color-mix(in oklab, var(--color-fg) 5%, transparent) 1px,
       transparent 1px
     ),
     linear-gradient(
       to bottom,
-      color-mix(in oklab, var(--color-fg) 6%, transparent) 1px,
+      color-mix(in oklab, var(--color-fg) 5%, transparent) 1px,
       transparent 1px
     );
-  background-size: 72px 72px;
-  mask-image: radial-gradient(ellipse 90% 65% at 50% 0%, black 10%, transparent 80%);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 85% 60% at 50% 0%, black 15%, transparent 82%);
 }
 
 .skip-link {
@@ -128,16 +131,6 @@
   }
 }
 
-.pp-skeleton {
-  background-color: var(--color-surface-2);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .pp-skeleton {
-    animation: pp-shimmer 1.6s ease-in-out infinite;
-  }
-}
-
 @keyframes rise {
   from {
     opacity: 0;
@@ -149,17 +142,54 @@
   }
 }
 
+@keyframes pp-signal-flow {
+  0% {
+    stroke-dashoffset: 64;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pp-ring-sweep {
+  from {
+    opacity: 0.2;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.pp-skeleton {
+  background-color: var(--color-surface-2);
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  .pp-skeleton {
+    animation: pp-shimmer 1.6s ease-in-out infinite;
+  }
+
   .rise {
-    animation: rise 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: rise 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .rise-2 {
-    animation-delay: 90ms;
+    animation: rise 620ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
   }
 
   .rise-3 {
-    animation-delay: 160ms;
+    animation: rise 620ms cubic-bezier(0.16, 1, 0.3, 1) 150ms both;
+  }
+
+  .pp-signal-line {
+    stroke-dasharray: 6 6;
+    animation: pp-signal-flow 1.8s linear infinite;
+  }
+
+  .pp-chart-enter {
+    animation: pp-ring-sweep 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
 

@@ -127,7 +127,7 @@ export default async function FindingsPage({
               href={filterHref({ ...(review ? { review } : {}) })}
               className={
                 !severity
-                  ? "rounded-full bg-fg px-3 py-1.5 text-xs font-medium text-brand-ink"
+                  ? "rounded-full bg-brand px-3 py-1.5 text-xs font-medium text-brand-ink"
                   : "rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-muted transition-colors hover:border-muted/50 hover:text-fg"
               }
             >
@@ -140,7 +140,7 @@ export default async function FindingsPage({
                 aria-current={severity === value ? "page" : undefined}
                 className={
                   severity === value
-                    ? "rounded-full bg-fg px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-brand-ink"
+                    ? "rounded-full bg-brand px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-brand-ink"
                     : "rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted transition-colors hover:border-muted/50 hover:text-fg"
                 }
               >

@@ -69,7 +69,10 @@ function requiredKey(explicit: string | undefined): string {
 }
 
 function authMode(): "api-key" | "bearer" {
-  const parsed = z.enum(["api-key", "bearer"]).default("api-key").safeParse(process.env.GEMINI_AUTH_MODE);
+  const parsed = z
+    .enum(["api-key", "bearer"])
+    .default("api-key")
+    .safeParse(process.env.GEMINI_AUTH_MODE);
   return parsed.success ? parsed.data : "api-key";
 }
 
@@ -103,13 +106,17 @@ export async function generateExtraction(
   options: GeminiOptions = {},
 ): Promise<GeminiResult> {
   if (!isAllowedModel(input.model)) {
-    throw new IngestionError("INTEGRATION_NOT_CONFIGURED", "The configured Gemini model is not allowed.");
+    throw new IngestionError(
+      "INTEGRATION_NOT_CONFIGURED",
+      "The configured Gemini model is not allowed.",
+    );
   }
   const key = requiredKey(options.apiKey);
   const mode = options.authMode ?? authMode();
   const httpFetch = options.fetch ?? globalThis.fetch;
   const now = options.now ?? Date.now;
-  const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  const sleep =
+    options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const promptVersion = options.promptVersion ?? "extract-v1";
@@ -170,7 +177,10 @@ export async function generateExtraction(
       }
       const candidate = candidateExtractionSchema.safeParse(json);
       if (!candidate.success) {
-        throw new IngestionError("EXTRACTION_FAILED", "Gemini returned a response outside the schema.");
+        throw new IngestionError(
+          "EXTRACTION_FAILED",
+          "Gemini returned a response outside the schema.",
+        );
       }
 
       return {

@@ -14,7 +14,10 @@ const connectionConfigSchema = z.object({
 export function readConnectionConfig(value: unknown): StorageConnectionConfig {
   const parsed = connectionConfigSchema.safeParse(value);
   if (!parsed.success) {
-    throw new IngestionError("INTEGRATION_NOT_CONFIGURED", "The storage connection settings are invalid.");
+    throw new IngestionError(
+      "INTEGRATION_NOT_CONFIGURED",
+      "The storage connection settings are invalid.",
+    );
   }
   return parsed.data;
 }
@@ -24,7 +27,10 @@ export function assertConnectionWorkspace(
   workspaceId: string,
 ): void {
   if (connection.workspaceId !== workspaceId) {
-    throw new IngestionError("BAD_REQUEST", "The storage connection does not belong to this workspace.");
+    throw new IngestionError(
+      "BAD_REQUEST",
+      "The storage connection does not belong to this workspace.",
+    );
   }
 }
 

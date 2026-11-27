@@ -29,7 +29,11 @@ const options = (overrides: Partial<FetchOptions> = {}): FetchOptions => ({
   ...overrides,
 });
 
-function result(status: number, headers: Record<string, string> = {}, text = "ok"): TransportResult {
+function result(
+  status: number,
+  headers: Record<string, string> = {},
+  text = "ok",
+): TransportResult {
   return { status, headers, bytes: new TextEncoder().encode(text) };
 }
 
@@ -46,11 +50,17 @@ describe("host allowlist and URL validation", () => {
   it("rejects invalid, credentialed, nonstandard and literal-IP URLs", () => {
     expect(() => parseHttpUrl("ftp://regulator.example/a.pdf", false)).toThrow(IngestionError);
     expect(() => parseHttpUrl("http://regulator.example/a.pdf", false)).toThrow(IngestionError);
-    expect(() => parseHttpUrl("https://user:pass@regulator.example/a.pdf", true)).toThrow(IngestionError);
-    expect(() => parseHttpUrl("https://regulator.example:8443/a.pdf", true)).toThrow(IngestionError);
+    expect(() => parseHttpUrl("https://user:pass@regulator.example/a.pdf", true)).toThrow(
+      IngestionError,
+    );
+    expect(() => parseHttpUrl("https://regulator.example:8443/a.pdf", true)).toThrow(
+      IngestionError,
+    );
     expect(() => parseHttpUrl("https://127.0.0.1/a.pdf", true)).toThrow(IngestionError);
     expect(() => parseHttpUrl("x".repeat(3000), true)).toThrow(IngestionError);
-    expect(parseHttpUrl("https://regulator.example/a.pdf", false).hostname).toBe("regulator.example");
+    expect(parseHttpUrl("https://regulator.example/a.pdf", false).hostname).toBe(
+      "regulator.example",
+    );
   });
 });
 
@@ -145,7 +155,10 @@ describe("fetch bounds and redirects", () => {
     const downgrade: FetchTransport = async () =>
       result(302, { location: "http://regulator.example/a.pdf" });
     await expect(
-      fetchUrl("https://regulator.example/start", options({ transport: downgrade, allowHttp: false })),
+      fetchUrl(
+        "https://regulator.example/start",
+        options({ transport: downgrade, allowHttp: false }),
+      ),
     ).rejects.toMatchObject({ ingestionCode: "UNSUPPORTED_SCHEME" });
   });
 
@@ -169,8 +182,14 @@ describe("fetch bounds and redirects", () => {
 
   it("maps unsuccessful and redirect-without-target responses to safe codes", async () => {
     await expect(
-      fetchUrl("https://regulator.example/a", options({ transport: async () => result(404, {}, "secret body") })),
-    ).rejects.toMatchObject({ ingestionCode: "FETCH_FAILED", message: expect.not.stringContaining("secret") });
+      fetchUrl(
+        "https://regulator.example/a",
+        options({ transport: async () => result(404, {}, "secret body") }),
+      ),
+    ).rejects.toMatchObject({
+      ingestionCode: "FETCH_FAILED",
+      message: expect.not.stringContaining("secret"),
+    });
     await expect(
       fetchUrl("https://regulator.example/a", options({ transport: async () => result(302) })),
     ).rejects.toMatchObject({ ingestionCode: "FETCH_FAILED" });
@@ -204,15 +223,17 @@ describe("default transport", () => {
 
 describe("robots and user agent", () => {
   it("parses only wildcard groups and uses the longest match", () => {
-    const rules = parseRobots([
-      "User-agent: bot",
-      "Disallow: /private",
-      "",
-      "User-agent: *",
-      "Disallow: /",
-      "Allow: /public",
-      "Disallow:",
-    ].join("\n"));
+    const rules = parseRobots(
+      [
+        "User-agent: bot",
+        "Disallow: /private",
+        "",
+        "User-agent: *",
+        "Disallow: /",
+        "Allow: /public",
+        "Disallow:",
+      ].join("\n"),
+    );
     expect(rules).toHaveLength(2);
     expect(robotsAllows("/public/a.pdf", rules)).toBe(true);
     expect(robotsAllows("/private/a.pdf", rules)).toBe(false);
@@ -239,11 +260,15 @@ describe("robots and user agent", () => {
 
   it("treats 401/403 robots as disallowed and a missing robots file as allowed", async () => {
     const denied = options({ transport: async () => result(403) });
-    await expect(assertRobotsAllowed("https://regulator.example/a.pdf", denied)).rejects.toMatchObject({
+    await expect(
+      assertRobotsAllowed("https://regulator.example/a.pdf", denied),
+    ).rejects.toMatchObject({
       ingestionCode: "ROBOTS_DISALLOWED",
     });
     const missing = options({ transport: async () => result(404) });
-    await expect(assertRobotsAllowed("https://regulator.example/a.pdf", missing)).resolves.toBeUndefined();
+    await expect(
+      assertRobotsAllowed("https://regulator.example/a.pdf", missing),
+    ).resolves.toBeUndefined();
   });
 
   it("expires cached robots rules and bounds the cache", async () => {

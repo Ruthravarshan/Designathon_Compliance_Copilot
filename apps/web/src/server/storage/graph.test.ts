@@ -14,7 +14,10 @@ const connection = (suffix: string): StorageConnection => ({
 const bytes = new TextEncoder().encode("%PDF-1.7 test circular");
 
 function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
 }
 
 describe("SharePoint Graph adapter", () => {
@@ -102,7 +105,10 @@ describe("SharePoint Graph adapter", () => {
       }
       return json({ id: "item-1", webUrl: "https://sharepoint.example/a.pdf" });
     };
-    const provider = createGraphProvider(connection("cache"), { fetch: fetchMock, now: () => time });
+    const provider = createGraphProvider(connection("cache"), {
+      fetch: fetchMock,
+      now: () => time,
+    });
     const input = {
       workspaceId: "ws-1",
       path: "ws/a.pdf",
@@ -160,7 +166,10 @@ describe("SharePoint Graph adapter", () => {
         contentType: "application/pdf",
         filename: "a.pdf",
       }),
-    ).rejects.toMatchObject({ ingestionCode: "DUPLICATE_DOCUMENT", message: expect.not.stringContaining("secret") });
+    ).rejects.toMatchObject({
+      ingestionCode: "DUPLICATE_DOCUMENT",
+      message: expect.not.stringContaining("secret"),
+    });
   });
 
   it("streams a ranged read with truthful status and range headers", async () => {
@@ -198,7 +207,9 @@ describe("SharePoint Graph adapter", () => {
       url.includes("/oauth2/v2.0/token")
         ? json({ access_token: "token-value", expires_in: 3600 })
         : json({ id: "drive-1" });
-    await expect(createGraphProvider(connection("health-ok"), { fetch: okFetch }).healthCheck()).resolves.toEqual({
+    await expect(
+      createGraphProvider(connection("health-ok"), { fetch: okFetch }).healthCheck(),
+    ).resolves.toEqual({
       ok: true,
     });
 
@@ -206,7 +217,9 @@ describe("SharePoint Graph adapter", () => {
       url.includes("/oauth2/v2.0/token")
         ? json({ access_token: "token-value", expires_in: 3600 })
         : new Response("forbidden", { status: 403 });
-    await expect(createGraphProvider(connection("health-bad"), { fetch: badFetch }).healthCheck()).resolves.toEqual({
+    await expect(
+      createGraphProvider(connection("health-bad"), { fetch: badFetch }).healthCheck(),
+    ).resolves.toEqual({
       ok: false,
       code: "STORAGE_UNAVAILABLE",
     });

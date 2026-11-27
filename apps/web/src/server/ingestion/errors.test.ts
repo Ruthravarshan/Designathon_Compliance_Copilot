@@ -16,7 +16,9 @@ describe("ingestion errors", () => {
 
   it("classifies unknown failures without leaking details", () => {
     expect(safeErrorCode(new Error("provider body with secret"))).toBe("INTERNAL");
-    expect(safeErrorCode(new IngestionError("HOST_NOT_ALLOWED", "Blocked host"))).toBe("HOST_NOT_ALLOWED");
+    expect(safeErrorCode(new IngestionError("HOST_NOT_ALLOWED", "Blocked host"))).toBe(
+      "HOST_NOT_ALLOWED",
+    );
   });
 
   it("marks only transient codes retryable", () => {

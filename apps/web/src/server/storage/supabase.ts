@@ -43,10 +43,7 @@ export interface SupabaseProviderOptions {
 function requiredEnv(name: string): string {
   const parsed = z.string().trim().min(1).safeParse(process.env[name]);
   if (!parsed.success) {
-    throw new IngestionError(
-      "INTEGRATION_NOT_CONFIGURED",
-      `Supabase ${name} is not configured.`,
-    );
+    throw new IngestionError("INTEGRATION_NOT_CONFIGURED", `Supabase ${name} is not configured.`);
   }
   return parsed.data;
 }
@@ -61,7 +58,10 @@ export function createSupabaseProvider(
 
   function bucket(): string {
     if (!config.bucket) {
-      throw new IngestionError("INTEGRATION_NOT_CONFIGURED", "The Supabase bucket is not configured.");
+      throw new IngestionError(
+        "INTEGRATION_NOT_CONFIGURED",
+        "The Supabase bucket is not configured.",
+      );
     }
     return config.bucket;
   }
@@ -86,7 +86,10 @@ export function createSupabaseProvider(
         const result = await getClient().storage.from(bucket()).list("", { limit: 1 });
         return result.error ? { ok: false, code: "STORAGE_UNAVAILABLE" } : { ok: true };
       } catch (error) {
-        return { ok: false, code: error instanceof IngestionError ? error.ingestionCode : "STORAGE_UNAVAILABLE" };
+        return {
+          ok: false,
+          code: error instanceof IngestionError ? error.ingestionCode : "STORAGE_UNAVAILABLE",
+        };
       }
     },
 
@@ -136,7 +139,9 @@ export function createSupabaseProvider(
         },
       });
       const contentLengthHeader = response.headers.get("content-length");
-      const contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : undefined;
+      const contentLength = contentLengthHeader
+        ? Number.parseInt(contentLengthHeader, 10)
+        : undefined;
       return {
         body,
         contentType: response.headers.get("content-type") ?? "application/pdf",

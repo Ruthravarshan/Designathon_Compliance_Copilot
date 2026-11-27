@@ -21,7 +21,9 @@ export function makeTestPdf(pageTexts: readonly string[]): Uint8Array {
       `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`,
     );
     const stream = `BT /F1 12 Tf 72 720 Td (${escapes(text)}) Tj ET\n`;
-    objects.push(`<< /Length ${Buffer.byteLength(stream, "latin1")} >>\nstream\n${stream}endstream`);
+    objects.push(
+      `<< /Length ${Buffer.byteLength(stream, "latin1")} >>\nstream\n${stream}endstream`,
+    );
   });
 
   const header = Buffer.from("%PDF-1.4\n", "latin1");

@@ -100,20 +100,28 @@ export interface IngestionRepository {
     mode: "url" | "listing";
     sourceId?: string;
   }): Promise<RunRecord>;
-  updateRun(runId: string, patch: { status?: IngestionStatus; steps?: RunStep[]; counts?: RunCounts }): Promise<void>;
+  updateRun(
+    runId: string,
+    patch: { status?: IngestionStatus; steps?: RunStep[]; counts?: RunCounts },
+  ): Promise<void>;
   createJob(input: CreateJobInput): Promise<JobRecord>;
   claimJob(input: { limit: number; now: Date }): Promise<JobRecord[]>;
   updateJob(jobId: string, patch: JobPatch): Promise<void>;
   recordLlmCall(input: LlmCallInput): Promise<void>;
-  markDuplicate(workspaceId: string, checksum: string, documentId: string, file: {
-    itemId: string;
-    webUrl: string;
-    path: string;
-    filename: string;
-    bytes: number;
-    pages: number;
-    storageConnectionId: string;
-  }): Promise<void>;
+  markDuplicate(
+    workspaceId: string,
+    checksum: string,
+    documentId: string,
+    file: {
+      itemId: string;
+      webUrl: string;
+      path: string;
+      filename: string;
+      bytes: number;
+      pages: number;
+      storageConnectionId: string;
+    },
+  ): Promise<void>;
 }
 
 export interface PersistInput {

@@ -57,7 +57,9 @@ describe("worker batch", () => {
   it("rejects an out-of-range limit without touching the repository", async () => {
     const memory = createMemoryRuntime();
     for (const limit of [-1, 11, 1.5]) {
-      await expect(runIngestionJobs({ limit }, { repository: memory.repository })).rejects.toMatchObject({
+      await expect(
+        runIngestionJobs({ limit }, { repository: memory.repository }),
+      ).rejects.toMatchObject({
         ingestionCode: "BAD_REQUEST",
       });
     }

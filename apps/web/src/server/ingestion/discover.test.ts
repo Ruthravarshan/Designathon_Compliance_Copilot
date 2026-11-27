@@ -64,7 +64,10 @@ describe("bounded discovery", () => {
   });
 
   it("caps candidates and documents and reports truncation", () => {
-    const html = Array.from({ length: 80 }, (_unused, index) => `<a href="/doc-${index}.pdf">x</a>`).join("");
+    const html = Array.from(
+      { length: 80 },
+      (_unused, index) => `<a href="/doc-${index}.pdf">x</a>`,
+    ).join("");
     const result = discoverPdfs(html, base, options({ maxCandidates: 10, maxDocuments: 3 }));
     expect(result.candidates).toBe(10);
     expect(result.pdfs).toHaveLength(3);
@@ -93,7 +96,11 @@ describe("bounded discovery", () => {
     const transport: FetchTransport = async (input) => {
       calls.push(input.url.pathname);
       if (input.url.pathname === "/robots.txt") {
-        return { status: 200, headers: {}, bytes: new TextEncoder().encode("User-agent: *\nDisallow:") };
+        return {
+          status: 200,
+          headers: {},
+          bytes: new TextEncoder().encode("User-agent: *\nDisallow:"),
+        };
       }
       return htmlResponse("<html><body>No documents here</body></html>");
     };

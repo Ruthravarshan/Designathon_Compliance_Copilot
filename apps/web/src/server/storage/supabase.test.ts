@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSupabaseProvider, type SupabaseClientLike, type SupabaseStorageLike } from "./supabase";
+import {
+  createSupabaseProvider,
+  type SupabaseClientLike,
+  type SupabaseStorageLike,
+} from "./supabase";
 import type { StorageConnection } from "./types";
 
 const bytes = new TextEncoder().encode("%PDF-1.7 private bucket");
@@ -62,11 +66,12 @@ describe("Supabase Storage adapter", () => {
       data: { signedUrl: "https://signed.example/secret-token" },
       error: null,
     }));
-    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
-      new Response(bytes, {
-        status: 206,
-        headers: { "content-type": "application/pdf", "content-range": "bytes 0-22/23" },
-      }),
+    const fetchMock = vi.fn(
+      async (_url: string, _init?: RequestInit) =>
+        new Response(bytes, {
+          status: 206,
+          headers: { "content-type": "application/pdf", "content-range": "bytes 0-22/23" },
+        }),
     );
     const provider = createSupabaseProvider(connection, {
       client: client({ createSignedUrl: signedUrl }),
@@ -94,14 +99,20 @@ describe("Supabase Storage adapter", () => {
         contentType: "application/pdf",
         filename: "a.pdf",
       }),
-    ).rejects.toMatchObject({ ingestionCode: "STORAGE_UNAVAILABLE", message: expect.not.stringContaining("secret") });
+    ).rejects.toMatchObject({
+      ingestionCode: "STORAGE_UNAVAILABLE",
+      message: expect.not.stringContaining("secret"),
+    });
 
     const healthy = createSupabaseProvider(connection, { client: client() });
     await expect(healthy.healthCheck()).resolves.toEqual({ ok: true });
     const unhealthy = createSupabaseProvider(connection, {
       client: client({ list: async () => ({ error: { message: "forbidden" } }) }),
     });
-    await expect(unhealthy.healthCheck()).resolves.toEqual({ ok: false, code: "STORAGE_UNAVAILABLE" });
+    await expect(unhealthy.healthCheck()).resolves.toEqual({
+      ok: false,
+      code: "STORAGE_UNAVAILABLE",
+    });
   });
 
   it("fails closed when the bucket is not configured", async () => {
@@ -111,8 +122,8 @@ describe("Supabase Storage adapter", () => {
       ok: false,
       code: "INTEGRATION_NOT_CONFIGURED",
     });
-    await expect(
-      provider.read({ itemId: "a.pdf" }),
-    ).rejects.toMatchObject({ ingestionCode: "INTEGRATION_NOT_CONFIGURED" });
+    await expect(provider.read({ itemId: "a.pdf" })).rejects.toMatchObject({
+      ingestionCode: "INTEGRATION_NOT_CONFIGURED",
+    });
   });
 });
