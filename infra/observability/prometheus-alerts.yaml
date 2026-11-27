@@ -1,0 +1,53 @@
+groups:
+  - name: policypulse.availability
+    rules:
+      - alert: PolicyPulseHealthCheckFailing
+        expr: probe_success{job="policypulse-health"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: hexa-web
+        annotations:
+          summary: "PolicyPulse /api/health endpoint is returning non-200"
+          description: "Readiness or database connectivity check failed for > 2 minutes."
+          runbook: "docs/RUNBOOK-INCIDENT.md#sev1-health-check-failing"
+
+      - alert: PolicyPulseHighServerErrorRate
+        expr: |
+          sum(rate(http_requests_total{service="hexa-web",status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(http_requests_total{service="hexa-web"}[5m])), 1) > 0.01
+        for: 5m
+        labels:
+          severity: high
+          service: hexa-web
+        annotations:
+          summary: "PolicyPulse 5xx error rate exceeded 1% SLO"
+          description: "More than 1% of HTTP requests returned 5xx over the last 5 minutes."
+          runbook: "docs/RUNBOOK-INCIDENT.md#sev2-elevated-5xx-rate"
+
+      - alert: PolicyPulseReadLatencyBreach
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket{service="hexa-web",method="GET"}[5m])) by (le)
+          ) > 0.300
+        for: 10m
+        labels:
+          severity: warning
+          service: hexa-web
+        annotations:
+          summary: "PolicyPulse GET p95 latency exceeded 300ms target"
+          description: "Check database indexes, pool saturation, and Redis connectivity."
+          runbook: "docs/RUNBOOK-INCIDENT.md#sev3-latency-degradation"
+
+      - alert: PolicyPulseEmailOutboxBacklog
+        expr: policypulse_email_outbox_oldest_queued_seconds > 900
+        for: 5m
+        labels:
+          severity: warning
+          service: email-outbox
+        annotations:
+          summary: "Email outbox queue age exceeds 15 minutes"
+          description: "Verify /api/cron/email schedule, CRON_SECRET, and SMTP/Gmail/Resend credentials."
+          runbook: "docs/RUNBOOK-INCIDENT.md#sev3-email-outbox-backlog"

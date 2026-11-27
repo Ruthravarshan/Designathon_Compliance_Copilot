@@ -1,0 +1,26 @@
+service: policypulse
+owner: platform-engineering
+alignedWith: docs/SCALABILITY.md
+objectives:
+  - id: availability-api
+    sli: "GET /api/health returns HTTP 200 with database == ok"
+    target: 99.9
+    window: 30d
+    budgetBurnAlertFast: "14.4x over 1h"
+    budgetBurnAlertSlow: "6x over 6h"
+  - id: latency-api-read
+    sli: "GET /api/v1/* and /api/findings/* server latency"
+    p95TargetMs: 300
+    window: 7d
+  - id: latency-api-write
+    sli: "POST/PATCH mutation server latency"
+    p95TargetMs: 800
+    window: 7d
+  - id: error-rate
+    sli: "HTTP 5xx ratio across authenticated routes"
+    maxErrorRatePercent: 1.0
+    window: 7d
+  - id: outbox-drain-freshness
+    sli: "Oldest QUEUED EmailMessage age"
+    maxAgeSeconds: 900
+    window: 24h

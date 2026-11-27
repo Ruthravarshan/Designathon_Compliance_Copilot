@@ -1,0 +1,10 @@
+# Example variables for Azure Terraform stack (reference blueprint only — NOT applied).
+# Supply sensitive values via TF_VAR_* environment variables or a secret manager.
+
+environment           = "prod"
+location              = "centralindia"
+workload_name         = "policypulse"
+image_tag             = "0.2.0"
+app_url               = "https://policypulse.example.com"
+postgres_admin_login  = "policypulseadmin"
+ingestion_source_urls = ""

@@ -195,6 +195,9 @@ integration or demo data outside the labelled demo workspace.
 - Brand/visual: [BRAND.md](docs/BRAND.md), [DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md).
 - Security/scalability/quality: [SECURITY.md](docs/SECURITY.md),
   [SCALABILITY.md](docs/SCALABILITY.md), [QUALITY-BAR.md](docs/QUALITY-BAR.md).
+- Enterprise infrastructure & SRE (reference IaC for Azure Bicep, Terraform Azure/AWS/GCP, K8s):
+  [INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md), [infra/](infra/README.md),
+  [RUNBOOK-INCIDENT.md](docs/RUNBOOK-INCIDENT.md), [DISASTER-RECOVERY.md](docs/DISASTER-RECOVERY.md).
 - Delivery evidence: [WEBSITE-DELIVERY-STATUS.md](docs/WEBSITE-DELIVERY-STATUS.md),
   [09-release-report.md](docs/discovery/09-release-report.md).
 - Demo runbook: [10-demo-script.md](docs/discovery/10-demo-script.md).

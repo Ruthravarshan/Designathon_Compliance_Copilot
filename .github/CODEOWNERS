@@ -1,0 +1,6 @@
+# Enterprise repository ownership
+* @hexa-platform/engineering
+/apps/web/src/server/auth/ @hexa-platform/security
+/infra/ @hexa-platform/platform-sre
+/.github/ @hexa-platform/platform-sre
+/docs/SECURITY.md @hexa-platform/security

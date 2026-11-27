@@ -1,0 +1,73 @@
+name: Infrastructure Validation
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - "Dockerfile"
+      - ".github/workflows/infra-validate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - "Dockerfile"
+
+permissions:
+  contents: read
+
+jobs:
+  bicep-validate:
+    name: Azure Bicep Build Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile Bicep templates
+        run: az bicep build --file infra/bicep/main.bicep
+
+  terraform-validate:
+    name: Terraform Format & Validate (${{ matrix.cloud }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [azure, aws, gcp]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Check Terraform formatting
+        working-directory: infra/terraform/${{ matrix.cloud }}
+        run: terraform fmt -check -recursive
+
+      - name: Initialize Terraform (no backend)
+        working-directory: infra/terraform/${{ matrix.cloud }}
+        run: terraform init -backend=false
+
+      - name: Validate Terraform configuration
+        working-directory: infra/terraform/${{ matrix.cloud }}
+        run: terraform validate
+
+  kubernetes-validate:
+    name: Kubernetes Manifest Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Kustomize manifests with kubeconform
+        run: |
+          curl -fsSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar -xz
+          kubectl kustomize infra/k8s | ./kubeconform -strict -summary

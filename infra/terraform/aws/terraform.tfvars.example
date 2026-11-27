@@ -1,0 +1,10 @@
+# Example variables for AWS Terraform stack (reference blueprint only — NOT applied).
+# Supply sensitive values via TF_VAR_* environment variables or AWS Secrets Manager.
+
+environment         = "prod"
+aws_region          = "ap-south-1"
+workload_name       = "policypulse"
+image_tag           = "0.2.0"
+app_url             = "https://policypulse.example.com"
+acm_certificate_arn = "arn:aws:acm:ap-south-1:000000000000:certificate/example"
+db_username         = "policypulseadmin"
