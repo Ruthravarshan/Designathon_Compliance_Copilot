@@ -50,10 +50,10 @@ export function HeroTelemetry() {
         <div className="flex items-center gap-2">
           <span
             aria-hidden="true"
-            className="size-2 rounded-full bg-brand dark:bg-accent motion-safe:animate-pulse"
+            className="size-2 rounded-full bg-brand dark:bg-support motion-safe:animate-pulse"
           />
           <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-            PolicyPulse Engine · Live Architecture
+            PolicyPulse Engine · Verification Pipeline
           </span>
         </div>
 

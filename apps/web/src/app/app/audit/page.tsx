@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { ClockCounterClockwise, LockKey } from "@phosphor-icons/react/dist/ssr";
+import { ClockCounterClockwise, DownloadSimple, LockKey } from "@phosphor-icons/react/dist/ssr";
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -64,9 +64,18 @@ export default async function AuditPage() {
             actor, entity, and metadata. Review events carry their own immutable history.
           </p>
         </div>
-        <Badge tone="brand" dot>
-          Append-only
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone="brand" dot>
+            Append-only
+          </Badge>
+          <a
+            href="/api/export/findings"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-xs font-medium text-fg transition-colors hover:border-muted/60 hover:bg-surface-2"
+          >
+            <DownloadSimple size={14} weight="bold" aria-hidden="true" />
+            Export evidence CSV
+          </a>
+        </div>
       </header>
 
       <div className="flex items-start gap-2.5 rounded-xl border border-line bg-surface/60 px-4 py-3 text-xs leading-relaxed text-muted">

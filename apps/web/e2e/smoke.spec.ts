@@ -5,8 +5,8 @@ test("landing page states the product promise", async ({ page }) => {
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("with receipts");
   await expect(page.getByRole("link", { name: /open workbench/i })).toBeVisible();
-  await expect(page.getByText("Three real conflicts in the seed corpus.")).toBeVisible();
-  await expect(page.getByText("Built for a regulated reader.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Clause-grounded" })).toBeVisible();
+  await expect(page.getByText("Built for regulated operations.")).toBeVisible();
 });
 
 test("build OS page keeps the ten hour route", async ({ page }) => {

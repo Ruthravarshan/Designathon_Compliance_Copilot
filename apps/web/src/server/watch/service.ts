@@ -94,7 +94,13 @@ interface SourceOutcome {
 }
 
 interface ProcessContext {
-  source: { id: string; workspaceId: string; name: string; regulator: RegulatorKey; allowedDomains: string[] };
+  source: {
+    id: string;
+    workspaceId: string;
+    name: string;
+    regulator: RegulatorKey;
+    allowedDomains: string[];
+  };
   actor: Actor;
 }
 
@@ -349,10 +355,7 @@ async function runSource(
       });
     }
   } catch (error) {
-    logger.warn(
-      { sourceId: source.id, code: errorCodeOf(error) },
-      "watch source listing failed",
-    );
+    logger.warn({ sourceId: source.id, code: errorCodeOf(error) }, "watch source listing failed");
     return { ...base, status: "FAILED", failed: 1, errorCode: errorCodeOf(error) };
   }
 
@@ -386,10 +389,7 @@ async function runSource(
       }
     } catch (error) {
       outcome.failed += 1;
-      logger.warn(
-        { sourceId: source.id, code: errorCodeOf(error) },
-        "watch candidate failed",
-      );
+      logger.warn({ sourceId: source.id, code: errorCodeOf(error) }, "watch candidate failed");
     }
   }
 
@@ -691,7 +691,9 @@ export async function listWatchOverview(actor: Actor): Promise<WatchOverview> {
       enabled: source.enabled,
       lastCheckedAt: source.lastCheckedAt?.toISOString() ?? null,
       nextRunAt: source.enabled
-        ? new Date((source.lastCheckedAt ?? now).getTime() + intervalMs(source.schedule)).toISOString()
+        ? new Date(
+            (source.lastCheckedAt ?? now).getTime() + intervalMs(source.schedule),
+          ).toISOString()
         : null,
       lastStatus: source.lastStatus,
       lastItemCount: source.lastItemCount,
@@ -718,7 +720,11 @@ export async function listWatchOverview(actor: Actor): Promise<WatchOverview> {
   };
 }
 
-export async function toggleSource(actor: Actor, sourceId: string, enabled: boolean): Promise<void> {
+export async function toggleSource(
+  actor: Actor,
+  sourceId: string,
+  enabled: boolean,
+): Promise<void> {
   const source = await db.regulatorySource.findFirst({
     where: { id: sourceId, workspaceId: actor.workspaceId },
     select: { id: true, name: true },
@@ -792,7 +798,12 @@ export async function ingestFromUrl(
     metadata: { url: fetched.finalUrl, reference: result.reference, regulator },
   });
 
-  return { id: result.id, reference: result.reference, findings: result.findings, clauses: result.clauses };
+  return {
+    id: result.id,
+    reference: result.reference,
+    findings: result.findings,
+    clauses: result.clauses,
+  };
 }
 
 export async function listDocumentRevisions(actor: Actor, documentId: string) {

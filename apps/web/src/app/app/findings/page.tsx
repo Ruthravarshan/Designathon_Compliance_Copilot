@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, FunnelSimple, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowRight,
+  DownloadSimple,
+  FunnelSimple,
+  MagnifyingGlass,
+} from "@phosphor-icons/react/dist/ssr";
 import { ReviewStatusBadge, SeverityBadge } from "@/components/severity-badge";
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +74,7 @@ export default async function FindingsPage({
   }
 
   const hasFilters = Boolean(severity || review || cursor);
+  const canExport = actorCan(actor, "audit:read");
 
   return (
     <div className="space-y-6">
@@ -88,9 +94,15 @@ export default async function FindingsPage({
             <FunnelSimple size={12} weight="bold" aria-hidden="true" />
             {items.length} shown
           </Badge>
-          <Badge tone="brand" dot>
-            Server paginated
-          </Badge>
+          {canExport ? (
+            <a
+              href="/api/export/findings"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-xs font-medium text-fg transition-colors hover:border-muted/60 hover:bg-surface-2"
+            >
+              <DownloadSimple size={14} weight="bold" aria-hidden="true" />
+              Export CSV
+            </a>
+          ) : null}
         </div>
       </header>
 

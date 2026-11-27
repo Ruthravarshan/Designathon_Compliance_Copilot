@@ -135,10 +135,7 @@ export async function safeFetchBytes(input: string, options: FetchOptions): Prom
       }
 
       if (!response.ok) {
-        throw new AppError(
-          ERROR_CODES.BAD_REQUEST,
-          `The source returned HTTP ${response.status}.`,
-        );
+        throw new AppError(ERROR_CODES.BAD_REQUEST, `The source returned HTTP ${response.status}.`);
       }
 
       const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
@@ -198,7 +195,10 @@ function extractHtml(html: string): ExtractedDocument {
 }
 
 function extractPlainText(value: string): ExtractedDocument {
-  const text = value.replace(/\r\n?/g, "\n").replace(/[ \t]+/g, " ").trim();
+  const text = value
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .trim();
   return { text, pageCount: 1, clauses: textToClauses(text, { max: 40 }), kind: "text" };
 }
 

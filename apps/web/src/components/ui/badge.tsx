@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 const tones = {
-  brand: "border-brand/25 bg-brand/10 text-brand",
+  brand:
+    "border-brand/25 bg-brand/10 text-brand dark:border-support/35 dark:bg-support/15 dark:text-support",
   outline: "border-line bg-transparent text-muted",
   neutral: "border-line bg-surface text-fg",
   danger: "border-danger/35 bg-danger/10 text-fg",

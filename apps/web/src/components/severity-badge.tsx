@@ -14,8 +14,9 @@ const severityConfig: Record<
     icon: WarningOctagon,
   },
   HIGH: {
-    className: "border-brand/30 bg-brand/10 text-brand",
-    iconClass: "text-brand",
+    className:
+      "border-brand/30 bg-brand/10 text-brand dark:border-support/35 dark:bg-support/15 dark:text-support",
+    iconClass: "text-brand dark:text-support",
     icon: Warning,
   },
   MEDIUM: {
@@ -48,7 +49,8 @@ export function SeverityBadge({ severity, className }: { severity: Severity; cla
 }
 
 const reviewStyles: Record<string, string> = {
-  PENDING_REVIEW: "border-brand/25 bg-brand/10 text-brand",
+  PENDING_REVIEW:
+    "border-brand/25 bg-brand/10 text-brand dark:border-support/35 dark:bg-support/15 dark:text-support",
   APPROVED: "border-line bg-surface-2 text-fg",
   APPROVED_WITH_EDITS: "border-line bg-surface-2 text-fg",
   REJECTED: "border-danger/35 bg-danger/10 text-fg",

@@ -128,12 +128,6 @@ export function PersonalSettingsView({
         subtitle="Manage your profile, interface appearance, and email preferences."
       />
 
-      {actor.isDemo ? (
-        <div className="rounded-2xl border border-brand/25 bg-brand/5 px-4 py-3 text-xs text-fg">
-          You are using a seeded demo workspace identity. Changes apply only to this demo session.
-        </div>
-      ) : null}
-
       {/* Profile */}
       <Card>
         <CardHeader>

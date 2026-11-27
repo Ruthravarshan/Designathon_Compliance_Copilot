@@ -9,7 +9,12 @@ import { parseDocumentText } from "@/lib/compliance/parse";
 import { answerQuestion, type QaAnswer, type QaSource } from "@/lib/compliance/qa";
 import { diffWords, type DiffToken } from "@/lib/compliance/redline";
 import { scanField, type DataFieldInput, type ScanResult } from "@/lib/compliance/data-scan";
-import type { ComplianceRecord, RegulatorKey, Severity, SourceClause } from "@/lib/compliance/types";
+import type {
+  ComplianceRecord,
+  RegulatorKey,
+  Severity,
+  SourceClause,
+} from "@/lib/compliance/types";
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/audit";
 import { enqueueEmail } from "@/server/email/service";

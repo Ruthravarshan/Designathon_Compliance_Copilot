@@ -13,7 +13,10 @@ describe("deriveReference", () => {
   });
 
   it("derives from the last path segment for PDFs", () => {
-    const reference = deriveReference("SEBI", "https://www.sebi.gov.in/sebi_data/attachdocs/abc.pdf");
+    const reference = deriveReference(
+      "SEBI",
+      "https://www.sebi.gov.in/sebi_data/attachdocs/abc.pdf",
+    );
     expect(reference.startsWith("SEBI-ABC-")).toBe(true);
   });
 

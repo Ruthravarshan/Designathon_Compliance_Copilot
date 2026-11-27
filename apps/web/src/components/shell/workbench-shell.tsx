@@ -4,12 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Books,
   ChatsCircle,
   ClockCounterClockwise,
   Database,
   EnvelopeSimple,
   FileText,
+  FlowArrow,
   List,
+  Pulse,
   SealCheck,
   ShieldWarning,
   SquaresFour,
@@ -18,13 +21,21 @@ import { BrandLockup } from "@/components/brand/brand-lockup";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import type { ThemeMode } from "@/components/theme/theme";
 import { UserMenu } from "@/components/shell/user-menu";
-import { Badge } from "@/components/ui/badge";
 import { IconButton } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/overlays";
 import { cn } from "@/lib/cn";
 
 export type WorkbenchIconKey =
-  "overview" | "circulars" | "findings" | "assistant" | "data" | "audit" | "email";
+  | "overview"
+  | "circulars"
+  | "findings"
+  | "policies"
+  | "watch"
+  | "assistant"
+  | "data"
+  | "architecture"
+  | "audit"
+  | "email";
 
 export interface WorkbenchNavItem {
   href: string;
@@ -38,8 +49,11 @@ const ICONS: Record<WorkbenchIconKey, typeof SquaresFour> = {
   overview: SquaresFour,
   circulars: FileText,
   findings: ShieldWarning,
+  policies: Books,
+  watch: Pulse,
   assistant: ChatsCircle,
   data: Database,
+  architecture: FlowArrow,
   audit: ClockCounterClockwise,
   email: EnvelopeSimple,
 };
@@ -50,7 +64,6 @@ export interface WorkbenchActor {
   role: string;
   workspaceName: string;
   workspaceSlug: string;
-  isDemo: boolean;
 }
 
 function SidebarNav({
@@ -172,11 +185,6 @@ export function WorkbenchShell({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
-            {actor.isDemo ? (
-              <Badge tone="brand" dot className="hidden sm:inline-flex">
-                Demo
-              </Badge>
-            ) : null}
             <ThemeToggle initialMode={initialTheme} />
             <UserMenu
               name={actor.name}
@@ -199,7 +207,7 @@ export function WorkbenchShell({
                 size={15}
                 weight="bold"
                 aria-hidden="true"
-                className="text-brand dark:text-accent"
+                className="text-brand dark:text-support"
               />
               <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
                 Review gate

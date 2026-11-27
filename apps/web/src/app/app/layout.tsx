@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { WorkbenchShell, type WorkbenchNavItem } from "@/components/shell/workbench-shell";
 import { parseThemeCookie, THEME_COOKIE_NAME } from "@/components/theme/theme";
-import { env } from "@/lib/env";
 import { actorCan, getActor } from "@/server/auth/actor";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +37,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           },
         ]
       : []),
+    ...(actorCan(actor, "policy:read")
+      ? [
+          {
+            href: "/app/policies",
+            label: "Policies",
+            group: "Workbench" as const,
+            icon: "policies" as const,
+          },
+        ]
+      : []),
+    ...(actorCan(actor, "watch:read")
+      ? [
+          {
+            href: "/app/watch",
+            label: "Watchdog",
+            group: "Workbench" as const,
+            icon: "watch" as const,
+          },
+        ]
+      : []),
     ...(actorCan(actor, "assistant:ask")
       ? [
           {
@@ -58,6 +77,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           },
         ]
       : []),
+    {
+      href: "/app/architecture",
+      label: "Architecture",
+      group: "Governance",
+      icon: "architecture",
+    },
     ...(actorCan(actor, "audit:read")
       ? [
           {
@@ -88,7 +113,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         role: actor.role,
         workspaceName: actor.workspaceName,
         workspaceSlug: actor.workspaceSlug,
-        isDemo: env.DEMO_MODE_ENABLED,
       }}
       navItems={navItems}
       initialTheme={initialTheme}

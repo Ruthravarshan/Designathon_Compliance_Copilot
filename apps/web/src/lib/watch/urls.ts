@@ -3,11 +3,7 @@
  * server fetch layer can share the exact same decisions and the rules are testable.
  */
 
-const BLOCKED_HOSTNAMES = new Set([
-  "localhost",
-  "metadata",
-  "metadata.google.internal",
-]);
+const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata", "metadata.google.internal"]);
 
 const BLOCKED_SUFFIXES = [".localhost", ".local", ".internal", ".home.arpa"];
 
@@ -157,7 +153,11 @@ export function normalizeUrl(value: string): string {
 /** Resolve an href against a base URL, keeping only safe absolute http(s) URLs. */
 export function resolveUrl(base: string, href: string): string | null {
   const cleaned = href.trim().replace(/^['"]|['"]$/g, "");
-  if (cleaned === "" || cleaned.startsWith("#") || cleaned.toLowerCase().startsWith("javascript:")) {
+  if (
+    cleaned === "" ||
+    cleaned.startsWith("#") ||
+    cleaned.toLowerCase().startsWith("javascript:")
+  ) {
     return null;
   }
 
