@@ -41,8 +41,13 @@ export function assessPolicy(findings: readonly PostureFinding[], now: Date): Po
     summary = `${medium + low} medium/low obligations remain open for this policy${
       posture.overdue > 0 ? `; ${posture.overdue} overdue` : ""
     }.`;
+  } else if (findings.length === 0) {
+    summary = "No regulatory obligations are mapped to this policy yet.";
   } else {
-    summary = "No open obligations are mapped to this policy.";
+    summary =
+      findings.length === 1
+        ? "The 1 mapped obligation is met; no open gaps."
+        : `All ${findings.length} mapped obligations are met; no open gaps.`;
   }
 
   return {

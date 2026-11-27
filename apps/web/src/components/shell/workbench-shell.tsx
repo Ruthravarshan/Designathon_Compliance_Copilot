@@ -10,6 +10,8 @@ import {
   EnvelopeSimple,
   FileText,
   List,
+  Crosshair,
+  Scroll,
   SealCheck,
   ShieldWarning,
   SquaresFour,
@@ -24,7 +26,15 @@ import { Sheet } from "@/components/ui/overlays";
 import { cn } from "@/lib/cn";
 
 export type WorkbenchIconKey =
-  "overview" | "circulars" | "findings" | "assistant" | "data" | "audit" | "email";
+  | "overview"
+  | "circulars"
+  | "findings"
+  | "assistant"
+  | "data"
+  | "audit"
+  | "email"
+  | "watch"
+  | "policy";
 
 export interface WorkbenchNavItem {
   href: string;
@@ -42,6 +52,8 @@ const ICONS: Record<WorkbenchIconKey, typeof SquaresFour> = {
   data: Database,
   audit: ClockCounterClockwise,
   email: EnvelopeSimple,
+  watch: Crosshair,
+  policy: Scroll,
 };
 
 export interface WorkbenchActor {

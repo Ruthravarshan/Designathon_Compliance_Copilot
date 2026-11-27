@@ -663,6 +663,10 @@ export async function runWatchForAllWorkspaces(): Promise<
   return results;
 }
 
+export async function getWorkspacePosture(workspaceId: string): Promise<PostureSummary> {
+  return workspacePosture(workspaceId, new Date());
+}
+
 export async function listWatchOverview(actor: Actor): Promise<WatchOverview> {
   const now = new Date();
   const [sources, runs, posture] = await Promise.all([

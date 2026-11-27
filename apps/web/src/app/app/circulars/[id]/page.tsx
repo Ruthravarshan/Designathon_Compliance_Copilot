@@ -8,6 +8,7 @@ import {
   FileText,
   Info,
 } from "@phosphor-icons/react/dist/ssr";
+import { RevisionHistory } from "@/components/circulars/revision-history";
 import { GapStatusLabel, ReviewStatusBadge, SeverityBadge } from "@/components/severity-badge";
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import { AppError, ERROR_CODES } from "@/lib/errors";
 import { formatDate, formatPercent, humanize } from "@/lib/format";
 import { actorCan, getActor } from "@/server/auth/actor";
 import { getDocument } from "@/server/compliance/service";
+import { listDocumentRevisions } from "@/server/watch/service";
 
 export default async function CircularDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const actor = await getActor();
@@ -33,6 +35,8 @@ export default async function CircularDetailPage({ params }: { params: Promise<{
     }
     throw error;
   });
+
+  const revisionHistory = await listDocumentRevisions(actor, id);
 
   let host = document.sourceUrl;
   try {
@@ -108,6 +112,8 @@ export default async function CircularDetailPage({ params }: { params: Promise<{
           workbench with the redline, confidence breakdown, and audit history.
         </p>
       </div>
+
+      <RevisionHistory revisions={revisionHistory.revisions} />
 
       <section aria-label="Clauses" className="space-y-3">
         {document.clauses.map((clause) => (

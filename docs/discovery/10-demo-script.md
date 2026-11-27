@@ -23,14 +23,17 @@ npm run dev
 
 ## Hosted demo (Supabase + Vercel)
 
-- URL: `https://____________________` (record after deploy; set `APP_URL` to this exact origin).
-- Supabase project: `____________________` (region `____________`). Warm it: open `/api/health` and
+- URL: `https://policypulse-sage.vercel.app` (Vercel production; `APP_URL` defaults to
+  `VERCEL_PROJECT_PRODUCTION_URL`).
+- Supabase project: `lmauvvmcwamzapnihcxh` (region `ap-south-1`). Warm it: open `/api/health` and
   confirm `database: "ok"` before the judges arrive; free-tier projects pause when idle.
 - Cron: Vercel runs `GET /api/cron/email` daily on Hobby; for the demo, drain manually with
-  `npm run email:process` (local) or
-  `curl -H "Authorization: Bearer $CRON_SECRET" https://<url>/api/cron/email`.
-- Seed the hosted demo before the pitch (idempotent):
-  `DATABASE_URL="<6543>" DIRECT_URL="<5432>" npm run db:push` then `DATABASE_URL="<6543>" npm run db:seed`.
+  `curl -H "Authorization: Bearer $CRON_SECRET" https://policypulse-sage.vercel.app/api/cron/email`.
+- Email on the deployed demo uses `EMAIL_PROVIDER=console`: the outbox drains to `SENT` without
+  delivering to a real mailbox. Switch to Gmail/Resend before judging if live delivery is required.
+- Seed the hosted demo before the pitch (idempotent): the schema was applied with
+  `apps/web/prisma/sql/init.sql` + `002-gmail-account.sql` (Prisma binary host blocked), then
+  `apps/web/prisma/seed.ts` was run against the Supabase URLs.
 - Setup and smoke steps: [docs/DEPLOYMENT.md](../DEPLOYMENT.md).
 
 ## Script

@@ -28,6 +28,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           },
         ]
       : []),
+    ...(actorCan(actor, "watch:read")
+      ? [
+          {
+            href: "/app/watch",
+            label: "Regulatory watch",
+            group: "Workbench" as const,
+            icon: "watch" as const,
+          },
+        ]
+      : []),
     ...(actorCan(actor, "finding:read")
       ? [
           {
@@ -35,6 +45,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             label: "Findings",
             group: "Workbench" as const,
             icon: "findings" as const,
+          },
+        ]
+      : []),
+    ...(actorCan(actor, "policy:read")
+      ? [
+          {
+            href: "/app/policies",
+            label: "Policies",
+            group: "Workbench" as const,
+            icon: "policy" as const,
           },
         ]
       : []),

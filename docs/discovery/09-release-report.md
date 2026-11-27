@@ -12,8 +12,9 @@
 - Freeze announced at: 2026-11-27, after `npm run check` reached exit 0 on the working tree.
 - Commit under test: `1f44a24` + uncommitted working tree (no commit was made; the operator has not
   asked for one).
-- Deployed URL: **none** — local demo only (`http://localhost:3000`); Supabase + Vercel config is
-  prepared in `docs/DEPLOYMENT.md`, deployment itself is an operator action.
+- Deployed URL: **https://policypulse-sage.vercel.app** (Vercel production, project `policypulse`,
+  Root Directory `apps/web`) against Supabase Postgres project `lmauvvmcwamzapnihcxh`. Deployment and
+  smoke run on 2026-11-28; see "Deployed smoke" below.
 - Environment: Windows 11, Node v24.22.2, Postgres 16 via Docker (`:5433`), seeded demo corpus.
 
 ## Release gate
@@ -67,13 +68,18 @@ Checked by hand in the running app and by Playwright assertions.
 
 ## Deployed smoke
 
+Run 2026-11-28 against `https://policypulse-sage.vercel.app` (deployment `policypulse-tq62pqpzp`).
+
 | Target | Result | Notes |
 | ------ | ------ | ----- |
-| Home | N/A | No deployment exists; verified locally instead. |
-| `/api/health` | PASS (local) | Returns `service: hexa-web`, `status: ok`, request id; asserted in `e2e/smoke.spec.ts`. |
-| Demo login or demo mode | PASS (local) | `/signin` persona picker; HMAC session cookie. |
-| Golden path | PASS (local) | See manual checks. |
-| One email delivery or Mailpit fallback | PASS (local) | Outbox enqueue is idempotent (`finding-task:<id>`); `npm run email:process` drains to Mailpit. No recipient addresses are logged. |
+| Home | PASS | `GET /` → `200` over HTTPS; HSTS, CSP-Report-Only, nosniff, frame DENY present. |
+| `/api/health` | PASS | `200`, `status: ok`, `database: ok`, `latencyMs: 1491` warm via Supabase pooler, request id returned. |
+| Demo login or demo mode | PASS | Owner persona sign-in `200`; `hexa_session` cookie is `HttpOnly` + `Secure`. |
+| Authenticated pages | PASS | `/app/findings`, `/app/circulars`, `/app/audit` → `200` with seeded corpus (13 findings rendered). |
+| RBAC guard | PASS | Viewer (auditor) sign-in works; `POST /api/findings/<id>/review` → `403 FORBIDDEN`. |
+| Golden path | PARTIAL | List/detail pages and approval authorization verified over HTTP; full approve→audit click-through not rehearsed on the deployed URL. |
+| Cron auth | PASS | `GET /api/cron/email` → `401` without bearer; `200` with `CRON_SECRET`. |
+| One email delivery | PASS (outbox) | Cron drained `{"processed":1,"sent":1}`; `EmailMessage.status = SENT`. `EMAIL_PROVIDER=console`, so no real mailbox delivery on Vercel. |
 
 ## Fallback
 
@@ -88,7 +94,7 @@ Checked by hand in the running app and by Playwright assertions.
 
 | Check | Reason | Risk | Owner |
 | ----- | ------ | ---- | ----- |
-| Deployed URL / HTTPS smoke | No deployment credentials were supplied; Supabase + Vercel config is ready (`docs/DEPLOYMENT.md`) and deployment is the operator's final step | Judges cannot open a URL until the operator deploys | Operator |
+| Deployment smoke | Resolved 2026-11-28: deployed URL passes `/`, `/api/health`, demo sign-in, RBAC 403, cron auth; see "Deployed smoke". Remaining gap: real email delivery (console provider) and the full approve→audit click-through. | Judge may test email and the full flow | Operator |
 | Cross-browser pass | Only Chromium + Pixel 7 emulation run | Safari/Firefox rendering unverified | Operator |
 | axe / screen-reader scan | No automated axe run executed | Assistive-tech issues may exist | Operator |
 | Demo video | Recording requires a human session with the live UI | No video artifact yet | Operator |
@@ -101,7 +107,8 @@ gate itself is waived.
 
 - [x] The release gate is green (see `artifacts/release-report.md`; waivers above are for demo
       packaging, not for build checks).
-- [ ] The deployed URL passes the smoke test — **N/A**: no deployment exists.
+- [x] The deployed URL passes the smoke test — `https://policypulse-sage.vercel.app` (see
+      "Deployed smoke"; email is outbox-only with the console provider).
 - [ ] The fallback recording is playable — **pending**: operator records the video.
 - [x] Only blockers were fixed after the freeze.
 

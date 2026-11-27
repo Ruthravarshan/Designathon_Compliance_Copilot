@@ -11,12 +11,12 @@
 
 - Profile: **Both** — public landing surface plus an authenticated, workspace-scoped product.
 - Class: web app (Next.js), single region, demo data only.
-- State: **In progress — demo verified locally; public-launch items blocked**.
-- Last verified: 2026-11-27.
+- State: **Deployed — demo verified on production; public-launch items remain blocked**.
+- Last verified: 2026-11-28.
 - Owner sign-off: **pending** (the operator must sign; an agent cannot mark this Passed).
-- Blocking for a public launch (not for the demo): deployment not yet executed (Supabase/Vercel
-  config is ready), no support/contact route, no privacy policy or terms, no cross-browser pass
-  (Chromium only), no axe screen-reader scan.
+- Blocking for a public launch (not for the demo): no support/contact route, no privacy policy or
+  terms, no cross-browser pass (Chromium only), no axe screen-reader scan. Deployment and HTTPS smoke
+  are done (`https://policypulse-sage.vercel.app`).
 
 ## Section status
 
@@ -30,10 +30,10 @@ Counts are `Done + N/A` only where evidence exists; everything else is `Pending`
 | A4 Accessibility | Yes | 6 | 4 | Partial | Landmarks, focus, color+text, reduced motion Done; 200% zoom and axe scan Blocked |
 | A5 Responsive & devices | Yes | 4 | 2 | Partial | Mobile + desktop Playwright Done; cross-browser and slow-network Blocked |
 | A6 Performance & reliability | Yes | 5 | 2 | Partial | 404s Done; health/Pino Done; load timing, caching strategy, monitoring Blocked |
-| A7 Security baseline | Yes | 6 | 5 | Done locally | Headers, session, validation, audit, dependency scan; HTTPS is deployment-blocked |
+| A7 Security baseline | Yes | 6 | 6 | Done | Headers, session, validation, audit, dependency scan; HTTPS/HSTS verified on the deployed URL |
 | A8 Privacy & data | Yes | 5 | 5 | Done | Inventory in phase 05; no analytics/trackers/third-party scripts; demo-only data |
 | A9 SEO & discoverability | Yes | 4 | 2 | Partial | `noindex` intentional; title/description present; sitemap/OG/canonical Blocked |
-| A10 Release & operations | Yes | 4 | 2 | Partial | Supabase/Vercel config prepared (`DEPLOYMENT.md`, `apps/web/vercel.json`, `DIRECT_URL`); actual deploy, DNS/HTTPS smoke, rollback run, and production sender verification Blocked |
+| A10 Release & operations | Yes | 4 | 3 | Partial | Deployed to Vercel production against Supabase (`/api/health` ok, cron auth verified); rollback run and production sender verification still Blocked |
 | B1 Public trust | Conditional | 5 | 5 | N/A | No age-restricted/UGC/pricing/testimonials; no dark patterns |
 | B2 Support & safety | Conditional | 4 | 2 | Partial | Rate limits Done; support channel, status page, deletion path Blocked/N/A |
 | B3 Regional readiness | Conditional | 4 | 4 | N/A | Single-region India demo; en-GB UTC dates; no payments/currency |
@@ -66,7 +66,7 @@ Counts are `Done + N/A` only where evidence exists; everything else is `Pending`
 | Favicon / social preview image | Blocked | Not present in app metadata or assets | 2026-11-27 |
 | Cross-browser pass (Safari/Firefox) | Blocked | Only Chromium and Pixel 7 emulation run | 2026-11-27 |
 | axe / screen-reader scan | Blocked | No automated accessibility scan executed | 2026-11-27 |
-| Deployed URL / HTTPS / DNS | Blocked | Local demo only; no deployment requested | 2026-11-27 |
+| Deployed URL / HTTPS / DNS | Done | `https://policypulse-sage.vercel.app` — `/`, `/signin`, `/api/health` 200; HSTS + security headers; demo sign-in with Secure HttpOnly cookie; cron 401 without secret / 200 with | 2026-11-28 |
 
 ## N/A justifications
 

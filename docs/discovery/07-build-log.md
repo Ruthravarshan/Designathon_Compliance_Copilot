@@ -129,3 +129,34 @@ Next: `08-hardening-report.md`
   config 503; `GmailAccount` applied to local Postgres (16 tables).
 - Not yet evidenced: real Google consent and a real Gmail delivery. They require the operator's
   OAuth client ID/secret and a connected mailbox; steps are in [GMAIL-OAUTH.md](../GMAIL-OAUTH.md).
+
+## 2026-11-28 — Regulatory watch, manual policy check, posture/export/digest
+
+- Scheduled + manual regulatory watch: `RegulatorySource`, `WatchRun`, `RegulatoryRevision` tables;
+  SSRf-guarded fetch (DNS/IP guard, allowlist, redirect cap, size/timeout caps), HTML text and PDF
+  extraction (`unpdf`), clause segmentation, `REG-<slug>-<hash>` references, checksum-based revision
+  detection. Manual run `POST /api/watch/run`, direct URL/PDF ingest `POST /api/watch/ingest`,
+  source toggles `PATCH /api/watch`, owner-only; `/app/watch` shows posture, overdue banner, sources,
+  and run history.
+- Weekly schedule is a secret-protected `GET|POST /api/cron/watch` (timing-safe bearer, 401/503)
+  called by Vercel Cron Monday 04:00; due-gating per source (daily/weekly/monthly), in-progress guard,
+  `WATCH_MAX_DOCS_PER_RUN` cap, and idempotent skip when checksums or references already exist.
+- Manual compliance check for any policy (owner and HR reviewer): `POST /api/policies/:id/check`
+  (`policy:check`), records `PolicyCheck` with result/score/counts, audits, and queues
+  `policy.check.alert` email to the policy owner + workspace owner only when gaps exist.
+- Added the HR persona (`Ananya Rao`, MEMBER, POL-HR-01 owner) and a sixth policy; the DPDP grievance
+  obligation maps to POL-HR-01 and is satisfied, so the check reports
+  "The 1 mapped obligation is met; no open gaps." (summary fixed from the misleading
+  "no obligations mapped" wording; `check.test.ts` covers zero-finding and satisfied cases).
+- Also: workspace posture score + overdue alerts on `/app`, weekly owner digest email
+  (`watch.digest`), revision-diff history on circular detail, and audit evidence CSV export
+  (`GET /api/export/findings`, formula-injection guarded).
+- Evidence: `typecheck` and `lint` clean; 420/420 unit tests; production build green with
+  `/app/watch` and `/app/policies[/policyId]`. Live smoke on a clean dev server: owner sign-in and
+  pages 200; manual watch run `SUCCEEDED` (2 sources, 81 links discovered, 5 known docs skipped,
+  7.7s); cron with bearer `SKIPPED (none due)` and 401 without; POL-HR-01 check as owner and as the
+  HR persona → COMPLIANT, "1 mapped obligation … met"; POL-SEC-02 check → GAPS, 2 alert emails
+  queued and sent through Mailpit (`policy.check.alert`); HR persona `POST /api/watch/run` → 403;
+  CSV export 200 (4.4 kB, 13 findings); revision history renders on CERT-IN/2022/01.
+- Not yet evidenced: a live revision being detected on the second weekly run (requires the regulator
+  page to change), and direct URL ingest against a new regulator document.

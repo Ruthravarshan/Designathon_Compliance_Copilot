@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Prisma, ReviewAction as PrismaReviewAction, ReviewStatus, Role } from "@prisma/client";
 import { analyzeClause } from "../src/lib/compliance/pipeline";
 import { scanCatalog } from "../src/lib/compliance/data-scan";
+import { summarizeRevision } from "../src/lib/watch/revision";
 import type { ComplianceRecord, FindingDraft } from "../src/lib/compliance/types";
 import { createPrismaClient } from "../src/server/prisma-client";
 import {
@@ -11,6 +12,7 @@ import {
   DEMO_NOW,
   DEMO_PERSONAS,
   DEMO_POLICIES,
+  DEMO_SOURCES,
   DEMO_WORKSPACES,
   documentContent,
 } from "../src/server/compliance/corpus";
@@ -421,6 +423,77 @@ async function seedDataScans(workspaceId: string) {
   return results.length;
 }
 
+async function seedWatchSources(workspaceId: string): Promise<number> {
+  for (const source of DEMO_SOURCES) {
+    await db.regulatorySource.upsert({
+      where: { workspaceId_listingUrl: { workspaceId, listingUrl: source.listingUrl } },
+      update: {
+        name: source.name,
+        regulator: source.regulator,
+        kind: source.kind,
+        allowedDomains: source.allowedDomains,
+        linkPattern: source.linkPattern ?? null,
+        schedule: source.schedule,
+      },
+      create: {
+        workspaceId,
+        name: source.name,
+        regulator: source.regulator,
+        kind: source.kind,
+        listingUrl: source.listingUrl,
+        allowedDomains: source.allowedDomains,
+        linkPattern: source.linkPattern ?? null,
+        schedule: source.schedule,
+        enabled: source.enabled,
+      },
+    });
+  }
+
+  return DEMO_SOURCES.length;
+}
+
+async function seedRevision(workspaceId: string): Promise<boolean> {
+  const document = await db.regulatoryDocument.findFirst({
+    where: { workspaceId, reference: "CERT-IN/2022/01" },
+  });
+  if (!document) {
+    return false;
+  }
+
+  const existing = await db.regulatoryRevision.findFirst({
+    where: { workspaceId, documentId: document.id },
+  });
+  if (existing) {
+    return false;
+  }
+
+  const newContent = `${document.content}\n\nCovered entities shall maintain an updated asset inventory and produce it to CERT-In on request.\n`;
+  const revision = summarizeRevision(document.content, newContent);
+  const checksum = createHash("sha256").update(newContent).digest("hex");
+
+  await db.$transaction([
+    db.regulatoryRevision.create({
+      data: {
+        workspaceId,
+        documentId: document.id,
+        previousChecksum: document.checksum,
+        newChecksum: checksum,
+        previousContent: document.content,
+        newContent,
+        summary: revision.summary,
+        diff: revision.diff as unknown as Prisma.InputJsonValue,
+        detectedAt: new Date("2026-10-21T06:00:00.000Z"),
+      },
+    }),
+    db.regulatoryDocument.update({
+      where: { id: document.id },
+      data: { content: newContent, checksum },
+    }),
+  ]);
+
+  return true;
+}
+
 async function main() {
   const workspaces = await seedWorkspaces();
   const userIds = await seedPeople(workspaces);
@@ -437,6 +510,8 @@ async function main() {
   const findingCount = await seedDocuments(primary.id, register);
   await seedPreReviewedFinding(primary.id, ownerId);
   const scanCount = await seedDataScans(primary.id);
+  const sourceCount = await seedWatchSources(primary.id);
+  const revisionSeeded = await seedRevision(primary.id);
 
   const seededAudit = await db.auditLog.count({
     where: { workspaceId: primary.id, action: "workspace.seeded" },
@@ -474,6 +549,9 @@ async function main() {
   console.log(`Seeded "${primary.name}" and the isolation tenant "${isolation.name}".`);
   console.log(
     `${DEMO_DOCUMENTS.length} circulars, ${register.policies.length} policies, ${register.controls.length} controls, ${findingCount} findings, ${scanCount} data fields.`,
+  );
+  console.log(
+    `${sourceCount} watch sources, ${revisionSeeded ? "1 seeded revision" : "revision already present"}.`,
   );
   console.log("Queued one welcome email. Process it with: npm run email:process");
 }
