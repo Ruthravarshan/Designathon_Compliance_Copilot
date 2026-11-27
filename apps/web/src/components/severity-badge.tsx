@@ -1,35 +1,57 @@
 import type { ReactNode } from "react";
+import { Info, Minus, Warning, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/cn";
 import type { Severity } from "@/lib/compliance/types";
 import { humanize } from "@/lib/format";
 
-const severityStyles: Record<Severity, string> = {
-  CRITICAL: "border-danger/30 bg-danger/10 text-danger",
-  HIGH: "border-brand/25 bg-brand/10 text-brand",
-  MEDIUM: "border-fg/15 bg-surface-2 text-fg",
-  LOW: "border-line bg-surface text-muted",
+const severityConfig: Record<
+  Severity,
+  { className: string; iconClass: string; icon: typeof Warning }
+> = {
+  CRITICAL: {
+    className: "border-danger/35 bg-danger/10 text-fg",
+    iconClass: "text-danger",
+    icon: WarningOctagon,
+  },
+  HIGH: {
+    className: "border-brand/30 bg-brand/10 text-brand",
+    iconClass: "text-brand",
+    icon: Warning,
+  },
+  MEDIUM: {
+    className: "border-line bg-surface-2 text-fg",
+    iconClass: "text-muted",
+    icon: Info,
+  },
+  LOW: {
+    className: "border-line bg-surface text-muted",
+    iconClass: "text-muted",
+    icon: Minus,
+  },
 };
 
 export function SeverityBadge({ severity, className }: { severity: Severity; className?: string }) {
+  const cfg = severityConfig[severity];
+  const Icon = cfg.icon;
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em]",
-        severityStyles[severity],
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.12em]",
+        cfg.className,
         className,
       )}
     >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
-      {severity}
+      <Icon size={12} weight="bold" aria-hidden="true" className={cfg.iconClass} />
+      <span>{severity}</span>
     </span>
   );
 }
 
 const reviewStyles: Record<string, string> = {
   PENDING_REVIEW: "border-brand/25 bg-brand/10 text-brand",
-  APPROVED: "border-fg/15 bg-surface-2 text-fg",
-  APPROVED_WITH_EDITS: "border-fg/15 bg-surface-2 text-fg",
-  REJECTED: "border-danger/30 bg-danger/10 text-danger",
+  APPROVED: "border-line bg-surface-2 text-fg",
+  APPROVED_WITH_EDITS: "border-line bg-surface-2 text-fg",
+  REJECTED: "border-danger/35 bg-danger/10 text-fg",
   NOT_REQUIRED: "border-line bg-surface text-muted",
 };
 
@@ -45,7 +67,7 @@ export function ReviewStatusBadge({ status, className }: { status: string; class
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em]",
+        "inline-flex items-center rounded-full border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.12em]",
         reviewStyles[status] ?? reviewStyles.NOT_REQUIRED,
         className,
       )}
@@ -56,7 +78,7 @@ export function ReviewStatusBadge({ status, className }: { status: string; class
 }
 
 const gapStyles: Record<string, string> = {
-  CRITICAL_GAP: "text-danger",
+  CRITICAL_GAP: "text-fg",
   PARTIAL_GAP: "text-brand",
   MISSING_CONTROL: "text-fg",
   COMPLIANT: "text-muted",
@@ -71,7 +93,7 @@ const gapLabels: Record<string, string> = {
 
 export function GapStatusLabel({ status }: { status: string }) {
   return (
-    <span className={cn("font-mono text-[11px] uppercase tracking-[0.14em]", gapStyles[status])}>
+    <span className={cn("font-mono text-[11px] uppercase tracking-[0.12em]", gapStyles[status])}>
       {gapLabels[status] ?? humanize(status)}
     </span>
   );
@@ -80,7 +102,7 @@ export function GapStatusLabel({ status }: { status: string }) {
 export function Meta({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">{label}</dt>
+      <dt className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">{label}</dt>
       <dd className="mt-1 text-sm text-fg">{children}</dd>
     </div>
   );
