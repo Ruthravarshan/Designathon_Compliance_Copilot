@@ -1,0 +1,388 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum EmailStatus {
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  CANCELED
+}
+
+enum Regulator {
+  RBI
+  SEBI
+  IRDAI
+  MEITY
+}
+
+enum DocumentStatus {
+  INGESTED
+  ANALYZED
+  ARCHIVED
+}
+
+enum ObligationType {
+  SECURITY_TESTING
+  INCIDENT_REPORTING
+  DATA_LOCALIZATION
+  CONSENT
+  DATA_RETENTION
+  THIRD_PARTY_AUDIT
+  CRYPTOGRAPHY
+  RESILIENCE
+  LOGGING
+  GOVERNANCE
+  GRIEVANCE
+  OTHER
+}
+
+enum GapStatus {
+  COMPLIANT
+  PARTIAL_GAP
+  CRITICAL_GAP
+  MISSING_CONTROL
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ReviewStatus {
+  PENDING_REVIEW
+  APPROVED
+  APPROVED_WITH_EDITS
+  REJECTED
+  NOT_REQUIRED
+}
+
+enum ReviewAction {
+  APPROVED
+  APPROVED_WITH_EDITS
+  REJECTED
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  name            String?
+  imageUrl        String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  memberships     Membership[]
+  auditLogs       AuditLog[]
+  emails          EmailMessage[]
+  emailPreference EmailPreference?
+  reviewedFindings Finding[]       @relation("FindingReviewer")
+  reviewEvents     ReviewEvent[]   @relation("ReviewActor")
+}
+
+model Workspace {
+  id          String         @id @default(cuid())
+  name        String
+  slug        String         @unique
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  memberships Membership[]
+  auditLogs   AuditLog[]
+  emails      EmailMessage[]
+  documents   RegulatoryDocument[]
+  policies    InternalPolicy[]
+  controls    InternalControl[]
+  obligations Obligation[]
+  findings    Finding[]
+  reviewEvents ReviewEvent[]
+  dataScans   DataFieldScan[]
+}
+
+model Membership {
+  id          String    @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        Role      @default(MEMBER)
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId, role])
+}
+
+model AuditLog {
+  id          String     @id @default(cuid())
+  workspaceId String?
+  actorId     String?
+  action      String
+  entity      String
+  entityId    String?
+  metadata    Json?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime   @default(now())
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  actor       User?      @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([entity, entityId])
+}
+
+model EmailMessage {
+  id                String      @id @default(cuid())
+  workspaceId       String?
+  userId            String?
+  toEmail           String
+  template          String
+  subject           String
+  payload           Json
+  status            EmailStatus @default(QUEUED)
+  idempotencyKey    String      @unique
+  attempts          Int         @default(0)
+  lastError         String?
+  provider          String?
+  providerMessageId String?
+  scheduledAt       DateTime    @default(now())
+  sentAt            DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  workspace         Workspace?  @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  user              User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, scheduledAt])
+  @@index([workspaceId, createdAt])
+  @@index([userId, createdAt])
+  @@index([toEmail, createdAt])
+}
+
+model EmailPreference {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  transactional Boolean  @default(true)
+  product       Boolean  @default(true)
+  marketing     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EmailSuppression {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+model RegulatoryDocument {
+  id          String           @id @default(cuid())
+  workspaceId String
+  regulator   Regulator
+  title       String
+  reference   String
+  summary     String
+  sourceUrl   String
+  publishedAt DateTime
+  effectiveAt DateTime?
+  status      DocumentStatus   @default(INGESTED)
+  content     String
+  pageCount   Int              @default(1)
+  checksum    String
+  ingestedAt  DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  clauses     DocumentClause[]
+  obligations Obligation[]
+  findings    Finding[]
+
+  @@unique([workspaceId, reference])
+  @@index([workspaceId, ingestedAt])
+  @@index([workspaceId, regulator, publishedAt])
+}
+
+model DocumentClause {
+  id           String             @id @default(cuid())
+  workspaceId  String
+  documentId   String
+  sectionLabel String
+  heading      String?
+  pageNumber   Int
+  orderIndex   Int
+  text         String
+  document     RegulatoryDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  obligations  Obligation[]
+
+  @@unique([workspaceId, documentId, orderIndex])
+  @@index([workspaceId, documentId])
+}
+
+model InternalPolicy {
+  id         String    @id @default(cuid())
+  workspaceId String
+  code       String
+  title      String
+  version    String
+  section    String
+  ownerName  String
+  ownerEmail String
+  text       String
+  tags       String[]
+  attributes Json
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  findings   Finding[]
+
+  @@unique([workspaceId, code])
+  @@index([workspaceId])
+}
+
+model InternalControl {
+  id          String    @id @default(cuid())
+  workspaceId String
+  code        String
+  title       String
+  description String
+  ownerName   String
+  ownerEmail  String
+  systemName  String?
+  status      String    @default("ACTIVE")
+  tags        String[]
+  attributes  Json
+  lastTestedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  findings    Finding[]
+
+  @@unique([workspaceId, code])
+  @@index([workspaceId, status])
+}
+
+model Obligation {
+  id                   String             @id @default(cuid())
+  workspaceId          String
+  documentId           String
+  clauseId             String
+  reference            String
+  plainLanguage        String
+  actionRequired       String
+  applicableTo         String
+  obligationType       ObligationType
+  requirement          Json
+  sla                  String?
+  effectiveDeadline    DateTime?
+  extractionConfidence Float
+  citationVerified     Boolean            @default(false)
+  criticNotes          String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  workspace            Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  document             RegulatoryDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  clause               DocumentClause     @relation(fields: [clauseId], references: [id], onDelete: Cascade)
+  finding              Finding?
+
+  @@unique([workspaceId, reference])
+  @@index([workspaceId, obligationType])
+  @@index([workspaceId, documentId])
+}
+
+model Finding {
+  id                   String       @id @default(cuid())
+  workspaceId          String
+  obligationId         String       @unique
+  documentId           String
+  policyId             String?
+  controlId            String?
+  status               GapStatus
+  severity             Severity
+  gapDescription       String
+  severityRationale    String?
+  citationVerified     Boolean      @default(false)
+  extractionConfidence Float
+  mappingConfidence    Float
+  confidence           Float
+  dueDate              DateTime
+  redlineBefore        String
+  redlineAfter         String
+  taskTitle            String?
+  taskAssignee         String?
+  taskAssigneeEmail    String?
+  taskDueDate          DateTime?
+  reviewStatus         ReviewStatus @default(PENDING_REVIEW)
+  reviewerId           String?
+  reviewerName         String?
+  reviewedAt           DateTime?
+  reviewComments       String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  workspace            Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  obligation           Obligation   @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  document             RegulatoryDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  policy               InternalPolicy? @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  control              InternalControl? @relation(fields: [controlId], references: [id], onDelete: SetNull)
+  reviewer             User?        @relation("FindingReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviews              ReviewEvent[]
+
+  @@index([workspaceId, reviewStatus, severity])
+  @@index([workspaceId, dueDate])
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, documentId])
+}
+
+model ReviewEvent {
+  id           String       @id @default(cuid())
+  workspaceId  String
+  findingId    String
+  actorId      String?
+  actorName    String
+  actorRole    Role
+  action       ReviewAction
+  previous     Json
+  updated      Json
+  comments     String
+  createdAt    DateTime     @default(now())
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  finding      Finding      @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  actor        User?        @relation("ReviewActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([findingId, createdAt])
+}
+
+model DataFieldScan {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  datasetName  String
+  fieldName    String
+  dataCategory String
+  sensitiveType String?
+  sampleMasked String?
+  encrypted    Boolean
+  consented    Boolean
+  riskLevel    Severity
+  finding      String
+  citation     String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, datasetName, fieldName])
+  @@index([workspaceId, riskLevel])
+}

@@ -1,0 +1,44 @@
+AI Regulatory Change & Compliance Copilot
+Problem Statement
+Regulated companies receive a steady stream of new circulars, master directions, and data-protection rules from bodies such as RBI, SEBI, and IRDAI, along with obligations under India's Digital Personal Data Protection (DPDP) Act, 2023.
+
+Compliance teams read each update manually, work out which policies, processes, and systems are affected, and chase owners over email. Missed or late changes lead to penalties, audit findings, and reputational damage.
+
+Challenge
+Build an agentic AI system that monitors regulatory updates, extracts the obligations in each one, maps them to the organization's internal policies, controls, and systems, identifies gaps, and drafts an action plan for owners. The system should cite the exact regulatory clause behind every finding, show confidence scores, and route every interpretation to a compliance officer for sign-off.
+
+Expected Capabilities
+•
+Ingestion of circulars and regulations from PDFs and regulator websites
+•
+Obligation extraction: what must be done, by whom, and by when
+•
+Mapping of obligations to internal policies, controls, and systems
+•
+Gap analysis with severity and deadline tracking
+•
+Auto-drafted policy updates and task assignments for control owners
+•
+Clause-level citations and plain-language change summaries
+•
+Compliance dashboard showing the status of all open obligations
+•
+Compliance officer-in-the-loop review with a full audit trail
+Minimum Scope-must work in the demo
+1.
+Ingest 3–5 circulars and extract obligations, each with its source clause cited
+2.
+Map the obligations to a mock policy handbook and control register, and flag gaps with severity
+3.
+Draft action items or policy updates for the responsible owners
+4.
+Compliance officer review screen to approve, edit, or reject each finding, with an audit trail
+Bonus-optional
+•
+Employee Q&A assistant ("Can we store customer data in this tool?") grounded only in approved policies
+•
+Personal-data discovery agent that scans sample databases and flags DPDP-sensitive fields
+•
+Automatic monitoring of regulator websites for new circulars
+Suggested Data
+5–10 public regulator circulars (PDF), a short mock internal policy handbook, and a sample control register spreadsheet.
