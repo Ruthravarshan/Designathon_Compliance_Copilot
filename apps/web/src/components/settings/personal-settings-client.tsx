@@ -40,9 +40,7 @@ export function PersonalSettingsClient({
         name: actor.name,
         email: actor.email,
         role: actor.role,
-        authMethodLabel: actor.isDemo
-          ? "Signed in via Demo workspace identity"
-          : "Signed in via SSO",
+        authMethodLabel: "Authenticated workspace session",
         isDemo: actor.isDemo,
         isGuest: false,
         canEditName: false,

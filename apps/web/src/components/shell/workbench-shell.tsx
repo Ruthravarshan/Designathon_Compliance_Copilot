@@ -4,14 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Books,
   ChatsCircle,
   ClockCounterClockwise,
   Database,
   EnvelopeSimple,
   FileText,
+  FlowArrow,
   List,
-  Crosshair,
-  Scroll,
+  Pulse,
   SealCheck,
   ShieldWarning,
   SquaresFour,
@@ -29,12 +30,13 @@ export type WorkbenchIconKey =
   | "overview"
   | "circulars"
   | "findings"
+  | "policies"
+  | "watch"
   | "assistant"
   | "data"
+  | "architecture"
   | "audit"
-  | "email"
-  | "watch"
-  | "policy";
+  | "email";
 
 export interface WorkbenchNavItem {
   href: string;
@@ -48,12 +50,13 @@ const ICONS: Record<WorkbenchIconKey, typeof SquaresFour> = {
   overview: SquaresFour,
   circulars: FileText,
   findings: ShieldWarning,
+  policies: Books,
+  watch: Pulse,
   assistant: ChatsCircle,
   data: Database,
+  architecture: FlowArrow,
   audit: ClockCounterClockwise,
   email: EnvelopeSimple,
-  watch: Crosshair,
-  policy: Scroll,
 };
 
 export interface WorkbenchActor {
@@ -211,7 +214,7 @@ export function WorkbenchShell({
                 size={15}
                 weight="bold"
                 aria-hidden="true"
-                className="text-brand dark:text-accent"
+                className="text-brand dark:text-support"
               />
               <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
                 Review gate

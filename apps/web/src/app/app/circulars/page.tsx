@@ -80,7 +80,7 @@ export default async function CircularsPage() {
                   href={`/app/circulars/${document.id}`}
                   className="group grid gap-3 px-5 py-4 transition-colors hover:bg-surface-2/60 lg:grid-cols-[6rem_1fr_9rem_8rem_2rem] lg:items-center lg:gap-4"
                 >
-                  <span className="w-fit rounded-full border border-brand/25 bg-brand/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-brand">
+                  <span className="w-fit rounded-full border border-brand/25 bg-brand/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-brand dark:border-support/35 dark:bg-support/15 dark:text-support">
                     {document.regulator}
                   </span>
                   <div className="min-w-0">

@@ -94,7 +94,7 @@ export function ReviewForm({
     <div className="rounded-2xl border border-line bg-surface p-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-medium">Record a review decision</h2>
-        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-brand">
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-brand dark:text-support">
           Officer action
         </span>
       </div>

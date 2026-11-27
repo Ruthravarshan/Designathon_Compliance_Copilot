@@ -1,4 +1,5 @@
-const BLOCK_TAGS = /<\/?(?:p|div|br|li|ul|ol|tr|td|th|table|h[1-6]|section|article|header|footer|blockquote|pre)\b[^>]*>/gi;
+const BLOCK_TAGS =
+  /<\/?(?:p|div|br|li|ul|ol|tr|td|th|table|h[1-6]|section|article|header|footer|blockquote|pre)\b[^>]*>/gi;
 const DROP_ELEMENTS = /<(script|style|noscript|svg|form|button|nav|aside)\b[^>]*>[\s\S]*?<\/\1>/gi;
 const GENERIC_TITLES = new Set([
   "master directions",
@@ -29,7 +30,9 @@ function decodeEntities(value: string): string {
 }
 
 function stripTags(value: string): string {
-  return decodeEntities(value.replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
+  return decodeEntities(value.replace(/<[^>]*>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** Convert an HTML document into paragraph-separated plain text. */
@@ -39,7 +42,9 @@ export function htmlToText(html: string): string {
     .replace(DROP_ELEMENTS, " ")
     .replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, " ");
 
-  const mainStart = withoutDrop.search(/id\s*=\s*["'](?:mainsection|divArchiveMain|main-content)["']/i);
+  const mainStart = withoutDrop.search(
+    /id\s*=\s*["'](?:mainsection|divArchiveMain|main-content)["']/i,
+  );
   const scoped = mainStart >= 0 ? withoutDrop.slice(mainStart) : withoutDrop;
 
   const withBreaks = scoped.replace(BLOCK_TAGS, "\n\n");
@@ -47,7 +52,12 @@ export function htmlToText(html: string): string {
 
   return text
     .split(/\n\s*\n+/)
-    .map((block) => block.replace(/[ \t\f\v]+/g, " ").replace(/\s+$/g, "").trim())
+    .map((block) =>
+      block
+        .replace(/[ \t\f\v]+/g, " ")
+        .replace(/\s+$/g, "")
+        .trim(),
+    )
     .filter((block) => block.length > 0)
     .join("\n\n")
     .trim();
@@ -57,7 +67,11 @@ export function htmlToText(html: string): string {
 export function deriveTitle(html: string, fallback: string): string {
   const heading = /<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html);
   const headingText = heading ? stripTags(heading[1] ?? "") : "";
-  if (headingText.length >= 8 && headingText.length <= 160 && !GENERIC_TITLES.has(headingText.toLowerCase())) {
+  if (
+    headingText.length >= 8 &&
+    headingText.length <= 160 &&
+    !GENERIC_TITLES.has(headingText.toLowerCase())
+  ) {
     return headingText;
   }
 
@@ -76,7 +90,10 @@ export function deriveTitle(html: string, fallback: string): string {
 
   const title = /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(html);
   if (title) {
-    const first = stripTags(title[1] ?? "").split(/\s[|–-]\s/)[0]?.trim() ?? "";
+    const first =
+      stripTags(title[1] ?? "")
+        .split(/\s[|–-]\s/)[0]
+        ?.trim() ?? "";
     if (first.length >= 8 && !GENERIC_TITLES.has(first.toLowerCase())) {
       return first;
     }

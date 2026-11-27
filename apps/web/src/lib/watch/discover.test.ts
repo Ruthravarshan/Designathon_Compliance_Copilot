@@ -39,10 +39,9 @@ describe("extractCandidateLinks", () => {
   });
 
   it("caps results and tolerates an invalid regex", () => {
-    const html = Array.from(
-      { length: 5 },
-      (_, index) => `<a href="/doc-${index}.pdf">x</a>`,
-    ).join("");
+    const html = Array.from({ length: 5 }, (_, index) => `<a href="/doc-${index}.pdf">x</a>`).join(
+      "",
+    );
     expect(extractCandidateLinks(html, BASE, { allowedDomains: DOMAINS, max: 2 })).toHaveLength(2);
     expect(
       extractCandidateLinks(html, BASE, { allowedDomains: DOMAINS, linkPattern: "(" }),

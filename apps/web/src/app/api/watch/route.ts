@@ -34,7 +34,10 @@ export async function PATCH(request: Request) {
     await enforceLimit(reviewLimiter, actor.userId);
     const body = await readJson(request, patchSchema);
     await toggleSource(actor, body.sourceId, body.enabled);
-    return ok({ sourceId: body.sourceId, enabled: body.enabled }, { headers: apiHeaders(requestId) });
+    return ok(
+      { sourceId: body.sourceId, enabled: body.enabled },
+      { headers: apiHeaders(requestId) },
+    );
   } catch (error) {
     return fail(error, requestId);
   }

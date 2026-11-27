@@ -315,7 +315,9 @@ const renderers: Renderers = {
   }) => {
     const heading = `${policyTitle} needs attention`;
     const body = [
-      paragraph(`Hi ${name}, the latest compliance check on ${policyCode} in ${workspaceName} returned ${result}.`),
+      paragraph(
+        `Hi ${name}, the latest compliance check on ${policyCode} in ${workspaceName} returned ${result}.`,
+      ),
       paragraph(summary),
       paragraph(
         `${openFindings} open findings · ${critical} critical · ${high} high · ${overdue} overdue.`,

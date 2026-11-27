@@ -276,7 +276,7 @@ export default async function FindingDetailPage({ params }: { params: Promise<{ 
                 <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
                   Overall confidence
                 </p>
-                <p className="mt-2 font-mono text-4xl tracking-tight text-brand">
+                <p className="mt-2 font-mono text-4xl tracking-tight text-brand dark:text-support">
                   {formatPercent(finding.confidence)}
                 </p>
               </div>

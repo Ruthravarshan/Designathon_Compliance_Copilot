@@ -14,11 +14,9 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RoleBadge } from "@/components/ui/status-badge";
-import { cn } from "@/lib/cn";
 import type { PersonaSeed } from "@/server/compliance/corpus";
 
 interface ApiError {
@@ -59,6 +57,11 @@ function MicrosoftLogo() {
   );
 }
 
+const WORKSPACE_LABELS: Record<string, string> = {
+  "hexa-demo": "PolicyPulse Workspace",
+  "northwind-assurance": "Northwind Assurance",
+};
+
 export function EnterpriseSignIn({
   personas,
   demoEnabled,
@@ -75,13 +78,13 @@ export function EnterpriseSignIn({
   const router = useRouter();
   const [pendingPersona, setPendingPersona] = useState<string | null>(null);
   const [pendingProvider, setPendingProvider] = useState<string | null>(null);
-  const [demoExpanded, setDemoExpanded] = useState(true);
+  const [quickExpanded, setQuickExpanded] = useState(true);
   const [samlExpanded, setSamlExpanded] = useState(false);
   const [workDomain, setWorkDomain] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [ssoNotice, setSsoNotice] = useState<string | null>(
     initialProvider === "google" || initialProvider === "microsoft"
-      ? `${initialProvider === "google" ? "Google Workspace" : "Microsoft Entra"} SSO is ready once OAuth credentials are supplied in deployment. Use Demo access below to enter the workspace immediately.`
+      ? `${initialProvider === "google" ? "Google Workspace" : "Microsoft Entra"} SSO activates when OAuth credentials are configured in deployment.${demoEnabled ? " Select a role under Quick role access below to enter immediately." : ""}`
       : null,
   );
 
@@ -94,15 +97,15 @@ export function EnterpriseSignIn({
     setError(null);
     setPendingProvider(provider);
 
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await new Promise((resolve) => setTimeout(resolve, 200));
     setPendingProvider(null);
-    setDemoExpanded(true);
+    setQuickExpanded(true);
 
     if (provider === "google") {
       setSsoNotice(
         googleConfigured && supabaseConfigured
           ? "Redirecting to Google Workspace OAuth..."
-          : "Google Sign-In requires NEXT_PUBLIC_SUPABASE_URL and Google OAuth provider credentials in .env. Select a seeded persona under Demo access below to inspect the live app.",
+          : "Google Workspace OAuth is not bound in this environment. Configure OAuth credentials in deployment, or choose a role under Quick role access below.",
       );
       return;
     }
@@ -111,7 +114,7 @@ export function EnterpriseSignIn({
       setSsoNotice(
         supabaseConfigured
           ? "Redirecting to Microsoft Entra ID..."
-          : "Microsoft SSO requires NEXT_PUBLIC_SUPABASE_URL and Entra ID configuration in .env. Select a seeded persona under Demo access below to inspect the live app.",
+          : "Microsoft Entra ID is not bound in this environment. Configure Entra credentials in deployment, or choose a role under Quick role access below.",
       );
       return;
     }
@@ -122,7 +125,7 @@ export function EnterpriseSignIn({
     }
 
     setSsoNotice(
-      `No SAML identity provider is bound to "${workDomain.trim()}" in this environment. Use Demo access below for evaluation.`,
+      `No SAML identity provider is bound to "${workDomain.trim()}". Contact your workspace owner or use Quick role access below.`,
     );
   }
 
@@ -142,7 +145,7 @@ export function EnterpriseSignIn({
 
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as ApiError;
-        setError(body.error?.message ?? "Sign-in failed. Try another persona.");
+        setError(body.error?.message ?? "Sign-in failed. Try another role.");
         return;
       }
 
@@ -156,21 +159,14 @@ export function EnterpriseSignIn({
   }
 
   return (
-    <div className="w-full max-w-[460px] space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[26px] leading-[32px] font-semibold tracking-[-0.025em] text-fg">
-            Sign in to PolicyPulse
-          </h1>
-          <p className="mt-1 text-xs text-muted">
-            Choose enterprise SSO or evaluate with a seeded demo workspace identity.
-          </p>
-        </div>
-        {demoEnabled ? (
-          <Badge tone="brand" dot className="shrink-0">
-            Demo
-          </Badge>
-        ) : null}
+    <div className="w-full max-w-[480px] space-y-5">
+      <div>
+        <h1 className="text-[26px] leading-[32px] font-semibold tracking-[-0.025em] text-fg">
+          Sign in to PolicyPulse
+        </h1>
+        <p className="mt-1.5 text-sm text-muted">
+          Authenticate with your organization SSO or choose a role-scoped account.
+        </p>
       </div>
 
       {error ? (
@@ -194,30 +190,30 @@ export function EnterpriseSignIn({
       {ssoNotice ? (
         <div
           role="status"
-          className="flex items-start gap-2.5 rounded-2xl border border-brand/30 bg-brand/10 p-4 text-xs leading-relaxed text-fg"
+          className="flex items-start gap-2.5 rounded-2xl border border-brand/30 bg-brand/10 p-4 text-xs leading-relaxed text-fg dark:border-support/35 dark:bg-support/10"
         >
           <Info
             size={17}
             weight="bold"
             aria-hidden="true"
-            className="mt-0.5 shrink-0 text-brand dark:text-accent"
+            className="mt-0.5 shrink-0 text-brand dark:text-support"
           />
           <p>{ssoNotice}</p>
         </div>
       ) : null}
 
-      {/* Primary Enterprise SSO */}
-      <Card className="p-5 space-y-3">
+      {/* Enterprise SSO */}
+      <Card className="space-y-3 p-5">
         <div className="flex items-center justify-between gap-2">
           <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-            Single Sign-On
+            Enterprise Single Sign-On
           </span>
           <span className="inline-flex items-center gap-1 font-mono text-[10px] text-muted">
             <ShieldCheck
               size={12}
               weight="bold"
               aria-hidden="true"
-              className="text-brand dark:text-accent"
+              className="text-brand dark:text-support"
             />
             OAuth 2.0 / OIDC
           </span>
@@ -250,7 +246,7 @@ export function EnterpriseSignIn({
         >
           <span className="inline-flex items-center gap-3">
             <MicrosoftLogo />
-            <span>Continue with Microsoft SSO</span>
+            <span>Continue with Microsoft</span>
           </span>
           <ArrowRight size={15} weight="bold" aria-hidden="true" className="text-muted" />
         </Button>
@@ -263,7 +259,7 @@ export function EnterpriseSignIn({
             className="inline-flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-fg"
           >
             <Buildings size={14} weight="bold" aria-hidden="true" />
-            <span>Use organization SAML / domain SSO</span>
+            <span>Organization SAML / domain SSO</span>
             {samlExpanded ? (
               <CaretUp size={12} weight="bold" aria-hidden="true" />
             ) : (
@@ -304,17 +300,17 @@ export function EnterpriseSignIn({
           <div className="flex items-center gap-3" aria-hidden="true">
             <span className="h-px flex-1 bg-line" />
             <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-              or demo access
+              or quick role access
             </span>
             <span className="h-px flex-1 bg-line" />
           </div>
 
-          <Card id="demo-access" className="overflow-hidden">
+          <Card id="quick-access" className="overflow-hidden">
             <button
               type="button"
-              aria-expanded={demoExpanded}
+              aria-expanded={quickExpanded}
               disabled={anyPending}
-              onClick={() => setDemoExpanded((prev) => !prev)}
+              onClick={() => setQuickExpanded((prev) => !prev)}
               className="flex min-h-12 w-full items-center justify-between gap-3 bg-surface-2/50 px-4 py-3 text-left transition-colors hover:bg-surface-2 disabled:opacity-60"
             >
               <div className="flex items-center gap-2.5">
@@ -322,38 +318,37 @@ export function EnterpriseSignIn({
                   size={17}
                   weight="bold"
                   aria-hidden="true"
-                  className="text-brand dark:text-accent"
+                  className="text-brand dark:text-support"
                 />
                 <div>
-                  <span className="block text-sm font-semibold text-fg">
-                    Demo workspace personas
-                  </span>
-                  <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
-                    {personas.length} seeded roles · removable via DEMO_MODE=false
+                  <span className="block text-sm font-semibold text-fg">Quick role sign-in</span>
+                  <span className="block text-xs text-muted">
+                    Select a role to evaluate permissions and tenant isolation
                   </span>
                 </div>
               </div>
-              {demoExpanded ? (
+              {quickExpanded ? (
                 <CaretUp size={15} weight="bold" aria-hidden="true" className="text-muted" />
               ) : (
                 <CaretDown size={15} weight="bold" aria-hidden="true" className="text-muted" />
               )}
             </button>
 
-            {demoExpanded ? (
+            {quickExpanded ? (
               <ul className="divide-y divide-line border-t border-line">
                 {personas.map((persona) => {
                   const isPending = pendingPersona === persona.key;
-                  const isIsolation = persona.workspaceSlug !== "hexa-demo";
+                  const workspaceLabel =
+                    WORKSPACE_LABELS[persona.workspaceSlug] ?? "Enterprise Workspace";
+                  const isSecondaryTenant = persona.workspaceSlug === "northwind-assurance";
+
                   return (
                     <li key={persona.key}>
                       <button
                         type="button"
                         disabled={anyPending}
                         onClick={() => void choosePersona(persona)}
-                        className={cn(
-                          "group flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2/80 disabled:cursor-not-allowed disabled:opacity-55",
-                        )}
+                        className="group flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2/80 disabled:cursor-not-allowed disabled:opacity-55"
                       >
                         <div className="flex min-w-0 items-center gap-3">
                           <Avatar name={persona.name} size="sm" />
@@ -362,31 +357,29 @@ export function EnterpriseSignIn({
                               <span className="truncate text-sm font-semibold text-fg">
                                 {persona.name}
                               </span>
-                              {isIsolation ? (
-                                <span className="rounded-full border border-brand/30 bg-brand/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-brand dark:text-accent">
-                                  Northwind Assurance
-                                </span>
-                              ) : null}
+                              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
+                                · {isSecondaryTenant ? workspaceLabel : "Primary tenant"}
+                              </span>
                             </div>
                             <p className="truncate text-xs text-muted">{persona.title}</p>
                           </div>
                         </div>
 
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex shrink-0 items-center gap-2.5">
                           <RoleBadge role={persona.role} />
                           {isPending ? (
                             <CircleNotch
                               size={16}
                               weight="bold"
                               aria-hidden="true"
-                              className="animate-spin text-brand motion-reduce:animate-none"
+                              className="animate-spin text-brand motion-reduce:animate-none dark:text-support"
                             />
                           ) : (
                             <ArrowRight
                               size={14}
                               weight="bold"
                               aria-hidden="true"
-                              className="text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-brand dark:group-hover:text-accent"
+                              className="text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-brand dark:group-hover:text-support"
                             />
                           )}
                         </div>
@@ -398,13 +391,7 @@ export function EnterpriseSignIn({
             ) : null}
           </Card>
         </>
-      ) : (
-        <Card className="p-4 text-xs leading-relaxed text-muted">
-          Demo personas are disabled in this environment (
-          <span className="font-mono">DEMO_MODE=false</span>). Sign in with your organization&apos;s
-          Google Workspace or Microsoft SSO account above.
-        </Card>
-      )}
+      ) : null}
     </div>
   );
 }

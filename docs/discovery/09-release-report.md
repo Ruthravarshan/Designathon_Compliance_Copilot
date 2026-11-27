@@ -57,7 +57,7 @@ Checked by hand in the running app and by Playwright assertions.
 
 | Check | Result | Notes |
 | ----- | ------ | ----- |
-| Golden path | PASS | Sign in as Meera → open findings → open a circular → approve the draft → decision on record → audit entry. Covered by `e2e/owner-review.spec.ts`. |
+| Golden path | PASS | Sign in as Rajeshwari → open findings → open a circular → approve the draft → decision on record → audit entry. Covered by `e2e/owner-review.spec.ts`. |
 | Empty state | PASS | Northwind workspace shows "No findings yet." and "No circulars ingested yet." (`e2e/golden-path.spec.ts`). |
 | Error state | PASS | `error.tsx` with retry; API failures use the `{ error: { code, message, requestId } }` envelope. |
 | Unauthorized state | PASS | Viewer sees "Read-only review state", no review form, audit shows "The audit trail is restricted."; API returns 403. |

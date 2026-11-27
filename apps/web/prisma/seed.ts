@@ -335,7 +335,7 @@ async function seedPreReviewedFinding(workspaceId: string, ownerId: string) {
     data: {
       reviewStatus: "APPROVED_WITH_EDITS",
       reviewerId: ownerId,
-      reviewerName: "Meera Krishnan",
+      reviewerName: "Rajeshwari",
       reviewedAt,
       reviewComments: comments,
       approvedWording: logFinding.redlineAfter,
@@ -350,7 +350,7 @@ async function seedPreReviewedFinding(workspaceId: string, ownerId: string) {
       workspaceId,
       findingId: logFinding.id,
       actorId: ownerId,
-      actorName: "Meera Krishnan",
+      actorName: "Rajeshwari",
       actorRole: "OWNER",
       action: PrismaReviewAction.APPROVED_WITH_EDITS,
       previous: { reviewStatus: "PENDING_REVIEW" },
@@ -541,7 +541,7 @@ async function main() {
       toEmail: DEMO_PERSONAS[0]!.email,
       template: "welcome",
       subject: "Welcome to PolicyPulse",
-      payload: { name: "Meera", loginUrl: `${appUrl}/signin` },
+      payload: { name: "Rajeshwari", loginUrl: `${appUrl}/signin` },
       idempotencyKey: "welcome:meera:seed",
     },
   });

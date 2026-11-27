@@ -160,3 +160,11 @@ Next: `08-hardening-report.md`
   CSV export 200 (4.4 kB, 13 findings); revision history renders on CERT-IN/2022/01.
 - Not yet evidenced: a live revision being detected on the second weekly run (requires the regulator
   page to change), and direct URL ingest against a new regulator document.
+- Merge of `origin/main` (`dd9e129`) resolved with the local watch/policy pages as canonical
+  (`layout.tsx`, `/app/watch`, `/app/policies`, policy check button, audit export) and the remote
+  shell adopted for its icon registry; remote's duplicate `policies/[id]` route and `watch-console`
+  were dropped in favour of the verified `policies/[policyId]` and `watch-controls`. Remote's
+  non-conflicting additions were kept: Architecture page/nav, circular detail view with PDF/diff/
+  rejection panels, and the refreshed badges/settings. Local revision-history panel stays wired into
+  circular detail. Post-merge `typecheck`, `lint`, and 420/420 tests are green; merge left staged for
+  the operator to commit.

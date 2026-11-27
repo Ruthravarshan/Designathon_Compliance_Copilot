@@ -32,7 +32,7 @@ async function warmServer(): Promise<void> {
     const signIn = await fetch(`${BASE_URL}/api/auth/signin`, {
       method: "POST",
       headers: { "content-type": "application/json", origin: BASE_URL },
-      body: JSON.stringify({ persona: "Meera Krishnan" }),
+      body: JSON.stringify({ persona: "owner" }),
       signal: AbortSignal.timeout(120_000),
     });
 

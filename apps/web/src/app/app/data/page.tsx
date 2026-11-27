@@ -66,7 +66,9 @@ export default async function DataPage() {
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
               {metric.label}
             </p>
-            <p className="mt-3 font-mono text-3xl tracking-tight text-brand">{metric.value}</p>
+            <p className="mt-3 font-mono text-3xl tracking-tight text-brand dark:text-support">
+              {metric.value}
+            </p>
             <p className="mt-1.5 text-xs leading-relaxed text-muted">{metric.detail}</p>
           </Card>
         ))}

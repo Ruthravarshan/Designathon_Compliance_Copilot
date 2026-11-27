@@ -123,7 +123,7 @@ const APPEARANCE_OPTIONS: readonly {
   {
     mode: "dark",
     label: "Dark",
-    description: "Deep navy surface tokens for low-light operations.",
+    description: "Obsidian black and blue surfaces for low-light operations.",
     icon: Moon,
   },
 ];

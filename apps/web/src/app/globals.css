@@ -19,19 +19,19 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --pp-canvas: #040d43;
-  --pp-surface: #07125e;
-  --pp-surface-2: color-mix(in oklab, #535983 18%, #040d43);
-  --pp-line: #535983;
-  --pp-fg: #eeeff2;
-  --pp-muted: #8088a7;
+  --pp-canvas: #050507;
+  --pp-surface: #0b0d12;
+  --pp-surface-2: #131620;
+  --pp-line: #1f2433;
+  --pp-fg: #f3f5f8;
+  --pp-muted: #8b93ab;
   --pp-brand: #3c2cda;
-  --pp-brand-hover: #3224bd;
+  --pp-brand-hover: #4c3ce6;
   --pp-brand-ink: #ffffff;
   --pp-support: #1d86ff;
-  --pp-accent: #14cbde;
+  --pp-accent: #1d86ff;
   --pp-danger: #da2d2c;
-  --pp-shadow-card: 0 1px 2px rgba(4, 13, 67, 0.35), 0 14px 32px -18px rgba(4, 13, 67, 0.75);
+  --pp-shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03), 0 14px 32px -18px rgba(0, 0, 0, 0.85);
 }
 
 @theme inline {

@@ -54,7 +54,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             href: "/app/policies",
             label: "Policies",
             group: "Workbench" as const,
-            icon: "policy" as const,
+            icon: "policies" as const,
           },
         ]
       : []),

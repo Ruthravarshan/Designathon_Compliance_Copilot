@@ -138,7 +138,7 @@ export function RoleBadge({
         className,
       )}
     >
-      <Icon size={12} weight="bold" aria-hidden="true" className="text-brand" />
+      <Icon size={12} weight="bold" aria-hidden="true" className="text-brand dark:text-support" />
       <span>{humanize(role)}</span>
     </span>
   );
