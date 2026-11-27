@@ -11,6 +11,7 @@ import { GmailConnectionActions } from "@/components/gmail-connection";
 import { UnauthorizedState } from "@/components/unauthorized-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { env } from "@/lib/env";
 import { actorCan, getActor } from "@/server/auth/actor";
 import { getGmailStatus } from "@/server/email/gmail";
 
@@ -18,6 +19,13 @@ export const metadata: Metadata = { title: "Email settings" };
 export const dynamic = "force-dynamic";
 
 const CONNECT_HREF = "/api/integrations/gmail/connect";
+
+const PROVIDER_LABEL: Record<string, string> = {
+  gmail: "Gmail API",
+  smtp: "SMTP · Mailpit",
+  resend: "Resend API",
+  console: "Console (log only)",
+};
 
 const ERROR_COPY: Record<string, string> = {
   access_denied: "Google access was cancelled. No mailbox was connected.",
@@ -66,6 +74,10 @@ export default async function EmailSettingsPage({
     ? (ERROR_COPY[params.error] ?? "The Gmail connection did not complete. Try again.")
     : null;
   const connectedNow = params.connected === "1";
+  const provider = env.EMAIL_PROVIDER;
+  const usesGmail = provider === "gmail";
+  const providerLabel = PROVIDER_LABEL[provider] ?? provider;
+  const deliveryReady = usesGmail ? status.connected : provider !== "console";
 
   return (
     <div className="space-y-6">
@@ -78,21 +90,26 @@ export default async function EmailSettingsPage({
             Sending mailbox
           </h1>
           <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-muted">
-            PolicyPulse sends automated email through a Gmail account you connect with Google OAuth.
-            It never asks for the Gmail password or an App Password.
+            {usesGmail
+              ? "PolicyPulse sends automated email through a Gmail account you connect with Google OAuth. It never asks for the Gmail password or an App Password."
+              : provider === "smtp"
+                ? "This deployment delivers email through SMTP. Locally that is Mailpit: every message is captured at http://localhost:8025 so nothing leaves your machine."
+                : provider === "resend"
+                  ? "This deployment delivers email through the Resend API using RESEND_API_KEY."
+                  : "This deployment only logs email to the server console. Set EMAIL_PROVIDER to smtp, resend, or gmail for real delivery."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {status.connected ? (
+          {deliveryReady ? (
             <Badge tone="brand" dot>
-              Connected
+              {usesGmail ? "Connected" : "Delivery ready"}
             </Badge>
           ) : (
             <Badge tone="outline">
-              {status.status === "REVOKED" ? "Revoked" : "Not connected"}
+              {usesGmail ? (status.status === "REVOKED" ? "Revoked" : "Not connected") : "Log only"}
             </Badge>
           )}
-          <Badge tone="outline">Gmail API</Badge>
+          <Badge tone="outline">{providerLabel}</Badge>
         </div>
       </header>
 
@@ -132,7 +149,7 @@ export default async function EmailSettingsPage({
             <h2 className="text-base font-medium">Sending mailbox</h2>
           </div>
 
-          {status.connected && status.email ? (
+          {usesGmail && status.connected && status.email ? (
             <dl className="mt-4 space-y-3 text-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
@@ -159,7 +176,7 @@ export default async function EmailSettingsPage({
                 <dd className="break-all font-mono text-[10px] text-muted">{status.scope}</dd>
               </div>
             </dl>
-          ) : (
+          ) : usesGmail ? (
             <div className="mt-4 rounded-xl border border-line bg-surface-2 px-4 py-6 text-center">
               <p className="text-sm font-medium">No mailbox connected</p>
               <p className="mx-auto mt-1 max-w-[42ch] text-xs leading-relaxed text-muted">
@@ -168,16 +185,39 @@ export default async function EmailSettingsPage({
                   : "This deployment is missing the Google OAuth configuration. Add the three variables listed below and redeploy."}
               </p>
             </div>
+          ) : (
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                  Provider
+                </dt>
+                <dd className="font-mono text-xs text-fg">{providerLabel}</dd>
+              </div>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                  From address
+                </dt>
+                <dd className="font-mono text-xs text-fg">{env.EMAIL_FROM}</dd>
+              </div>
+              {provider === "smtp" ? (
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                    Mailpit inbox
+                  </dt>
+                  <dd className="font-mono text-xs text-fg">http://localhost:8025</dd>
+                </div>
+              ) : null}
+            </dl>
           )}
 
-          {status.lastErrorCode && status.status !== "CONNECTED" ? (
+          {usesGmail && status.lastErrorCode && status.status !== "CONNECTED" ? (
             <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-fg">
               <span className="text-danger">Error:</span> Last error · {status.lastErrorCode}
             </p>
           ) : null}
 
           <div className="mt-5 space-y-3 border-t border-line pt-5">
-            {!status.configured ? (
+            {usesGmail && !status.configured ? (
               <div className="rounded-xl border border-danger/35 bg-danger/10 px-4 py-3 text-xs leading-relaxed text-fg">
                 Set <code className="font-mono">GOOGLE_CLIENT_ID</code>,{" "}
                 <code className="font-mono">GOOGLE_CLIENT_SECRET</code>, and{" "}
@@ -187,7 +227,7 @@ export default async function EmailSettingsPage({
               </div>
             ) : null}
 
-            {canManage && status.configured ? (
+            {usesGmail && canManage && status.configured ? (
               <a
                 href={CONNECT_HREF}
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-brand px-5 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-hover"
@@ -197,10 +237,20 @@ export default async function EmailSettingsPage({
               </a>
             ) : null}
 
-            {!canManage ? (
+            {usesGmail && !canManage ? (
               <p className="text-xs leading-relaxed text-muted">
                 Only the workspace owner can connect, reconnect, or disconnect the mailbox. You can
                 still send a test email once it is connected.
+              </p>
+            ) : null}
+
+            {provider === "console" ? (
+              <p className="text-xs leading-relaxed text-muted">
+                Switch the provider before testing: set{" "}
+                <code className="font-mono">EMAIL_PROVIDER=smtp</code> with{" "}
+                <code className="font-mono">SMTP_URL=smtp://localhost:1025</code> and run{" "}
+                <code className="font-mono">npm run db:up</code> to start Mailpit, or configure the
+                Gmail OAuth variables for production delivery.
               </p>
             ) : null}
 
@@ -208,6 +258,7 @@ export default async function EmailSettingsPage({
               connected={status.connected}
               canManage={canManage}
               recipient={actor.email}
+              provider={provider}
             />
           </div>
         </Card>
@@ -216,30 +267,6 @@ export default async function EmailSettingsPage({
           <h2 className="text-base font-medium">How sending works</h2>
           <ul className="mt-4 space-y-3 text-xs leading-relaxed text-muted">
             <li className="flex gap-2.5">
-              <ArrowClockwise
-                size={15}
-                weight="bold"
-                aria-hidden="true"
-                className="mt-0.5 shrink-0 text-brand dark:text-support"
-              />
-              <span>
-                Access tokens are refreshed automatically before they expire. A revoked refresh
-                token marks the connection and asks the owner to reconnect.
-              </span>
-            </li>
-            <li className="flex gap-2.5">
-              <ShieldCheck
-                size={15}
-                weight="bold"
-                aria-hidden="true"
-                className="mt-0.5 shrink-0 text-brand dark:text-support"
-              />
-              <span>
-                Access and refresh tokens are encrypted at rest with AES-256-GCM. They never reach
-                the browser or the logs.
-              </span>
-            </li>
-            <li className="flex gap-2.5">
               <PaperPlaneTilt
                 size={15}
                 weight="bold"
@@ -247,22 +274,51 @@ export default async function EmailSettingsPage({
                 className="mt-0.5 shrink-0 text-brand dark:text-support"
               />
               <span>
-                Product email is written to the outbox first. The cron worker drains the queue
-                through the Gmail API, so a failed send retries instead of blocking a request.
+                Product email is written to the outbox first. Delivery drains the queue
+                {usesGmail ? " through the Gmail API" : " through the configured provider"}, and a
+                failed send retries instead of blocking a request.
               </span>
             </li>
-            <li className="flex gap-2.5">
-              <EnvelopeSimple
-                size={15}
-                weight="bold"
-                aria-hidden="true"
-                className="mt-0.5 shrink-0 text-brand dark:text-support"
-              />
-              <span>
-                The requested scope is <code className="font-mono">gmail.send</code> only.
-                PolicyPulse can send mail but cannot read the mailbox.
-              </span>
-            </li>
+            {usesGmail ? (
+              <>
+                <li className="flex gap-2.5">
+                  <ArrowClockwise
+                    size={15}
+                    weight="bold"
+                    aria-hidden="true"
+                    className="mt-0.5 shrink-0 text-brand dark:text-support"
+                  />
+                  <span>
+                    Access tokens are refreshed automatically before they expire. A revoked refresh
+                    token marks the connection and asks the owner to reconnect.
+                  </span>
+                </li>
+                <li className="flex gap-2.5">
+                  <ShieldCheck
+                    size={15}
+                    weight="bold"
+                    aria-hidden="true"
+                    className="mt-0.5 shrink-0 text-brand dark:text-support"
+                  />
+                  <span>
+                    Access and refresh tokens are encrypted at rest with AES-256-GCM. They never
+                    reach the browser or the logs.
+                  </span>
+                </li>
+                <li className="flex gap-2.5">
+                  <EnvelopeSimple
+                    size={15}
+                    weight="bold"
+                    aria-hidden="true"
+                    className="mt-0.5 shrink-0 text-brand dark:text-support"
+                  />
+                  <span>
+                    The requested scope is <code className="font-mono">gmail.send</code> only.
+                    PolicyPulse can send mail but cannot read the mailbox.
+                  </span>
+                </li>
+              </>
+            ) : null}
           </ul>
         </Card>
       </div>

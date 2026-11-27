@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
+  ArrowSquareOut,
   Books,
+  FilePdf,
   Quotes,
   ShieldCheck,
   SpinnerGap,
@@ -13,15 +16,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/field";
-import { CopyButton } from "@/components/ui/navigation-controls";
+import { AssistantCopy, type AssistantCitation } from "@/components/assistant-copy";
 import { formatPercent } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-interface Citation {
-  id: string;
-  label: string;
-  quote: string;
-}
+type Citation = AssistantCitation;
 
 interface Answer {
   answer: string;
@@ -328,7 +327,7 @@ export function AssistantPanel({ grounded, model }: AssistantPanelProps) {
         <Card className="p-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Engine</p>
           <p className="mt-3 text-sm font-medium">
-            {grounded ? "Verified generation" : "Retrieval only"}
+            {grounded ? "Grounded generation" : "Extractive answers"}
           </p>
           <p className="mt-1.5 text-xs leading-relaxed text-muted">
             {grounded
@@ -407,7 +406,7 @@ function AnswerCard({ answer }: { answer: Answer }) {
         </span>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={groundedAnswer ? "brand" : "outline"}>
-            {groundedAnswer ? "Verified generation" : "Retrieval"}
+            {groundedAnswer ? "Grounded answer" : "Retrieval"}
           </Badge>
           {answer.matched ? (
             <>
@@ -417,7 +416,7 @@ function AnswerCard({ answer }: { answer: Answer }) {
               <Badge tone="outline">Confidence {formatPercent(answer.confidence)}</Badge>
             </>
           ) : null}
-          <CopyButton value={answer.answer} label="Copy" />
+          <AssistantCopy answer={answer.answer} citations={answer.citations} />
         </div>
       </div>
 
@@ -435,8 +434,14 @@ function AnswerCard({ answer }: { answer: Answer }) {
               <div key={`${citation.id}-${index}`} className="rounded-xl bg-surface-2 px-4 py-3">
                 <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-brand dark:text-support">
                   [{index + 1}] {citation.label}
+                  {typeof citation.pageNumber === "number" ? (
+                    <span className="ml-1.5 normal-case tracking-normal text-muted">
+                      · page {citation.pageNumber}
+                    </span>
+                  ) : null}
                 </p>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted">“{citation.quote}”</p>
+                <CitationActions citation={citation} />
               </div>
             ))}
           </div>
@@ -450,12 +455,53 @@ function AnswerCard({ answer }: { answer: Answer }) {
         {answer.matched ? (
           <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
             {groundedAnswer
-              ? `Grounded by ${answer.model ?? "Gemini"} · citations verified`
+              ? `Drafted by ${answer.model ?? "Gemini"} from retrieved passages`
               : "Extractive retrieval · deterministic"}
             {typeof answer.latencyMs === "number" ? ` · ${answer.latencyMs} ms` : ""}
           </p>
         ) : null}
       </div>
     </Card>
+  );
+}
+
+const actionClass =
+  "inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-muted transition-colors hover:border-brand/40 hover:text-fg";
+
+function CitationActions({ citation }: { citation: Citation }) {
+  const page = typeof citation.pageNumber === "number" ? citation.pageNumber : null;
+  const pdfHref = citation.pdfUrl ? `${citation.pdfUrl}${page ? `#page=${page}` : ""}` : undefined;
+  const workspaceLabel =
+    citation.kind === "policy"
+      ? "Open policy"
+      : citation.kind === "control"
+        ? "Open controls"
+        : "Open circular";
+
+  if (!citation.webUrl && !pdfHref && !citation.workspaceUrl) {
+    return null;
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      {citation.webUrl ? (
+        <a href={citation.webUrl} target="_blank" rel="noopener noreferrer" className={actionClass}>
+          <ArrowSquareOut size={12} weight="bold" aria-hidden="true" />
+          Web page
+        </a>
+      ) : null}
+      {pdfHref ? (
+        <a href={pdfHref} target="_blank" rel="noopener noreferrer" className={actionClass}>
+          <FilePdf size={12} weight="bold" aria-hidden="true" />
+          PDF{page ? ` · p. ${page}` : ""}
+        </a>
+      ) : null}
+      {citation.workspaceUrl ? (
+        <Link href={citation.workspaceUrl} className={actionClass}>
+          {workspaceLabel}
+          <ArrowRight size={12} weight="bold" aria-hidden="true" />
+        </Link>
+      ) : null}
+    </div>
   );
 }

@@ -166,7 +166,8 @@ describe("hybrid retrieval", () => {
       text: `An incident about ${marker} must be reported.`,
     }));
     const query = `${markers.join(" ")} incident`;
-    expect(retrievePassages(query, many, { limit: 99 })).toHaveLength(6);
+    expect(retrievePassages(query, many, { limit: 99 })).toHaveLength(many.length);
+    expect(retrievePassages(query, many)).toHaveLength(6);
     expect(retrievePassages(query, many, { limit: 0 })).toHaveLength(1);
   });
 

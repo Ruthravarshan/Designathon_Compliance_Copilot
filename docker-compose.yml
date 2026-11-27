@@ -2,7 +2,7 @@ name: hexa
 
 services:
   db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: hexa-db
     restart: unless-stopped
     environment:

@@ -1,9 +1,11 @@
 import "server-only";
 import { lookup } from "node:dns/promises";
 import { AppError, ERROR_CODES } from "@/lib/errors";
-import type { SourceClause } from "@/lib/compliance/types";
-import { textToClauses, pdfPagesToClauses } from "@/lib/watch/clauses";
-import { htmlToText } from "@/lib/watch/html";
+import {
+  decodeHtml as decodeHtmlBytes,
+  extractDocument as extractFromBytes,
+  type ExtractedDocument,
+} from "@/lib/watch/extract";
 import { hostAllowed, isDisallowedHostname, isPrivateIp, parseHttpUrl } from "@/lib/watch/urls";
 
 const DEFAULT_MAX_BYTES = 6_000_000;
@@ -23,12 +25,7 @@ export interface FetchedBytes {
   bytes: Buffer;
 }
 
-export interface ExtractedDocument {
-  text: string;
-  pageCount: number;
-  clauses: SourceClause[];
-  kind: "html" | "pdf" | "text";
-}
+export type { ExtractedDocument };
 
 function userAgent(): string {
   return (
@@ -149,71 +146,13 @@ export async function safeFetchBytes(input: string, options: FetchOptions): Prom
   }
 }
 
-function looksLikePdf(contentType: string, bytes: Buffer): boolean {
-  return contentType.includes("pdf") || bytes.subarray(0, 5).toString("latin1") === "%PDF-";
-}
-
-function looksLikeHtml(contentType: string, bytes: Buffer): boolean {
-  if (contentType.includes("html") || contentType.includes("xml")) {
-    return true;
-  }
-  const head = bytes.subarray(0, 200).toString("utf8").toLowerCase();
-  return head.includes("<!doctype html") || head.includes("<html");
-}
-
-function normalizePdfPage(text: string): string {
-  return text
-    .replace(/\r\n?/g, "\n")
-    .replace(/(\w)-\n(\w)/g, "$1$2")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n{2,}/g, "\n\n")
-    .trim();
-}
-
-async function extractPdf(bytes: Buffer): Promise<ExtractedDocument> {
-  const { extractText, getDocumentProxy } = await import("unpdf");
-  const pdf = await getDocumentProxy(new Uint8Array(bytes));
-  const result = await extractText(pdf, { mergePages: false });
-  const pages = Array.isArray(result.text) ? result.text : [result.text];
-  const normalizedPages = pages.map((page, index) => ({
-    pageNumber: index + 1,
-    text: normalizePdfPage(page),
-  }));
-  const text = normalizedPages.map((page) => page.text).join("\n\n");
-
-  return {
-    text,
-    pageCount: normalizedPages.length,
-    clauses: pdfPagesToClauses(normalizedPages, 40),
-    kind: "pdf",
-  };
-}
-
-function extractHtml(html: string): ExtractedDocument {
-  const text = htmlToText(html);
-  return { text, pageCount: 1, clauses: textToClauses(text, { max: 40 }), kind: "html" };
-}
-
-function extractPlainText(value: string): ExtractedDocument {
-  const text = value
-    .replace(/\r\n?/g, "\n")
-    .replace(/[ \t]+/g, " ")
-    .trim();
-  return { text, pageCount: 1, clauses: textToClauses(text, { max: 40 }), kind: "text" };
-}
-
 /** Decode a fetched response into text and citable clauses. */
 export async function extractDocument(fetched: FetchedBytes): Promise<ExtractedDocument> {
-  if (looksLikePdf(fetched.contentType, fetched.bytes)) {
-    return extractPdf(fetched.bytes);
-  }
-  if (looksLikeHtml(fetched.contentType, fetched.bytes)) {
-    return extractHtml(fetched.bytes.toString("utf8"));
-  }
-  return extractPlainText(fetched.bytes.toString("utf8"));
+  return extractFromBytes(fetched);
 }
 
 /** Raw HTML for listing pages where we need anchors, not text. */
 export function decodeHtml(fetched: FetchedBytes): string {
-  return fetched.bytes.toString("utf8");
+  return decodeHtmlBytes(fetched.bytes);
 }
+

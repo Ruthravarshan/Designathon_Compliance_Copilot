@@ -7,10 +7,12 @@ import { logger } from "@/lib/logger";
 import { analyzeClause } from "@/lib/compliance/pipeline";
 import { parseDocumentText } from "@/lib/compliance/parse";
 import {
-  answerQuestion,
-  retrievePassages,
+  answerFromPassages,
+  citationFromSource,
+  fusePassages,
   type QaAnswer,
   type QaSource,
+  type VectorHit,
 } from "@/lib/compliance/qa";
 import { verifyGroundedAnswer } from "@/lib/compliance/qa-grounding";
 import { diffWords, type DiffToken } from "@/lib/compliance/redline";
@@ -24,8 +26,15 @@ import type {
 import { db } from "@/server/db";
 import { recordAudit } from "@/server/audit";
 import { enqueueEmail } from "@/server/email/service";
+import { embedTexts, isEmbeddingConfigured } from "@/server/llm/embeddings";
 import { answerWithGrounding, assistantModel, isGeminiConfigured } from "@/server/llm/qa";
+import { indexDocument, type IndexDocumentResult } from "@/server/search/indexer";
+import { searchClauseVectors } from "@/server/search/vector";
 import type { Actor } from "@/server/auth/actor";
+import {
+  archiveDocumentFile,
+  type DocumentStoragePointer,
+} from "@/server/compliance/files";
 
 function round(value: number): number {
   return Math.round(value * 100) / 100;
@@ -236,6 +245,13 @@ export interface DocumentDetail {
   status: string;
   pageCount: number;
   checksum: string;
+  pdf: {
+    available: boolean;
+    filename: string | null;
+    checksum: string | null;
+    storageWebUrl: string | null;
+  };
+  indexStatus: "PENDING" | "READY" | "FAILED" | "SKIPPED";
   clauses: DocumentClauseView[];
 }
 
@@ -289,6 +305,13 @@ export async function getDocument(actor: Actor, documentId: string): Promise<Doc
     status: document.status,
     pageCount: document.pageCount,
     checksum: document.checksum,
+    pdf: {
+      available: Boolean(document.fileChecksum),
+      filename: document.filename,
+      checksum: document.fileChecksum,
+      storageWebUrl: document.storageWebUrl,
+    },
+    indexStatus: document.indexStatus,
     clauses: document.clauses.map((clause) => ({
       id: clause.id,
       sectionLabel: clause.sectionLabel,
@@ -696,6 +719,14 @@ export interface IngestDocumentInput {
   content: string;
   /** Pre-parsed clauses (fetched HTML/PDF) so real section labels and pages survive. */
   clauses?: SourceClause[];
+  /** The real PDF: archived on the document and mirrored to primary storage. */
+  file?: {
+    bytes: Uint8Array;
+    filename: string;
+    contentType: string;
+    /** Imported from a provider: the object already lives there. */
+    storage?: DocumentStoragePointer;
+  };
 }
 
 export interface IngestDocumentResult {
@@ -704,6 +735,8 @@ export interface IngestDocumentResult {
   clauses: number;
   obligations: number;
   findings: number;
+  storage: "MIRRORED" | "ARCHIVE_ONLY" | "NONE";
+  index: IndexDocumentResult["status"];
 }
 
 export async function ingestDocument(
@@ -727,6 +760,20 @@ export async function ingestDocument(
   if (duplicate) {
     throw new AppError(ERROR_CODES.CONFLICT, "A circular with this reference is already ingested.");
   }
+
+  const publishedAt = new Date(input.publishedAt);
+  const archivedFile = input.file
+    ? await archiveDocumentFile({
+        workspaceId: actor.workspaceId,
+        bytes: input.file.bytes,
+        filename: input.file.filename,
+        contentType: input.file.contentType,
+        regulator: input.regulator,
+        reference: input.reference,
+        publishedAt,
+        ...(input.file.storage ? { existingStorage: input.file.storage } : {}),
+      })
+    : null;
 
   const [policies, controls] = await Promise.all([
     db.internalPolicy.findMany({ where: { workspaceId: actor.workspaceId } }),
@@ -777,12 +824,32 @@ export async function ingestDocument(
         reference: input.reference,
         summary: input.summary,
         sourceUrl: input.sourceUrl,
-        publishedAt: new Date(input.publishedAt),
+        publishedAt,
         effectiveAt,
         status: "ANALYZED",
         content,
         pageCount: input.pageCount ?? 1,
         checksum,
+        ...(archivedFile
+          ? {
+              filename: archivedFile.filename,
+              fileContentType: archivedFile.contentType,
+              fileChecksum: archivedFile.checksum,
+              fileBytes: archivedFile.bytes,
+              indexStatus: "PENDING" as const,
+              ...(archivedFile.storage
+                ? {
+                    storageConnectionId: archivedFile.storage.connectionId,
+                    storageItemId: archivedFile.storage.itemId,
+                    storageWebUrl: archivedFile.storage.webUrl,
+                    storagePath: archivedFile.storage.path,
+                    ...(archivedFile.storage.modifiedAt
+                      ? { storageModifiedAt: archivedFile.storage.modifiedAt }
+                      : {}),
+                  }
+                : {}),
+            }
+          : {}),
       },
     });
 
@@ -892,12 +959,16 @@ export async function ingestDocument(
     "circular ingested",
   );
 
+  const index = await indexDocument({ workspaceId: actor.workspaceId, documentId });
+
   return {
     id: documentId,
     reference: input.reference,
     clauses: clauses.length,
     obligations: obligationCount,
     findings: findingCount,
+    storage: archivedFile?.storage ? "MIRRORED" : archivedFile ? "ARCHIVE_ONLY" : "NONE",
+    index: index.status,
   };
 }
 
@@ -921,11 +992,21 @@ export async function askComplianceQuestion(actor: Actor, question: string): Pro
         id: true,
         sectionLabel: true,
         heading: true,
+        pageNumber: true,
         text: true,
-        document: { select: { regulator: true, reference: true } },
+        document: {
+          select: {
+            id: true,
+            title: true,
+            regulator: true,
+            reference: true,
+            sourceUrl: true,
+            fileChecksum: true,
+          },
+        },
       },
       orderBy: [{ documentId: "asc" }, { orderIndex: "asc" }],
-      take: 300,
+      take: 1_200,
     }),
   ]);
 
@@ -935,12 +1016,14 @@ export async function askComplianceQuestion(actor: Actor, question: string): Pro
       label: `${policy.code} · ${policy.title}`,
       kind: "policy" as const,
       text: policy.text,
+      workspaceUrl: `/app/policies/${policy.id}`,
     })),
     ...controls.map((control) => ({
       id: control.id,
       label: `${control.code} · ${control.title}`,
       kind: "control" as const,
       text: control.description,
+      workspaceUrl: "/app/policies",
     })),
     ...clauses.map((clause) => ({
       id: clause.id,
@@ -949,13 +1032,42 @@ export async function askComplianceQuestion(actor: Actor, question: string): Pro
       }`,
       kind: "clause" as const,
       text: clause.text,
+      documentId: clause.document.id,
+      pageNumber: clause.pageNumber,
+      webUrl: clause.document.sourceUrl,
+      ...(clause.document.fileChecksum
+        ? { pdfUrl: `/api/documents/${clause.document.id}/pdf` }
+        : {}),
+      workspaceUrl: `/app/circulars/${clause.document.id}`,
     })),
   ];
 
   // The raw question is never logged; a short hash is enough for correlation.
   const questionHash = createHash("sha256").update(question).digest("hex").slice(0, 12);
   const startedAt = Date.now();
-  const passages = retrievePassages(question, sources);
+
+  let vectorHits: VectorHit[] = [];
+  if (isEmbeddingConfigured()) {
+    try {
+      const [queryVector] = await embedTexts([question], {
+        taskType: "RETRIEVAL_QUERY",
+        timeoutMs: 8_000,
+      });
+      if (queryVector) {
+        vectorHits = await searchClauseVectors(actor.workspaceId, queryVector, 24);
+      }
+    } catch (error) {
+      logger.warn(
+        {
+          questionHash,
+          errorName: error instanceof Error ? error.name : "UnknownError",
+        },
+        "query embedding unavailable; using lexical retrieval",
+      );
+    }
+  }
+
+  const passages = fusePassages(question, sources, vectorHits);
 
   if (passages.length > 0 && isGeminiConfigured()) {
     const model = assistantModel();
@@ -977,12 +1089,19 @@ export async function askComplianceQuestion(actor: Actor, question: string): Pro
           text: passage.source.text,
         })),
       );
+      const sourceById = new Map(sources.map((source) => [source.id, source]));
+      const citations = verified.citations.map((citation) => {
+        const source = sourceById.get(citation.id);
+        return source ? citationFromSource(source, citation.quote) : citation;
+      });
 
       logger.info(
         {
           questionHash,
           mode: verified.matched ? "grounded" : "grounded_refusal",
-          citations: verified.citations.length,
+          citations: citations.length,
+          passages: passages.length,
+          vectorHits: vectorHits.length,
           model: result.model,
           latencyMs: result.latencyMs,
           promptTokens: result.promptTokens,
@@ -993,6 +1112,7 @@ export async function askComplianceQuestion(actor: Actor, question: string): Pro
 
       return {
         ...verified,
+        citations,
         mode: "grounded",
         model: result.model,
         latencyMs: Math.max(0, Date.now() - startedAt),
@@ -1009,12 +1129,14 @@ export async function askComplianceQuestion(actor: Actor, question: string): Pro
     }
   }
 
-  const fallback = answerQuestion(question, sources);
+  const fallback = answerFromPassages(question, passages);
   logger.info(
     {
       questionHash,
       mode: "retrieval",
       citations: fallback.citations.length,
+      passages: passages.length,
+      vectorHits: vectorHits.length,
       latencyMs: Math.max(0, Date.now() - startedAt),
     },
     "assistant answered",

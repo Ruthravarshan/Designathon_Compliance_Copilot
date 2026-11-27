@@ -80,6 +80,13 @@ enum DocumentStatus {
   ARCHIVED
 }
 
+enum EmbeddingStatus {
+  PENDING
+  READY
+  FAILED
+  SKIPPED
+}
+
 enum ObligationType {
   SECURITY_TESTING
   INCIDENT_REPORTING
@@ -280,6 +287,7 @@ model StorageConnection {
   updatedAt     DateTime                @updatedAt
   workspace     Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy     User?                   @relation("StorageConnectionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  documents     RegulatoryDocument[]
 
   @@unique([workspaceId, provider])
   @@index([workspaceId, isDefault])
@@ -304,8 +312,20 @@ model RegulatoryDocument {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   sourceId    String?
+  filename        String?
+  fileContentType String?
+  fileChecksum    String?
+  fileBytes       Bytes?
+  storageConnectionId String?
+  storageItemId   String?
+  storageWebUrl   String?
+  storagePath     String?
+  storageModifiedAt DateTime?
+  indexStatus     EmbeddingStatus @default(PENDING)
+  indexedAt       DateTime?
   workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   source      RegulatorySource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  storageConnection StorageConnection? @relation(fields: [storageConnectionId], references: [id], onDelete: SetNull)
   clauses     DocumentClause[]
   obligations Obligation[]
   findings    Finding[]
@@ -315,6 +335,8 @@ model RegulatoryDocument {
   @@index([workspaceId, ingestedAt])
   @@index([workspaceId, regulator, publishedAt])
   @@index([workspaceId, sourceId])
+  @@index([workspaceId, storageItemId])
+  @@index([workspaceId, indexStatus])
 }
 
 model DocumentClause {
@@ -326,6 +348,9 @@ model DocumentClause {
   pageNumber   Int
   orderIndex   Int
   text         String
+  embedding    Unsupported("vector(768)")?
+  embeddingModel String?
+  embeddedAt   DateTime?
   document     RegulatoryDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   obligations  Obligation[]
 

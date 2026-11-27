@@ -4,9 +4,12 @@ import { IngestionError, type IngestionErrorCode } from "@/server/ingestion/erro
 import { assertConnectionWorkspace, checksumOf, readConnectionConfig } from "./config";
 import type {
   StorageConnection,
+  StorageListInput,
+  StorageListResult,
   StorageProvider,
   StorageReadInput,
   StorageReadResult,
+  StorageStat,
   StorageUploadInput,
   StoredObject,
 } from "./types";
@@ -33,6 +36,28 @@ const tokenSchema = z.object({
 });
 const fileSchema = z.object({
   id: z.string().min(1),
+  webViewLink: z.string().url().optional(),
+});
+const listSchema = z.object({
+  files: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        name: z.string(),
+        mimeType: z.string().optional(),
+        size: z.string().optional(),
+        modifiedTime: z.string().optional(),
+        webViewLink: z.string().url().optional(),
+      }),
+    )
+    .default([]),
+  nextPageToken: z.string().optional(),
+});
+const statSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  size: z.string().optional(),
+  modifiedTime: z.string().optional(),
   webViewLink: z.string().url().optional(),
 });
 
@@ -325,6 +350,76 @@ export function createDriveProvider(
       return input.bytes.byteLength < SIMPLE_UPLOAD_BYTES
         ? smallUpload(input, checksum, folderId)
         : resumableUpload(input, checksum, folderId);
+    },
+
+    async list(input: StorageListInput): Promise<StorageListResult> {
+      const folderId = input.folderId ?? requireFolder();
+      const params = new URLSearchParams({
+        q: `'${folderId}' in parents and trashed = false`,
+        fields: "nextPageToken,files(id,name,mimeType,size,modifiedTime,webViewLink)",
+        pageSize: String(Math.min(Math.max(input.limit ?? 50, 1), 200)),
+        supportsAllDrives: "true",
+        includeItemsFromAllDrives: "true",
+      });
+      if (input.pageToken) {
+        params.set("pageToken", input.pageToken);
+      }
+      const response = await authorized("GET", `${DRIVE_API}/files?${params.toString()}`);
+      if (!response.ok) {
+        throw new IngestionError(
+          driveErrorCode(response.status),
+          "The storage folder could not be listed.",
+        );
+      }
+      const parsed = listSchema.safeParse(await response.json());
+      if (!parsed.success) {
+        throw new IngestionError(
+          "STORAGE_UNAVAILABLE",
+          "The storage provider returned an incomplete folder listing.",
+        );
+      }
+      return {
+        entries: parsed.data.files.map((file) => ({
+          id: file.id,
+          name: file.name,
+          kind: file.mimeType === "application/vnd.google-apps.folder" ? "folder" : "file",
+          ...(file.size ? { size: Number.parseInt(file.size, 10) } : {}),
+          ...(file.mimeType ? { contentType: file.mimeType } : {}),
+          ...(file.modifiedTime ? { modifiedAt: file.modifiedTime } : {}),
+          ...(file.webViewLink ? { webUrl: file.webViewLink } : {}),
+        })),
+        ...(parsed.data.nextPageToken ? { nextPageToken: parsed.data.nextPageToken } : {}),
+      };
+    },
+
+    async stat(itemId: string): Promise<StorageStat | null> {
+      const response = await authorized(
+        "GET",
+        `${DRIVE_API}/files/${encodeURIComponent(itemId)}?fields=id,name,size,modifiedTime,webViewLink&supportsAllDrives=true`,
+      );
+      if (response.status === 404) {
+        return null;
+      }
+      if (!response.ok) {
+        throw new IngestionError(
+          driveErrorCode(response.status),
+          "The stored file could not be inspected.",
+        );
+      }
+      const parsed = statSchema.safeParse(await response.json());
+      if (!parsed.success) {
+        throw new IngestionError(
+          "STORAGE_UNAVAILABLE",
+          "The storage provider returned incomplete file details.",
+        );
+      }
+      return {
+        id: parsed.data.id,
+        name: parsed.data.name,
+        ...(parsed.data.size ? { size: Number.parseInt(parsed.data.size, 10) } : {}),
+        ...(parsed.data.modifiedTime ? { modifiedAt: parsed.data.modifiedTime } : {}),
+        ...(parsed.data.webViewLink ? { webUrl: parsed.data.webViewLink } : {}),
+      };
     },
 
     async read(input: StorageReadInput): Promise<StorageReadResult> {

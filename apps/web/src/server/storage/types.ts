@@ -58,9 +58,44 @@ export interface StorageReadResult {
   contentRange?: string;
 }
 
+export interface StorageEntry {
+  id: string;
+  name: string;
+  kind: "file" | "folder";
+  size?: number;
+  contentType?: string;
+  modifiedAt?: string;
+  webUrl?: string;
+  path?: string;
+}
+
+export interface StorageListInput {
+  folderId?: string;
+  folderPath?: string;
+  pageToken?: string;
+  limit?: number;
+}
+
+export interface StorageListResult {
+  entries: StorageEntry[];
+  nextPageToken?: string;
+}
+
+export interface StorageStat {
+  id: string;
+  name: string;
+  size?: number;
+  modifiedAt?: string;
+  webUrl?: string;
+}
+
 export interface StorageProvider {
   kind: StorageKind;
   healthCheck(): Promise<{ ok: true } | { ok: false; code: string }>;
   upload(input: StorageUploadInput): Promise<StoredObject>;
   read(input: StorageReadInput): Promise<StorageReadResult>;
+  /** Browse a folder; providers that cannot list omit this. */
+  list?(input: StorageListInput): Promise<StorageListResult>;
+  /** Current metadata for one item; used by the storage change sync. */
+  stat?(itemId: string): Promise<StorageStat | null>;
 }

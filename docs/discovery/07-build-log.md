@@ -232,3 +232,28 @@ Next: `08-hardening-report.md`
 - Full release gate remains BLOCKED in this environment only: `npm run db:seed` needs Postgres and
   `apps/web/.env`, and neither Docker nor a local Postgres is installed. `npx playwright install
   chromium` was run and browsers are now available.
+
+## 2026-11-28 — Real corpus, hybrid retrieval, storage sync, email
+
+- Deleted the hand-written circular corpus (`DEMO_DOCUMENTS` and five fabricated clause sets).
+  `REAL_DOCUMENTS` now points at two checked-in regulator PDFs in `apps/web/prisma/fixtures/`:
+  IRDAI Information and Cyber Security Guidelines 2023 (`IRDAI/GA&HR/GDL/MISC/88/04/2023`) and SEBI
+  CSCRF (`SEBI/HO/ITD-1/ITD_CSC_EXT/P/CIR/2024/113`). The seed parses them with the same extractor as
+  live ingestion, keeps the English clauses of the bilingual SEBI PDF, archives the bytes for the
+  authorized PDF route, and embeds through Gemini (`gemini-embedding-001`, 768 dims) in paced
+  batches; throttling retries with 5/15/45s backoff. Result: 1,039 clauses and 672 findings across
+  287+205 pages.
+- Extraction cap raised from 40 clauses to 600 per PDF (`MAX_PDF_CLAUSES`): 40 clauses previously
+  stopped at the cover pages of any long regulator circular and made retrieval answer from titles.
+  Extraction helpers moved to `src/lib/watch/extract.ts`; embeddings and the vector literal moved to
+  `src/lib/llm` / `src/lib/search` so the seed and the app share one implementation (server modules
+  re-export, `server-only` stays on request paths).
+- Email: `/api/integrations/gmail/test` is provider-aware (SMTP/Resend/Gmail) and `enqueueEmail`
+  drains the outbox asynchronously for non-console providers. `/app/settings/email` shows the active
+  provider and Mailpit inbox instead of demanding Gmail OAuth locally. SMTP leg verified: Mailpit
+  received `SMTP check | smtp-check@hexa.local`.
+- Storage: browse/import routes, the 30-minute `syncAllWorkspaceStorage()` cron, and the docs in
+  `docs/STORAGE-SETUP.md` cover change detection (stat → read → text checksum → re-index) and the
+  credentials each provider needs.
+- Local reset: `public` schema dropped and rebuilt from `prisma/sql` (Prisma engines are stubbed on
+  this corporate network), then reseeded.

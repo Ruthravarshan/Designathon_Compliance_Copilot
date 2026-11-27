@@ -80,3 +80,43 @@ proxy.
 - The honest failure code is shown on the card and saved on the row.
 - Ingestion run evidence: `usedFallback` and `storageConnectionId` on the stored document, visible in
   audit metadata.
+
+## 6. Browse and import from the connected store
+
+**/app/settings/storage** lists the connected drive folder through the provider's own API
+(`/api/storage/browse`). Folders navigate in place; a PDF row opens an import form that calls
+`/api/storage/import`. Nothing is copied by hand: the server reads the file bytes, extracts clauses,
+archives the PDF, embeds it, and links the record back to the storage item (`storageItemId`,
+`storageWebUrl`).
+
+## 7. Keep pgvector in step with storage (every 30 minutes)
+
+`/api/cron/storage` runs `syncAllWorkspaceStorage()`. For every document that has a `storageItemId`
+it calls the provider's `stat()`, compares `storageModifiedAt`, re-reads and re-extracts the file, and
+only when the text checksum changed it rebuilds the clauses, records a `RegulatoryRevision`, and
+re-embeds the document. A pure metadata touch updates timestamps without re-embedding.
+
+Production: `apps/web/vercel.json` schedules it at `*/30 * * * *`. Manual run:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/storage
+```
+
+## 8. Email delivery
+
+| Environment | Provider                | Setup                                                                                                          |
+| ----------- | ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Local       | `smtp` → Mailpit        | `.env`: `EMAIL_PROVIDER=smtp`, `SMTP_URL=smtp://localhost:1025`; `npm run db:up`; inbox at localhost:8025.     |
+| Production  | `gmail` → Gmail API     | `EMAIL_PROVIDER=gmail`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY`; owner connects at /app/settings/email. |
+
+Every send is written to the `EmailMessage` outbox first, then drained asynchronously; `GET
+/api/cron/email` retries anything left queued. `/app/settings/email` is provider-aware, so a local
+SMTP test email works without any Gmail OAuth connection.
+
+## 9. Seeded corpus
+
+`npm run db:seed` deletes any document outside the real corpus and imports the checked-in regulator
+PDFs in `apps/web/prisma/fixtures/` (IRDAI Information and Cyber Security Guidelines 2023, SEBI CSCRF
+2024) through the same extractor, clause builder, and Gemini embedding path as live ingestion. The
+seed prints page and clause counts per document and marks each `indexStatus` (`READY`, `SKIPPED`, or
+`FAILED`); it never writes placeholder vectors.

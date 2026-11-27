@@ -3,12 +3,23 @@ export interface QaSource {
   label: string;
   kind: "policy" | "control" | "clause";
   text: string;
+  documentId?: string;
+  pageNumber?: number;
+  webUrl?: string;
+  pdfUrl?: string;
+  workspaceUrl?: string;
 }
 
 export interface QaCitation {
   id: string;
   label: string;
   quote: string;
+  kind?: QaSource["kind"];
+  documentId?: string;
+  pageNumber?: number;
+  webUrl?: string;
+  pdfUrl?: string;
+  workspaceUrl?: string;
 }
 
 export interface QaAnswer {
@@ -16,7 +27,7 @@ export interface QaAnswer {
   citations: QaCitation[];
   confidence: number;
   matched: boolean;
-  /** "grounded" answers passed LLM generation + verbatim citation checks; "retrieval" is the deterministic fallback. */
+  /** "grounded" used the model with verbatim checks; "retrieval" is the deterministic fallback. */
   mode?: "grounded" | "retrieval";
   model?: string;
   latencyMs?: number;
@@ -27,6 +38,11 @@ export interface QaPassage {
   score: number;
 }
 
+export interface VectorHit {
+  id: string;
+  similarity: number;
+}
+
 export const REFUSAL_ANSWER =
   "No internal policy, control, or circular passage matched this question. Escalate to the compliance office before acting.";
 
@@ -35,9 +51,12 @@ export const UNSEARCHABLE_ANSWER =
 
 const MAX_CITATIONS = 3;
 const MAX_QUOTE_LENGTH = 240;
-const MAX_PASSAGES = 6;
+const MAX_PASSAGES = 24;
+const DEFAULT_PASSAGE_LIMIT = 6;
 /** Below this BM25 score a passage is not evidence, just a shared word. */
 const MIN_PASSAGE_SCORE = 0.5;
+const MIN_VECTOR_SIMILARITY = 0.32;
+const VECTOR_WEIGHT = 2.5;
 const PHRASE_BONUS = 0.6;
 const LABEL_BOOST = 0.5;
 const BM25_K1 = 1.2;
@@ -385,7 +404,71 @@ export function retrievePassages(
           a.source.label.localeCompare(b.source.label)
         : b.score - a.score,
     )
-    .slice(0, Math.min(Math.max(options.limit ?? MAX_PASSAGES, 1), MAX_PASSAGES));
+    .slice(0, Math.min(Math.max(options.limit ?? DEFAULT_PASSAGE_LIMIT, 1), MAX_PASSAGES));
+}
+
+/**
+ * Weighted fusion of BM25 and semantic hits. Both signals are explainable: the
+ * lexical score comes from literal query terms, the semantic score is cosine
+ * similarity, and every fused passage still has to exist in the workspace
+ * source set.
+ */
+export function fusePassages(
+  question: string,
+  sources: readonly QaSource[],
+  vectorHits: readonly VectorHit[],
+  options: { limit?: number } = {},
+): QaPassage[] {
+  const limit = Math.min(Math.max(options.limit ?? DEFAULT_PASSAGE_LIMIT, 1), MAX_PASSAGES);
+
+  if (vectorHits.length === 0 || sources.length === 0) {
+    return retrievePassages(question, sources, { limit });
+  }
+
+  const sourceById = new Map(sources.map((source) => [source.id, source]));
+  const lexical = retrievePassages(question, sources, {
+    limit: Math.min(MAX_PASSAGES, Math.max(limit * 2, 12)),
+  });
+  const fused = new Map<string, QaPassage>();
+
+  for (const passage of lexical) {
+    fused.set(passage.source.id, passage);
+  }
+
+  for (const hit of vectorHits) {
+    if (!Number.isFinite(hit.similarity) || hit.similarity < MIN_VECTOR_SIMILARITY) {
+      continue;
+    }
+    const source = sourceById.get(hit.id);
+    if (!source) {
+      continue;
+    }
+    const previous = fused.get(hit.id)?.score ?? 0;
+    fused.set(hit.id, { source, score: previous + VECTOR_WEIGHT * hit.similarity });
+  }
+
+  return [...fused.values()]
+    .sort((a, b) =>
+      b.score === a.score
+        ? KIND_RANK[b.source.kind] - KIND_RANK[a.source.kind] ||
+          a.source.label.localeCompare(b.source.label)
+        : b.score - a.score,
+    )
+    .slice(0, limit);
+}
+
+export function citationFromSource(source: QaSource, quote: string): QaCitation {
+  return {
+    id: source.id,
+    label: source.label,
+    quote,
+    kind: source.kind,
+    ...(source.documentId ? { documentId: source.documentId } : {}),
+    ...(typeof source.pageNumber === "number" ? { pageNumber: source.pageNumber } : {}),
+    ...(source.webUrl ? { webUrl: source.webUrl } : {}),
+    ...(source.pdfUrl ? { pdfUrl: source.pdfUrl } : {}),
+    ...(source.workspaceUrl ? { workspaceUrl: source.workspaceUrl } : {}),
+  };
 }
 
 function pickQuote(text: string, queryTerms: readonly string[]): string {
@@ -421,29 +504,26 @@ export function confidenceFor(score: number): number {
 }
 
 /**
- * Deterministic extractive answer. No generation: the answer quotes the
- * best-matching passage and lists its citations, and escalates when nothing
- * clears the evidence threshold.
+ * Deterministic extractive answer over an already-ranked passage list. No
+ * generation: the answer quotes the best-matching passage and lists citations,
+ * and escalates when nothing clears the evidence threshold.
  */
-export function answerQuestion(question: string, sources: readonly QaSource[]): QaAnswer {
+export function answerFromPassages(question: string, passages: readonly QaPassage[]): QaAnswer {
   const queryTerms = tokenize(question);
   if (queryTerms.length === 0) {
     return { answer: UNSEARCHABLE_ANSWER, citations: [], confidence: 0, matched: false };
   }
-
-  const passages = retrievePassages(question, sources, { limit: MAX_CITATIONS });
   if (passages.length === 0) {
     return { answer: REFUSAL_ANSWER, citations: [], confidence: 0, matched: false };
   }
 
   const best = passages[0]!;
+  const cited = passages.slice(0, MAX_CITATIONS);
   const bestQuote = pickQuote(best.source.text, queryTerms);
-  const citations = passages.map((passage) => ({
-    id: passage.source.id,
-    label: passage.source.label,
-    quote: pickQuote(passage.source.text, queryTerms),
-  }));
-  const supporting = passages
+  const citations = cited.map((passage) =>
+    citationFromSource(passage.source, pickQuote(passage.source.text, queryTerms)),
+  );
+  const supporting = cited
     .slice(1)
     .map((passage) => passage.source.label)
     .join("; ");
@@ -459,4 +539,21 @@ export function answerQuestion(question: string, sources: readonly QaSource[]): 
     confidence: confidenceFor(best.score),
     matched: true,
   };
+}
+
+/**
+ * Deterministic extractive answer. No generation: the answer quotes the
+ * best-matching passage and lists its citations, and escalates when nothing
+ * clears the evidence threshold.
+ */
+export function answerQuestion(question: string, sources: readonly QaSource[]): QaAnswer {
+  const queryTerms = tokenize(question);
+  if (queryTerms.length === 0) {
+    return { answer: UNSEARCHABLE_ANSWER, citations: [], confidence: 0, matched: false };
+  }
+
+  return answerFromPassages(
+    question,
+    retrievePassages(question, sources, { limit: MAX_CITATIONS }),
+  );
 }
