@@ -168,3 +168,21 @@ Next: `08-hardening-report.md`
   rejection panels, and the refreshed badges/settings. Local revision-history panel stays wired into
   circular detail. Post-merge `typecheck`, `lint`, and 420/420 tests are green; merge left staged for
   the operator to commit.
+
+## 2026-11-28 — Storage: SharePoint primary, Drive/Supabase fallback, owner+admin control
+
+- `StorageConnection` gains `isFallback`, `status`, `lastErrorCode`, `lastCheckedAt`; partial unique
+  indexes keep one primary and one fallback per workspace (`prisma/sql/003-storage-connections.sql`,
+  applied by `npm run db:init` alongside `init.sql`).
+- Graph adapter resolves the pasted OneDrive folder link via `/shares/{id}/driveItem`, with
+  `driveOwner` (UPN), `driveId`, and `siteId` alternatives; folder path is prefixed to object paths.
+- Google Drive adapter is real (service-account JWT, multipart <5 MB, resumable >=5 MB, ranged read);
+  it fails closed with `INTEGRATION_NOT_CONFIGURED` when the key or folder is missing.
+- Ingestion uses the fallback connection only on `INTEGRATION_NOT_CONFIGURED` / `STORAGE_UNAVAILABLE`;
+  duplicates and validation errors never fall back, and the document records the serving connection.
+- `/app/settings/storage` + `/api/integrations/storage[/test]` let owners/admins pick roles, save
+  non-secret settings, run a live provider probe, and remove a connection; every change is audited.
+- Fixed a personal Gmail hard-coded as the redline fallback assignee (now
+  `compliance@hexa.example`, matching the test).
+- Evidence: `typecheck` clean, `lint` clean, 436/436 unit tests. Live probe against a real provider
+  not yet evidenced — owner must supply Graph consent and the Drive key first.

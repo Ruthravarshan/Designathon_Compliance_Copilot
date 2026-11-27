@@ -1,9 +1,18 @@
 export type StorageKind = "SHAREPOINT" | "SUPABASE_STORAGE" | "GOOGLE_DRIVE";
+export type StorageConnectionStatus = "UNVERIFIED" | "CONNECTED" | "ERROR";
 
 export interface StorageConnectionConfig {
   siteId?: string;
   driveId?: string;
+  /** OneDrive/SharePoint owner UPN; the drive is resolved at runtime. */
+  driveOwner?: string;
   folder?: string;
+  /** Item id of the target folder, e.g. resolved from a shared folder link. */
+  folderItemId?: string;
+  /** Shared folder link the owner pasted; resolved through Graph /shares. */
+  folderUrl?: string;
+  /** Google Drive folder id; derived from the folder link when omitted. */
+  folderId?: string;
   bucket?: string;
   pathPrefix?: string;
 }
@@ -15,6 +24,10 @@ export interface StorageConnection {
   provider: StorageKind;
   config: StorageConnectionConfig;
   isDefault: boolean;
+  isFallback?: boolean;
+  status?: StorageConnectionStatus;
+  lastErrorCode?: string | null;
+  lastCheckedAt?: string | null;
 }
 
 export interface StorageUploadInput {

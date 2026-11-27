@@ -5,10 +5,14 @@ import {
   checksumOf,
 } from "@/server/storage";
 import type { StorageConnection, StorageProvider, StoredObject } from "@/server/storage/types";
-import { IngestionError } from "./errors";
+import { IngestionError, type IngestionErrorCode } from "./errors";
 import { getRuntime, type IngestionRepository } from "./runtime";
 
 const MAX_FILENAME_LENGTH = 120;
+const FALLBACK_CODES: ReadonlySet<IngestionErrorCode> = new Set([
+  "INTEGRATION_NOT_CONFIGURED",
+  "STORAGE_UNAVAILABLE",
+]);
 
 export interface StorePdfInput {
   workspaceId: string;
@@ -19,8 +23,12 @@ export interface StorePdfInput {
   reference: string | null;
   publishedAt: string | null;
   connection: StorageConnection;
+  /** Standby connection an admin configured; used only for the safe codes above. */
+  fallback?: StorageConnection;
   /** Test seam; production always uses the configured provider. */
   provider?: StorageProvider;
+  /** Test seam for the standby connection. */
+  fallbackProvider?: StorageProvider;
 }
 
 export interface StorePdfResult {
@@ -31,6 +39,7 @@ export interface StorePdfResult {
   size: number;
   path?: string;
   storageConnectionId: string;
+  usedFallback?: boolean;
 }
 
 /** Never overwrite: a known checksum links the existing document instead. */
@@ -98,13 +107,34 @@ export async function storePdf(
   }
 
   const provider = input.provider ?? getStorageProvider(input.connection);
-  const stored = await provider.upload({
-    workspaceId: input.workspaceId,
-    path,
-    bytes: input.bytes,
-    contentType: "application/pdf",
-    filename,
-  });
+  const upload = (target: StorageConnection, via: StorageProvider | undefined) =>
+    (via ?? getStorageProvider(target)).upload({
+      workspaceId: input.workspaceId,
+      path,
+      bytes: input.bytes,
+      contentType: "application/pdf",
+      filename,
+    });
+
+  let used = input.connection;
+  let stored: StoredObject;
+  try {
+    stored = await upload(input.connection, provider);
+  } catch (error) {
+    const fallback = input.fallback;
+    const code = error instanceof IngestionError ? error.ingestionCode : null;
+    const eligible =
+      fallback !== undefined &&
+      fallback.id !== input.connection.id &&
+      fallback.workspaceId === input.workspaceId &&
+      code !== null &&
+      FALLBACK_CODES.has(code);
+    if (!eligible) {
+      throw error;
+    }
+    stored = await upload(fallback, input.fallbackProvider);
+    used = fallback;
+  }
 
   return {
     duplicate: false,
@@ -112,6 +142,7 @@ export async function storePdf(
     filename,
     size: input.bytes.byteLength,
     path,
-    storageConnectionId: input.connection.id,
+    storageConnectionId: used.id,
+    ...(used.id !== input.connection.id ? { usedFallback: true } : {}),
   };
 }

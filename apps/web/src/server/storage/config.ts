@@ -3,10 +3,14 @@ import { z } from "zod";
 import { IngestionError } from "@/server/ingestion/errors";
 import type { StorageConnection, StorageConnectionConfig } from "./types";
 
-const connectionConfigSchema = z.object({
+export const connectionConfigSchema = z.object({
   siteId: z.string().trim().min(1).optional(),
   driveId: z.string().trim().min(1).optional(),
+  driveOwner: z.string().trim().min(1).optional(),
   folder: z.string().trim().min(1).optional(),
+  folderItemId: z.string().trim().min(1).optional(),
+  folderUrl: z.string().trim().url().optional(),
+  folderId: z.string().trim().min(1).optional(),
   bucket: z.string().trim().min(1).optional(),
   pathPrefix: z.string().trim().min(1).optional(),
 });
@@ -56,4 +60,10 @@ export function safeObjectPath(segments: readonly string[]): string {
 
 export function checksumOf(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+/** Extracts the folder id from a Google Drive folder link: /folders/<id> or ?id=<id>. */
+export function driveFolderIdFromUrl(url: string): string | null {
+  const match = /\/folders\/([A-Za-z0-9_-]{6,})/.exec(url) ?? /[?&]id=([A-Za-z0-9_-]{6,})/.exec(url);
+  return match?.[1] ?? null;
 }

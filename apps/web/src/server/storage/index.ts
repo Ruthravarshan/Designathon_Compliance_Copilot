@@ -1,4 +1,5 @@
 import { IngestionError } from "@/server/ingestion/errors";
+import { createDriveProvider } from "./drive";
 import { createGraphProvider } from "./graph";
 import { createSupabaseProvider } from "./supabase";
 import type { StorageConnection, StorageProvider } from "./types";
@@ -23,10 +24,7 @@ export function getStorageProvider(connection: StorageConnection): StorageProvid
     case "SUPABASE_STORAGE":
       return createSupabaseProvider(connection);
     case "GOOGLE_DRIVE":
-      throw new IngestionError(
-        "INTEGRATION_NOT_CONFIGURED",
-        "Google Drive storage is not configured.",
-      );
+      return createDriveProvider(connection);
     default:
       throw new IngestionError(
         "INTEGRATION_NOT_CONFIGURED",

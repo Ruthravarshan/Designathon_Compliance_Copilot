@@ -1,11 +1,20 @@
-// Applies prisma/sql/init.sql. Used where Prisma's migration engine cannot
-// download (blocked network); on open networks `prisma db push` also works.
-import { readFileSync } from "node:fs";
+// Applies prisma/sql/init.sql followed by the numbered migrations. Used where
+// Prisma's migration engine cannot download (blocked network); on open networks
+// `prisma db push` also works.
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { Client } from "pg";
 
-const sqlPath = fileURLToPath(new URL("../prisma/sql/init.sql", import.meta.url));
+const sqlDir = fileURLToPath(new URL("../prisma/sql", import.meta.url));
 const connectionString = process.env.DATABASE_URL;
+const files = [
+  join(sqlDir, "init.sql"),
+  ...readdirSync(sqlDir)
+    .filter((file) => /^\d{3}-.+\.sql$/.test(file))
+    .sort()
+    .map((file) => join(sqlDir, file)),
+];
 
 if (!connectionString) {
   console.error("DATABASE_URL is required. Run with: node --env-file=.env scripts/db-init.mjs");
@@ -16,7 +25,9 @@ const client = new Client({ connectionString });
 
 try {
   await client.connect();
-  await client.query(readFileSync(sqlPath, "utf8"));
+  for (const file of files) {
+    await client.query(readFileSync(file, "utf8"));
+  }
   const { rows } = await client.query(
     "select count(*)::int as n from pg_tables where schemaname = 'public'",
   );

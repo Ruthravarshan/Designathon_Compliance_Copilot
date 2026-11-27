@@ -30,6 +30,7 @@ export const PERMISSIONS = [
   "watch:run",
   "policy:read",
   "policy:check",
+  "storage:manage",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -67,6 +68,7 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "watch:run",
     "policy:read",
     "policy:check",
+    "storage:manage",
   ]),
   MEMBER: new Set<Permission>([
     "workspace:read",
