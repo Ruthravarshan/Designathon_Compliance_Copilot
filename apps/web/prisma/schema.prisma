@@ -30,6 +30,18 @@ enum GmailStatus {
   ERROR
 }
 
+enum StorageProviderKind {
+  SHAREPOINT
+  SUPABASE_STORAGE
+  GOOGLE_DRIVE
+}
+
+enum StorageConnectionStatus {
+  UNVERIFIED
+  CONNECTED
+  ERROR
+}
+
 enum Regulator {
   RBI
   SEBI
@@ -125,6 +137,7 @@ model User {
   reviewedFindings Finding[]       @relation("FindingReviewer")
   reviewEvents     ReviewEvent[]   @relation("ReviewActor")
   gmailConnections GmailAccount[]  @relation("GmailConnectedBy")
+  storageConnections StorageConnection[] @relation("StorageConnectionCreator")
 }
 
 model Workspace {
@@ -144,6 +157,7 @@ model Workspace {
   reviewEvents ReviewEvent[]
   dataScans   DataFieldScan[]
   gmailAccount GmailAccount?
+  storageConnections StorageConnection[]
   sources     RegulatorySource[]
   watchRuns   WatchRun[]
   policyChecks PolicyCheck[]
@@ -249,6 +263,27 @@ model GmailAccount {
 
   @@index([status])
   @@index([email])
+}
+
+model StorageConnection {
+  id            String                  @id @default(cuid())
+  workspaceId   String
+  provider      StorageProviderKind
+  config        Json                    @default("{}")
+  isDefault     Boolean                 @default(false)
+  isFallback    Boolean                 @default(false)
+  status        StorageConnectionStatus @default(UNVERIFIED)
+  lastErrorCode String?
+  lastCheckedAt DateTime?
+  createdById   String?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  workspace     Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy     User?                   @relation("StorageConnectionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, provider])
+  @@index([workspaceId, isDefault])
+  @@index([workspaceId, isFallback])
 }
 
 model RegulatoryDocument {

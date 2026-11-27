@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   description:
     "Regulatory change, reviewed and on record: ingested circulars, verified citations, policy changes, assignments, and an immutable audit trail.",
   applicationName: "PolicyPulse",
+  // Static icon in public/: Next 15.5 on Windows fails to build the app/icon.svg
+  // metadata route ("no direct app page entry found").
+  icons: { icon: "/icon.svg" },
   robots: { index: false, follow: false },
 };
 

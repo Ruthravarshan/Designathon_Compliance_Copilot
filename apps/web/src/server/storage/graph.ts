@@ -24,6 +24,11 @@ const tokenSchema = z.object({
 });
 const itemSchema = z.object({ id: z.string().min(1), webUrl: z.string().url().optional() });
 const uploadSessionSchema = z.object({ uploadUrl: z.string().url() });
+const driveSchema = z.object({ id: z.string().min(1) });
+const sharedItemSchema = z.object({
+  id: z.string().min(1),
+  parentReference: z.object({ driveId: z.string().min(1).optional() }).optional(),
+});
 
 export type GraphFetch = (url: string, init: RequestInit) => Promise<Response>;
 
@@ -63,6 +68,15 @@ function encodePath(path: string): string {
     throw new IngestionError("BAD_REQUEST", "The storage path is not valid.");
   }
   return segments.map(encodeURIComponent).join("/");
+}
+
+/** Graph share id for a sharing link: "u!" + unpadded base64url of the URL. */
+export function graphShareId(url: string): string {
+  return `u!${Buffer.from(url).toString("base64url")}`;
+}
+
+function trimFolder(folder: string | undefined): string {
+  return (folder ?? "").replace(/^\/+|\/+$/g, "");
 }
 
 export function createGraphProvider(
@@ -138,19 +152,124 @@ export function createGraphProvider(
     });
   }
 
-  function requireSiteDrive(): { siteId: string; driveId: string } {
-    if (!config.siteId || !config.driveId) {
-      throw new IngestionError(
-        "INTEGRATION_NOT_CONFIGURED",
-        "The SharePoint site and drive are not configured.",
-      );
-    }
-    return { siteId: config.siteId, driveId: config.driveId };
-  }
-
   function bodyFor(bytes: Uint8Array): BodyInit {
     // Node fetch accepts Uint8Array; the DOM BodyInit type is narrower.
     return bytes as unknown as BodyInit;
+  }
+
+  interface DriveTarget {
+    driveId: string;
+    folderItemId?: string;
+    folderPath: string;
+  }
+
+  let resolvedTarget: DriveTarget | null = null;
+
+  async function resolveSharedFolder(url: string): Promise<{ driveId: string; itemId: string }> {
+    const response = await request(
+      "GET",
+      `/shares/${encodeURIComponent(graphShareId(url))}/driveItem?$select=id,parentReference`,
+    );
+    if (!response.ok) {
+      throw new IngestionError(
+        graphErrorCode(response.status),
+        "The shared SharePoint folder could not be resolved.",
+      );
+    }
+    const parsed = sharedItemSchema.safeParse(await response.json());
+    const driveId = parsed.success ? parsed.data.parentReference?.driveId : undefined;
+    if (!parsed.success || !driveId) {
+      throw new IngestionError(
+        "STORAGE_UNAVAILABLE",
+        "The shared SharePoint folder could not be resolved.",
+      );
+    }
+    return { driveId, itemId: parsed.data.id };
+  }
+
+  async function resolveDriveId(): Promise<string> {
+    if (config.driveId) {
+      return config.driveId;
+    }
+    if (config.driveOwner) {
+      const response = await request(
+        "GET",
+        `/users/${encodeURIComponent(config.driveOwner)}/drive?$select=id`,
+      );
+      if (!response.ok) {
+        throw new IngestionError(
+          graphErrorCode(response.status),
+          "The SharePoint drive owner could not be resolved.",
+        );
+      }
+      const parsed = driveSchema.safeParse(await response.json());
+      if (!parsed.success) {
+        throw new IngestionError(
+          "STORAGE_UNAVAILABLE",
+          "The SharePoint drive owner could not be resolved.",
+        );
+      }
+      return parsed.data.id;
+    }
+    if (config.siteId) {
+      const response = await request(
+        "GET",
+        `/sites/${encodeURIComponent(config.siteId)}/drive?$select=id`,
+      );
+      if (!response.ok) {
+        throw new IngestionError(
+          graphErrorCode(response.status),
+          "The SharePoint site drive could not be resolved.",
+        );
+      }
+      const parsed = driveSchema.safeParse(await response.json());
+      if (!parsed.success) {
+        throw new IngestionError(
+          "STORAGE_UNAVAILABLE",
+          "The SharePoint site drive could not be resolved.",
+        );
+      }
+      return parsed.data.id;
+    }
+    throw new IngestionError(
+      "INTEGRATION_NOT_CONFIGURED",
+      "The SharePoint drive is not configured.",
+    );
+  }
+
+  async function target(): Promise<DriveTarget> {
+    if (resolvedTarget) {
+      return resolvedTarget;
+    }
+
+    const folderPath = trimFolder(config.folder);
+    if (config.folderItemId) {
+      resolvedTarget = {
+        driveId: await resolveDriveId(),
+        folderItemId: config.folderItemId,
+        folderPath,
+      };
+      return resolvedTarget;
+    }
+    if (config.folderUrl) {
+      const shared = await resolveSharedFolder(config.folderUrl);
+      resolvedTarget = {
+        driveId: shared.driveId,
+        folderItemId: shared.itemId,
+        folderPath,
+      };
+      return resolvedTarget;
+    }
+    resolvedTarget = { driveId: await resolveDriveId(), folderPath };
+    return resolvedTarget;
+  }
+
+  function contentBase(resolved: DriveTarget, path: string): string {
+    const relative = resolved.folderPath ? `${encodePath(resolved.folderPath)}/${path}` : path;
+    const root = resolved.folderItemId
+      ? `/drives/${encodeURIComponent(resolved.driveId)}/items/${encodeURIComponent(resolved.folderItemId)}`
+      : `/drives/${encodeURIComponent(resolved.driveId)}/root`;
+    return `${root}:/${relative}`;
   }
 
   return {
@@ -158,8 +277,8 @@ export function createGraphProvider(
 
     async healthCheck() {
       try {
-        const { siteId } = requireSiteDrive();
-        const response = await request("GET", `/sites/${encodeURIComponent(siteId)}/drive`);
+        const resolved = await target();
+        const response = await request("GET", `/drives/${encodeURIComponent(resolved.driveId)}`);
         if (!response.ok) {
           return { ok: false, code: graphErrorCode(response.status) };
         }
@@ -174,10 +293,9 @@ export function createGraphProvider(
 
     async upload(input: StorageUploadInput): Promise<StoredObject> {
       assertConnectionWorkspace(connection, input.workspaceId);
-      const { driveId } = requireSiteDrive();
       const path = encodePath(input.path);
       const checksum = checksumOf(input.bytes);
-      const drivePath = `/drives/${encodeURIComponent(driveId)}/root:/${path}`;
+      const drivePath = contentBase(await target(), path);
 
       let response: Response;
       if (input.bytes.byteLength < SMALL_UPLOAD_BYTES) {
@@ -245,7 +363,7 @@ export function createGraphProvider(
     },
 
     async read(input: StorageReadInput): Promise<StorageReadResult> {
-      const { driveId } = requireSiteDrive();
+      const { driveId } = await target();
       if (input.range && (input.range.start < 0 || input.range.end < input.range.start)) {
         throw new IngestionError("BAD_REQUEST", "The requested byte range is not valid.");
       }

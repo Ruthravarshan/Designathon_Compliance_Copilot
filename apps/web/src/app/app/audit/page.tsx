@@ -64,13 +64,14 @@ export default async function AuditPage() {
             actor, entity, and metadata. Review events carry their own immutable history.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           <Badge tone="brand" dot>
             Append-only
           </Badge>
           <a
             href="/api/export/findings"
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-xs font-medium text-fg transition-colors hover:border-muted/60 hover:bg-surface-2"
+            download
+            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-medium text-fg transition-colors hover:border-muted/60 hover:bg-surface-2"
           >
             <DownloadSimple size={14} weight="bold" aria-hidden="true" />
             Export evidence CSV

@@ -36,11 +36,20 @@ if (isProduction) {
   });
 }
 
+const repoRoot = path.resolve(process.cwd(), "../..");
+
+const prismaWasm = "../../node_modules/.prisma/client/**/*";
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   output: "standalone",
-  outputFileTracingRoot: path.resolve(process.cwd(), "../.."),
+  outputFileTracingRoot: repoRoot,
+  outputFileTracingIncludes: {
+    "/api/**": [prismaWasm],
+    "/app/**": [prismaWasm],
+    "/signin": [prismaWasm],
+  },
   serverExternalPackages: ["nodemailer", "pino", "pino-pretty"],
   async headers() {
     return [

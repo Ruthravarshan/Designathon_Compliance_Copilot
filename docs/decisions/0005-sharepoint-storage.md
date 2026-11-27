@@ -66,3 +66,23 @@ Mitigations:
 - Owner supplies the Azure app registration, consent, site/drive, and folder.
 - Add Google Drive only if the owner confirms it is required now.
 - Revisit Graph throttling and large-file limits after the first real ingestion.
+
+## Amendment 2026-11-28 — primary/fallback roles, Drive shipped
+
+The owner asked for SharePoint as the store for circular PDFs, Google Drive as a fallback that the
+owner creates later, and owner/admin control over both from the app (like the Gmail connection).
+
+- **Roles replace connection order.** Each `StorageConnection` row has `isDefault` (primary) and
+  `isFallback`; partial unique indexes and a transactional clear enforce at most one of each per
+  workspace. Owners and admins edit them at `/app/settings/storage` under the `storage:manage`
+  permission. Settings, not secrets, live in the row.
+- **SharePoint accepts a pasted folder link.** The folder link the owner has is a personal OneDrive
+  share; `folderUrl` is resolved via `/shares/{id}/driveItem`, so no site id is required. `driveOwner`
+  (UPN), `driveId`, or `siteId` remain alternatives.
+- **Google Drive is a real adapter now**, not a placeholder: service-account JWT, multipart and
+  resumable uploads, ranged reads, and an honest health probe.
+- **Decision 5 is narrowed.** The primary is still authoritative and no success is fabricated. A
+  fallback connection is used only when the primary returns `INTEGRATION_NOT_CONFIGURED` or
+  `STORAGE_UNAVAILABLE`; the stored document records the connection that actually served it
+  (`usedFallback`), and duplicate/validation errors never fall back.
+- Setup steps: `docs/STORAGE-SETUP.md`. Schema: `apps/web/prisma/sql/003-storage-connections.sql`.

@@ -288,7 +288,7 @@ export function HeroTelemetry() {
                 Mapped Policy
               </p>
               <p className="mt-1 text-sm font-medium text-fg">POL-SEC-02 · Incident response</p>
-              <p className="mt-0.5 text-xs text-muted">Owner: Arjun Mehta · CISO</p>
+              <p className="mt-0.5 text-xs text-muted">Owner: Ruthravarshan · CISO</p>
             </div>
             <div className="text-right">
               <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">

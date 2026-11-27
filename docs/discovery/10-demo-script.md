@@ -23,14 +23,21 @@ npm run dev
 
 ## Hosted demo (Supabase + Vercel)
 
-- URL: `https://____________________` (record after deploy; set `APP_URL` to this exact origin).
-- Supabase project: `____________________` (region `____________`). Warm it: open `/api/health` and
+- URL: `https://policypulse-sage.vercel.app` (Vercel production; `APP_URL` defaults to
+  `VERCEL_PROJECT_PRODUCTION_URL`).
+- Supabase project: `lmauvvmcwamzapnihcxh` (region `ap-south-1`). Warm it: open `/api/health` and
   confirm `database: "ok"` before the judges arrive; free-tier projects pause when idle.
 - Cron: Vercel runs `GET /api/cron/email` daily on Hobby; for the demo, drain manually with
-  `npm run email:process` (local) or
-  `curl -H "Authorization: Bearer $CRON_SECRET" https://<url>/api/cron/email`.
-- Seed the hosted demo before the pitch (idempotent):
-  `DATABASE_URL="<6543>" DIRECT_URL="<5432>" npm run db:push` then `DATABASE_URL="<6543>" npm run db:seed`.
+  `curl -H "Authorization: Bearer $CRON_SECRET" https://policypulse-sage.vercel.app/api/cron/email`.
+- Email on the deployed demo uses `EMAIL_PROVIDER=gmail`. The owner must connect the sending mailbox
+  once at `/app/settings/email` (Settings → Email → Connect Gmail) and approve the `gmail.send`
+  consent; until then outbox rows stay queued and the cron drain returns an error.
+- Demo recipients are real inboxes: the owner persona (Rajeshwari) signs in as
+  `rajeshwaridev871@gmail.com`, the CISO persona (Ruthravarshan) as `ruthravarshan.ksrct@gmail.com`.
+  Every seeded pending finding is owned by one of the two, so an approved review emails a real inbox.
+- Seed the hosted demo before the pitch (idempotent): the schema was applied with
+  `apps/web/prisma/sql/init.sql` + `002-gmail-account.sql` (Prisma binary host blocked), then
+  `apps/web/prisma/seed.ts` was run against the Supabase URLs.
 - Setup and smoke steps: [docs/DEPLOYMENT.md](../DEPLOYMENT.md).
 
 ## Script
@@ -45,7 +52,7 @@ npm run dev
 
 ### 0:35–1:15 — Sign in and dashboard
 
-- Click **Open workbench** → pick **Meera Krishnan, Head of Compliance**.
+- Click **Open workbench** → pick **Rajeshwari, Head of Compliance**.
 - On Overview: "Seven findings await sign-off across 5 circulars and 13 clauses. The queue is ordered
   by severity and deadline. Nothing here can publish itself."
 - Point at the confidence formula strip: 40% citation, 35% mapping, 25% rule certainty.
@@ -70,6 +77,9 @@ npm run dev
   review history gains an entry.
 - Say: "One transaction wrote the status, the immutable review event, and the audit row. The system
   never edits the policy register; approval queues a remediation email to the owner instead."
+- If Gmail is connected, drain and show the inbox: `curl -H "Authorization: Bearer $CRON_SECRET"
+  https://policypulse-sage.vercel.app/api/cron/email`, then open the recipient's mailbox. The task
+  email arrives at the owner's real address (see hosted-demo notes above).
 
 ### 3:00–3:30 — The audit trail and role boundary
 
@@ -82,7 +92,7 @@ npm run dev
 
 - Sign out, sign in as **Tara Singh, Northwind Assurance** (isolation tenant). Findings and circulars
   are empty; the workspace label changes.
-- Optional if time: sign back in as Meera → **Policy Q&A**, ask "Can we store payment data in
+- Optional if time: sign back in as Rajeshwari → **Policy Q&A**, ask "Can we store payment data in
   Singapore?" → grounded answer with citations; **Data discovery** shows DPDP risk fields with
   consent/encryption gaps.
 

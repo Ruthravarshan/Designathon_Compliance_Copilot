@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createGraphProvider, graphErrorCode, type GraphFetch } from "./graph";
+import { createGraphProvider, graphErrorCode, graphShareId, type GraphFetch } from "./graph";
 import type { StorageConnection } from "./types";
 
 const connection = (suffix: string): StorageConnection => ({
@@ -49,10 +49,10 @@ describe("SharePoint Graph adapter", () => {
       code: "INTEGRATION_NOT_CONFIGURED",
     });
     vi.stubEnv("MSFT_GRAPH_TENANT_ID", tenant);
-    const missingDrive = { ...connection("missing-drive"), config: { siteId: "site-1" } };
+    const bare = { ...connection("missing-drive"), config: {} };
     const fetchMock: GraphFetch = vi.fn(async () => json({}));
     await expect(
-      createGraphProvider(missingDrive, { fetch: fetchMock }).upload({
+      createGraphProvider(bare, { fetch: fetchMock }).upload({
         workspaceId: "ws-1",
         path: "ws/circular.pdf",
         bytes,
@@ -90,7 +90,7 @@ describe("SharePoint Graph adapter", () => {
     });
     expect(stored.checksum).toMatch(/^[a-f0-9]{64}$/);
     const put = calls.find((call) => call.init.method === "PUT");
-    expect(put?.url).toContain("/root:/ws-1/issuer/2026/ref-abc123.pdf:/content");
+    expect(put?.url).toContain("/root:/circulars/ws-1/issuer/2026/ref-abc123.pdf:/content");
     expect((put?.init.headers as Record<string, string>)["if-none-match"]).toBe("*");
     expect((put?.init.headers as Record<string, string>).authorization).toBe("Bearer token-value");
   });
@@ -200,6 +200,67 @@ describe("SharePoint Graph adapter", () => {
         range: { start: 9, end: 2 },
       }),
     ).rejects.toMatchObject({ ingestionCode: "BAD_REQUEST" });
+  });
+
+  it("resolves a pasted folder link and uploads into that folder", async () => {
+    const linked = "https://contoso.sharepoint.com/sites/reg/Shared%20Documents/PolicyPulse?e=abc";
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fetchMock: GraphFetch = async (url, init) => {
+      calls.push({ url, init });
+      if (url.includes("/oauth2/v2.0/token")) {
+        return json({ access_token: "token-value", expires_in: 3600 });
+      }
+      if (url.includes("/shares/")) {
+        return json({ id: "folder-9", parentReference: { driveId: "drive-9" } });
+      }
+      return json({ id: "item-shared", webUrl: "https://sharepoint.example/shared.pdf" });
+    };
+
+    const stored = await createGraphProvider(
+      { ...connection("shared"), config: { folderUrl: linked } },
+      { fetch: fetchMock },
+    ).upload({
+      workspaceId: "ws-1",
+      path: "ws/a.pdf",
+      bytes,
+      contentType: "application/pdf",
+      filename: "a.pdf",
+    });
+
+    expect(stored.itemId).toBe("item-shared");
+    expect(
+      calls.some((call) => call.url.includes(`/shares/${graphShareId(linked)}/driveItem`)),
+    ).toBe(true);
+    const put = calls.find((call) => call.init.method === "PUT");
+    expect(put?.url).toContain("/drives/drive-9/items/folder-9:/ws/a.pdf:/content");
+  });
+
+  it("resolves the drive from the owner UPN when no drive id is set", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fetchMock: GraphFetch = async (url, init) => {
+      calls.push({ url, init });
+      if (url.includes("/oauth2/v2.0/token")) {
+        return json({ access_token: "token-value", expires_in: 3600 });
+      }
+      if (url.includes("/users/")) {
+        return json({ id: "drive-7" });
+      }
+      return json({ id: "item-owner", webUrl: "https://sharepoint.example/owner.pdf" });
+    };
+
+    await createGraphProvider(
+      { ...connection("owner"), config: { driveOwner: "owner@contoso.com" } },
+      { fetch: fetchMock },
+    ).upload({
+      workspaceId: "ws-1",
+      path: "ws/a.pdf",
+      bytes,
+      contentType: "application/pdf",
+      filename: "a.pdf",
+    });
+
+    const put = calls.find((call) => call.init.method === "PUT");
+    expect(put?.url).toContain("/drives/drive-7/root:/ws/a.pdf:/content");
   });
 
   it("reports connection health from a live drive read", async () => {

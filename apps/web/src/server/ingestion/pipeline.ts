@@ -290,6 +290,9 @@ export async function runPipeline(
     const connection = requireConnection(
       await repository.getConnection(job.workspaceId, job.payload.storageConnectionId),
     );
+    const fallback = repository.getFallbackConnection
+      ? await repository.getFallbackConnection(job.workspaceId, connection.id)
+      : null;
     const stored = await storePdf(
       {
         workspaceId: job.workspaceId,
@@ -299,6 +302,7 @@ export async function runPipeline(
         reference: null,
         publishedAt: null,
         connection,
+        ...(fallback ? { fallback } : {}),
         ...(deps.provider ? { provider: deps.provider } : {}),
       },
       repository,

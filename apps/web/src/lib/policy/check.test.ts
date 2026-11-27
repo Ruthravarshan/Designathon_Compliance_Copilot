@@ -11,7 +11,13 @@ describe("assessPolicy", () => {
     );
     expect(assessment.result).toBe("COMPLIANT");
     expect(assessment.score).toBe(100);
-    expect(assessment.summary).toBe("No open obligations are mapped to this policy.");
+    expect(assessment.summary).toBe("The 1 mapped obligation is met; no open gaps.");
+  });
+
+  it("is COMPLIANT and says so when nothing is mapped yet", () => {
+    const assessment = assessPolicy([], NOW);
+    expect(assessment.result).toBe("COMPLIANT");
+    expect(assessment.summary).toBe("No regulatory obligations are mapped to this policy yet.");
   });
 
   it("is GAPS when a critical or high finding is open", () => {

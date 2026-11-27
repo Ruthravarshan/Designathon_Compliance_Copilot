@@ -117,7 +117,7 @@ export function draftRedline({
       taskTitle: `Retain evidence: ${taskTitle(obligation.requirement)}`,
       taskAction:
         "No policy change is required. Attach the control evidence to the next compliance review.",
-      assigneeName: record?.ownerName ?? "Compliance Office",
+      assigneeName: record?.ownerName ?? "Rajeshwari",
       assigneeEmail: record?.ownerEmail ?? "compliance@hexa.example",
     };
   }
@@ -132,7 +132,7 @@ export function draftRedline({
     after,
     taskTitle: taskTitle(obligation.requirement),
     taskAction: obligation.actionRequired,
-    assigneeName: record?.ownerName ?? "Compliance Office",
+    assigneeName: record?.ownerName ?? "Rajeshwari",
     assigneeEmail: record?.ownerEmail ?? "compliance@hexa.example",
   };
 }

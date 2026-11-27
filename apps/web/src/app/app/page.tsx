@@ -9,14 +9,16 @@ import {
   HourglassHigh,
   ShieldWarning,
   Sparkle,
+  WarningOctagon,
 } from "@phosphor-icons/react/dist/ssr";
 import { ComplianceCharts } from "@/components/dashboard/compliance-charts";
 import { SeverityBadge } from "@/components/severity-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { formatDate, firstName, formatPercent } from "@/lib/format";
+import { formatDate, firstName, formatPercent, humanize } from "@/lib/format";
 import { getActor } from "@/server/auth/actor";
 import { getDashboard } from "@/server/compliance/service";
+import { getWorkspacePosture } from "@/server/watch/service";
 
 export const metadata = {
   title: "Overview",
@@ -28,7 +30,10 @@ export default async function DashboardPage() {
     redirect("/signin");
   }
 
-  const dashboard = await getDashboard(actor);
+  const [dashboard, posture] = await Promise.all([
+    getDashboard(actor),
+    getWorkspacePosture(actor.workspaceId),
+  ]);
   const { findings } = dashboard;
 
   const metrics = [
@@ -124,6 +129,81 @@ export default async function DashboardPage() {
             </Link>
           );
         })}
+      </section>
+
+      <section aria-label="Compliance posture" className="grid gap-4 lg:grid-cols-[340px_1fr]">
+        <Card className="p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+              Compliance posture
+            </p>
+            <Badge
+              tone={
+                posture.band === "STRONG" ? "brand" : posture.band === "FAIR" ? "outline" : "danger"
+              }
+              dot
+            >
+              {humanize(posture.band)}
+            </Badge>
+          </div>
+          <p className="mt-3 font-mono text-5xl font-medium tracking-tight text-brand tabular-nums dark:text-accent">
+            {posture.score}
+            <span className="ml-1 text-lg text-muted">/100</span>
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-muted">
+            {posture.open} open findings · {posture.overdue} overdue. Only items awaiting officer
+            sign-off lower the score; approved or rejected work is excluded.
+          </p>
+          <Link
+            href="/app/watch"
+            className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline dark:text-accent"
+          >
+            Open regulatory watch
+            <ArrowRight size={12} weight="bold" aria-hidden="true" />
+          </Link>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-center gap-2.5">
+            <WarningOctagon
+              size={16}
+              weight="bold"
+              aria-hidden="true"
+              className={posture.overdue > 0 ? "text-danger" : "text-muted"}
+            />
+            <h2 className="text-sm font-semibold text-fg">Overdue alerts</h2>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-muted">
+            {posture.criticalOverdue + posture.highOverdue > 0
+              ? `${posture.criticalOverdue} critical and ${posture.highOverdue} high findings are past their due date. The weekly digest escalates them to the workspace owner.`
+              : "No critical or high findings are overdue. The weekly digest still reports posture and new circulars."}
+          </p>
+          <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              {
+                label: "Critical",
+                value: posture.counts.critical,
+                overdue: posture.criticalOverdue,
+              },
+              { label: "High", value: posture.counts.high, overdue: posture.highOverdue },
+              { label: "Medium", value: posture.counts.medium, overdue: posture.overdue },
+              { label: "Low", value: posture.counts.low, overdue: 0 },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-xl border border-line bg-surface-2 px-3 py-2.5"
+              >
+                <dt className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted">
+                  {item.label}
+                </dt>
+                <dd className="mt-1 text-lg font-medium text-fg">{item.value}</dd>
+                {item.overdue > 0 ? (
+                  <p className="text-[10px] text-danger">{item.overdue} overdue</p>
+                ) : null}
+              </div>
+            ))}
+          </dl>
+        </Card>
       </section>
 
       <ComplianceCharts

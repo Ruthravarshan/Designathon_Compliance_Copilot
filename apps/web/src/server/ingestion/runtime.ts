@@ -92,6 +92,11 @@ export interface IngestionRepository {
   getSource(workspaceId: string, sourceId: string): Promise<SourceRecord | null>;
   getSettings(workspaceId: string): Promise<SettingsRecord | null>;
   getConnection(workspaceId: string, connectionId?: string): Promise<StorageConnection | null>;
+  /** Optional: the standby connection used when the primary storage fails. */
+  getFallbackConnection?(
+    workspaceId: string,
+    excludeConnectionId: string,
+  ): Promise<StorageConnection | null>;
   findFileByChecksum(workspaceId: string, checksum: string): Promise<{ documentId: string } | null>;
   getRun(runId: string): Promise<RunRecord | null>;
   createRun(input: {

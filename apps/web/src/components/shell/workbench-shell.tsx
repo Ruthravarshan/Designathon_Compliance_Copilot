@@ -23,6 +23,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import type { ThemeMode } from "@/components/theme/theme";
 import { UserMenu } from "@/components/shell/user-menu";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { IconButton } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/overlays";
 import { RoleBadge } from "@/components/ui/status-badge";
@@ -67,6 +68,7 @@ export interface WorkbenchActor {
   role: string;
   workspaceName: string;
   workspaceSlug: string;
+  isDemo: boolean;
 }
 
 function SidebarNav({
@@ -190,6 +192,11 @@ export function WorkbenchShell({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
+            {actor.isDemo ? (
+              <Badge tone="brand" dot className="hidden sm:inline-flex">
+                Demo
+              </Badge>
+            ) : null}
             <ThemeToggle initialMode={initialTheme} />
             <UserMenu
               name={actor.name}

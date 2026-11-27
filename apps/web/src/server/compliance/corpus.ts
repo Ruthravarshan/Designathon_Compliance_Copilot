@@ -41,11 +41,54 @@ export const DEMO_WORKSPACES = [
   { slug: "northwind-assurance", name: "Northwind Assurance", role: "isolation" as const },
 ];
 
+export interface SourceSeed {
+  name: string;
+  regulator: RegulatorKey;
+  kind: "LISTING" | "DIRECT";
+  listingUrl: string;
+  allowedDomains: string[];
+  linkPattern?: string;
+  schedule: string;
+  enabled: boolean;
+}
+
+export const DEMO_SOURCES: SourceSeed[] = [
+  {
+    name: "RBI Master Directions",
+    regulator: "RBI",
+    kind: "LISTING",
+    listingUrl: "https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx",
+    allowedDomains: ["rbi.org.in"],
+    linkPattern: "BS_ViewMasDirections\\.aspx\\?id=",
+    schedule: "weekly",
+    enabled: true,
+  },
+  {
+    name: "RBI IT Governance Master Direction",
+    regulator: "RBI",
+    kind: "DIRECT",
+    listingUrl: "https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx?id=12562",
+    allowedDomains: ["rbi.org.in"],
+    schedule: "weekly",
+    enabled: true,
+  },
+  {
+    // Seeded paused: the listing mixes scanned and regional-language PDFs.
+    name: "IRDAI circulars",
+    regulator: "IRDAI",
+    kind: "LISTING",
+    listingUrl: "https://irdai.gov.in/circulars",
+    allowedDomains: ["irdai.gov.in"],
+    schedule: "weekly",
+    enabled: false,
+  },
+];
+
 export const DEMO_PERSONAS: PersonaSeed[] = [
   {
     key: "owner",
-    name: "Meera Krishnan",
-    email: "meera.krishnan@hexa.example",
+    name: "Rajeshwari",
+    email: "rajeshwaridev871@gmail.com",
     title: "Head of Compliance",
     role: "OWNER",
     workspaceSlug: "hexa-demo",
@@ -53,8 +96,8 @@ export const DEMO_PERSONAS: PersonaSeed[] = [
   },
   {
     key: "admin",
-    name: "Arjun Mehta",
-    email: "arjun.mehta@hexa.example",
+    name: "Ruthravarshan",
+    email: "ruthravarshan.ksrct@gmail.com",
     title: "Chief Information Security Officer",
     role: "ADMIN",
     workspaceSlug: "hexa-demo",
@@ -68,6 +111,15 @@ export const DEMO_PERSONAS: PersonaSeed[] = [
     role: "MEMBER",
     workspaceSlug: "hexa-demo",
     blurb: "Reads circulars, asks policy questions, and prepares the evidence pack.",
+  },
+  {
+    key: "hr",
+    name: "Ananya Rao",
+    email: "ananya.rao@hexa.example",
+    title: "HR Policy Owner",
+    role: "MEMBER",
+    workspaceSlug: "hexa-demo",
+    blurb: "Owns POL-HR-01 and can run a manual compliance check on it.",
   },
   {
     key: "auditor",
@@ -258,8 +310,8 @@ export const DEMO_POLICIES: ComplianceRecord[] = [
     section: "§4.2 Incident escalation",
     text: "Cyber security incidents are escalated to the CISO and reported to IRDAI and CERT-In within 72 hours of detection. Post-incident reviews are completed within five business days.",
     tags: ["incident-reporting", "security"],
-    ownerName: "Arjun Mehta",
-    ownerEmail: "arjun.mehta@hexa.example",
+    ownerName: "Ruthravarshan",
+    ownerEmail: "ruthravarshan.ksrct@gmail.com",
     attributes: { incidentReportHours: 72 },
   }),
   record({
@@ -269,8 +321,8 @@ export const DEMO_POLICIES: ComplianceRecord[] = [
     section: "§7 Consent lifecycle",
     text: "Customers may withdraw consent by writing to the privacy desk, and requests are honoured within 14 days. Personal data is retained for 18 months after account closure before deletion.",
     tags: ["consent", "privacy", "retention"],
-    ownerName: "Priya Nair",
-    ownerEmail: "priya.nair@hexa.example",
+    ownerName: "Rajeshwari",
+    ownerEmail: "rajeshwaridev871@gmail.com",
     attributes: {
       consentWithdrawal: "email_request_14_days",
       erasureOnWithdrawal: false,
@@ -287,8 +339,8 @@ export const DEMO_POLICIES: ComplianceRecord[] = [
     section: "§3 Log retention",
     text: "Application and security logs are retained for 90 days in the central log archive.",
     tags: ["logging", "log-retention", "retention"],
-    ownerName: "Rohit Sen",
-    ownerEmail: "rohit.sen@hexa.example",
+    ownerName: "Rajeshwari",
+    ownerEmail: "rajeshwaridev871@gmail.com",
     attributes: { logRetentionDays: 90, retentionMonths: 18 },
   }),
   record({
@@ -298,9 +350,26 @@ export const DEMO_POLICIES: ComplianceRecord[] = [
     section: "§2 Hosting regions",
     text: "Regulated production workloads run in the AWS ap-southeast-1 region, with backups stored in the same region.",
     tags: ["cloud", "localization", "data-residency"],
-    ownerName: "Vikram Shah",
-    ownerEmail: "vikram.shah@hexa.example",
+    ownerName: "Rajeshwari",
+    ownerEmail: "rajeshwaridev871@gmail.com",
     attributes: { dataRegion: "AWS ap-southeast-1" },
+  }),
+  record({
+    kind: "policy",
+    code: "POL-HR-01",
+    title: "Human Resources Data and Employee Privacy Policy",
+    section: "§5 Employee data lifecycle",
+    text: "Employee personal data is collected only for payroll, statutory, and wellbeing purposes. Grievances are acknowledged within seven days and resolved within 30 days. Personnel records are retained for 24 months after separation unless another law requires longer retention.",
+    tags: ["human-resources", "employee-privacy", "grievance", "retention"],
+    ownerName: "Ananya Rao",
+    ownerEmail: "ananya.rao@hexa.example",
+    attributes: {
+      grievanceAckDays: 7,
+      grievanceResolutionDays: 30,
+      grievanceContact: true,
+      employeeRetentionMonths: 24,
+      noticePrincipals: true,
+    },
   }),
 ];
 
@@ -312,8 +381,8 @@ export const DEMO_CONTROLS: ComplianceRecord[] = [
     section: "Control activity",
     text: "Vulnerability assessments and penetration tests are run annually by an external assessor, and reports are tracked to closure.",
     tags: ["security-testing", "vapt"],
-    ownerName: "Arjun Mehta",
-    ownerEmail: "arjun.mehta@hexa.example",
+    ownerName: "Ruthravarshan",
+    ownerEmail: "ruthravarshan.ksrct@gmail.com",
     systemName: "Nessus / Burp Suite",
     attributes: { vaCadenceMonths: 12, ptCadenceMonths: 12 },
   }),
@@ -324,8 +393,8 @@ export const DEMO_CONTROLS: ComplianceRecord[] = [
     section: "Control activity",
     text: "Cloud contracts include a right-to-audit clause and an annual audit calendar covering security controls.",
     tags: ["third-party", "audit", "cloud", "vendor"],
-    ownerName: "Vikram Shah",
-    ownerEmail: "vikram.shah@hexa.example",
+    ownerName: "Ruthravarshan",
+    ownerEmail: "ruthravarshan.ksrct@gmail.com",
     systemName: "AWS",
     attributes: { auditRight: true, auditCadenceMonths: 12 },
   }),
@@ -336,8 +405,8 @@ export const DEMO_CONTROLS: ComplianceRecord[] = [
     section: "Control activity",
     text: "DR drills run annually and the report is tabled at the technology risk forum.",
     tags: ["resilience", "dr", "business-continuity"],
-    ownerName: "Rohit Sen",
-    ownerEmail: "rohit.sen@hexa.example",
+    ownerName: "Ruthravarshan",
+    ownerEmail: "ruthravarshan.ksrct@gmail.com",
     systemName: "DR site, Mumbai",
     attributes: { drDrillMonths: 12 },
   }),
@@ -348,8 +417,8 @@ export const DEMO_CONTROLS: ComplianceRecord[] = [
     section: "Control activity",
     text: "The CISO reports to the Board Risk Committee each quarter, and the Risk Management Committee charter is reviewed annually.",
     tags: ["governance", "board"],
-    ownerName: "Meera Krishnan",
-    ownerEmail: "meera.krishnan@hexa.example",
+    ownerName: "Rajeshwari",
+    ownerEmail: "rajeshwaridev871@gmail.com",
     systemName: "Board Risk Committee",
     attributes: { cisoReportsToBoard: true, riskCommitteeConstituted: true },
   }),
