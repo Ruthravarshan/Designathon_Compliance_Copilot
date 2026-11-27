@@ -1,5 +1,10 @@
 # Data model
 
+> **Status:** v1 base. PolicyPulse v2 adds identity, departments, DB role/permission tables, storage,
+> ingestion jobs, policy versions, assignments, notifications, and extended documents; the canonical
+> model is [05-solution-design.md](discovery/05-solution-design.md#data-model-prisma-changes). The
+> `MEMBER`/`VIEWER` roles below migrate to `EMPLOYEE`/`AUDITOR`.
+
 Postgres is the source of truth. Prisma owns the schema and migrations. Every tenant-owned row is
 scoped to a workspace.
 

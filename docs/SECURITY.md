@@ -78,8 +78,10 @@ Rules:
 
 - Use the pure policy module in `src/server/auth/rbac.ts`; do not scatter role checks through UI code.
 - Check an explicit permission, not a role string, at the route or service boundary.
-- Only an `OWNER` may grant `OWNER` or `ADMIN`. An `ADMIN` may grant `MEMBER` or `VIEWER`.
-- An `ADMIN` may remove members and viewers, but not peers or owners.
+- Only an `OWNER` may change the DB role matrix or grant `OWNER`/`ADMIN`. An `ADMIN` may manage
+  non-owner members (`COMPLIANCE_MANAGER`, `MANAGER`, `EMPLOYEE`, `AUDITOR`, `GUEST`) within the
+  owner-set matrix.
+- An `ADMIN` may remove members and guests, but not peers or owners.
 - The last `OWNER` cannot be removed or demoted. Test this with a seeded single-owner workspace.
 - Role changes are audited with actor, target, old role, new role, and request id.
 - A user cannot change their own role unless the product explicitly allows it and the last-owner rule
@@ -186,11 +188,16 @@ secrets or full PII payloads in metadata.
 
 ## SSRF and outbound requests
 
-- Allowlist hosts for user-supplied URLs.
-- Block loopback, link-local, and private IP ranges.
-- Follow redirects only within the allowlist.
-- Set connect and read timeouts.
+- Allowlist hosts for user-supplied URLs. Actual source URLs enter only through
+  `INGESTION_SOURCE_URLS`; no regulator URL is hardcoded, and the DB `IngestionSource` registry is the
+  runtime authority.
+- Block loopback, link-local, private, metadata, and unique-local IP ranges after DNS resolution and on
+  every redirect; pin the resolved address to prevent rebinding.
+- Follow redirects only within the allowlist; cap redirects, size, and time; respect `robots.txt` for
+  listing crawls.
 - Never return raw upstream responses or headers to the client.
+- Store the original fetched PDF and the real source URL; if a source is missing or unreachable, fail
+  visibly and never synthesize a document.
 
 ## Dependencies
 

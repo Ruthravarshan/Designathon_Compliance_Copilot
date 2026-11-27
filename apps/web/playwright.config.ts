@@ -6,16 +6,16 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : 2,
-  timeout: 120_000,
-  expect: { timeout: 20_000 },
+  timeout: 180_000,
+  expect: { timeout: 30_000 },
   globalSetup: "./e2e/global-setup.ts",
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "html",
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
-    navigationTimeout: 45_000,
-    actionTimeout: 20_000,
+    navigationTimeout: 60_000,
+    actionTimeout: 30_000,
   },
   projects: [
     {

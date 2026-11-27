@@ -75,3 +75,103 @@
 - [x] No product code was written from this artifact alone; phase 05/06 gate the build.
 
 Next: `01-opportunity-map.md`
+
+## Revision 2 — PolicyPulse (2026-11-27)
+
+The original brief above is unchanged. The owner has tightened the product into **PolicyPulse**, a
+deployable compliance workbench built on the existing app. This revision supersedes the v1 "demo
+only" scope. The deterministic engine stays as the citation verifier and safe fallback; it is no
+longer the whole product.
+
+### Product
+
+- Name: **PolicyPulse** (working lockup: PolicyPulse by Hexaware).
+- Audience: compliance owner, compliance manager, department manager, employee, auditor, guest.
+- Promise: a circular is ingested from a public source or PDF, stored in managed storage, extracted
+  with a real LLM, cited to both the source page and the stored PDF, mapped to policy, and driven to
+  an acknowledged or rejected assignment with email at every step.
+
+### New explicit requirements
+
+1. **Deploy-ready**: hosted on Supabase + Vercel, with real auth, storage, email worker, migrations,
+   health check, and a smoke-tested URL. Local demo remains the fallback.
+2. **Real identity**: Google SSO (plus Microsoft Entra SSO when configured) alongside a clearly
+   labelled demo login for the judged walkthrough. Guest access is allowed only when the owner
+   enables it, is sample-scoped, and can be revoked by the owner or an admin.
+3. **Owner control**: the owner can see and change which roles can see compliance, manage role
+   permissions, per-person overrides, departments, members, SSO providers, guest access, branding,
+   storage provider/location, ingestion sources, AI settings, and email settings. Every change is
+   audited.
+4. **RBAC is role + person + department**: a normal employee must not see company-wide compliance; a
+   manager may see their team; an auditor may see all read-only; the owner controls the matrix. A
+   user-level grant or deny must be possible without changing the role. Tenant isolation still holds.
+5. **Ingestion agent**: public listing page → scrape file links → download with safety limits →
+   upload to SharePoint (or the owner-configured provider) → store metadata and source URL → the app
+   cites the stored PDF. The ingest screen must accept **both** a PDF upload and a link (listing or
+   direct PDF). Only roles with ingest permission can add circulars. Sources and documents must be
+   actual public sources; never synthesize a circular or present a representative excerpt as fetched
+   evidence.
+6. **LLM**: use the owner-provided Gemini API key for extraction/summarisation; do not fabricate a
+   result. Every quote is verified against extracted source text and every failure is visible.
+7. **Citations**: each obligation/change exposes both the stored PDF and the original website link;
+   the reader chooses which to open. No source link means the UI says so.
+8. **Rejection notes are mandatory** for finding, circular, policy-change, and assignment rejection.
+9. **Email at every meaningful step**: circular received, ingestion failed, assignment created,
+   acknowledged, rejected, overdue, policy change published, role/access change. Outbox only; no
+   inline sends.
+10. **No hardcoded values**: app data, personas, roles' permissions, departments, issuers, sources,
+    storage config, SSO settings, branding, and metrics come from the database/API. The one exception
+    is the **actual source URL input**: the owner supplies it only through `INGESTION_SOURCE_URLS`
+    (env), a one-time bootstrap writes DB `IngestionSource` rows, and no URL is hardcoded or guessed.
+    Empty states are used when data is absent; no fake rows, counts, screenshots, or proof pages.
+11. **UI**: clean and minimal; the signed-in person's name/role/avatar are placed deliberately;
+    responsive at 320–1440px; light and dark themes; no "proof" or illustrative marketing page
+    instead of the real workbench; perceived and measured performance matter.
+12. **Brand**: official Hexaware logo only; the owner will supply the asset. Until then use the
+    approved Manrope wordmark fallback, never a fabricated logo.
+13. **Policy change visibility**: every logged-in person with the appropriate permission can see what
+    changed in a policy (version, diff, source circular, approval), not just a proof of concept.
+
+### Constraints
+
+- Keep the existing Next.js 15/React 19/Prisma/Postgres app; extend it, do not rebuild it.
+- Supabase Postgres, Vercel hosting, Supabase Auth/SSO, Prisma migrations.
+- Gemini free-tier key; quota, data-use terms, and the exact key mode must be verified before the
+  demo. The key is server-only.
+- SharePoint via Microsoft Graph app-only credentials; the owner has not supplied the Azure/Graph
+  details yet. Storage is provider-abstracted so a real Supabase Storage bucket can keep the demo
+  working until SharePoint is configured. Never fake an upload.
+- Email: Mailpit locally; Resend/SMTP in production. A schedule that runs at least once a minute is
+  required for demo-visible acknowledgements (Supabase pg_cron or Vercel Pro).
+- Three parallel workers (Qoder backend, Antigravity UI, OpenCode ingestion) with file ownership and
+  an integration owner. Contract freeze is mandatory before parallel edits.
+
+### Unknowns and owner-provided blockers
+
+- Supabase project URL, publishable key, secret key, and pooler URLs.
+- Google OAuth client (and Microsoft Entra app if Microsoft SSO is required).
+- Azure app registration for Graph (tenant, client, secret), site/drive IDs, folder, and consent.
+- Official Hexaware logo asset and lockup rules; whether "PolicyPulse" sits beside or below it.
+- Resend key and verified sender domain (or SMTP details), and the target Vercel domain.
+- Actual public source listing/direct-PDF URLs, supplied only through `INGESTION_SOURCE_URLS`; no URL
+  is hardcoded or guessed, and listing selectors must be confirmed against the real pages.
+- Gemini key mode/endpoint (the key format is not the classic `AIza…` form) and free-tier limits.
+- Whether Google Drive is required in addition to SharePoint in this build.
+- Guest policy: expiry, what sample content is visible, and whether guest sign-in is on for the demo.
+
+### Revised one-sentence restatement
+
+> PolicyPulse ingests a circular from a public page or PDF, stores the original in owner-configured
+> managed storage, extracts and verifies obligations with Gemini, shows the cited policy change to
+> everyone with authority, drives acknowledgement or a noted rejection by email, and lets the owner
+> control identity, roles, storage, sources, and settings from the database.
+
+### Revision 2 gate
+
+- [x] New requirements, constraints, blockers, and scope are captured.
+- [x] The original brief is preserved.
+- [x] Phases 05 and 06 are updated before v2 product code.
+- [x] Three lane handoffs exist in `docs/handoffs/` with file ownership and acceptance checks.
+- [x] Actual source URLs enter only through `INGESTION_SOURCE_URLS`; no invented source or document.
+
+Next: `05-solution-design.md` (v2) → `06-visual-direction.md` (v2) → build in lanes.

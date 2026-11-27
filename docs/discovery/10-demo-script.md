@@ -1,5 +1,9 @@
 # 10 — Demo script
 
+> **Status:** v1 runbook. PolicyPulse v2 changes login (SSO/demo/guest), ingestion (actual URL/PDF),
+> citations (PDF + source), roles, dark mode, and deployment; update this script after the v2 build is
+> verified. Do not record v2 claims from this v1 path.
+
 > Phase 10. 4-minute golden path, rehearsed against the seeded workspace. Every claim below is
 > visible in the running app.
 

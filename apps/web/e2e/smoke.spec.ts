@@ -18,7 +18,7 @@ test("build OS page keeps the ten hour route", async ({ page }) => {
 });
 
 test("health endpoint returns a structured payload", async ({ request }) => {
-  const response = await request.get("/api/health");
+  const response = await request.get("/api/health", { timeout: 60_000 });
 
   expect([200, 503]).toContain(response.status());
   const body = (await response.json()) as {

@@ -1,5 +1,9 @@
 # Compliance Copilot — architecture abstract
 
+> **Status:** v1 abstract. PolicyPulse v2 adds real SSO/guests, DB-driven RBAC, SharePoint/Supabase
+> storage, live actual-source ingestion, Gemini-verified extraction, assignments, and a worker. See
+> [05](discovery/05-solution-design.md) and [handoffs](handoffs/README.md); the limits below are v1.
+
 **Problem.** Indian financial and data-protection regulation changes continuously, while compliance
 teams still translate circulars into obligations by hand, search spreadsheets for the affected
 policy, judge the gap informally, and chase owners by email. The expensive failure is not a missing

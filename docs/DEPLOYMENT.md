@@ -1,4 +1,8 @@
-# Deployment — Supabase + Vercel
+# Deployment
+
+> **Status:** v2 target runbook. The current local build is v1 and has not been deployed with v2
+> identity, storage, ingestion, or worker routes. Do not mark the deployment gate done until the
+> sandbox smoke test in this document passes against the real URL. — Supabase + Vercel
 
 The judged demo runs from a Vercel URL against a Supabase Postgres database. A local Docker stack
 remains the development and fallback path. Decision record: `docs/decisions/0002-supabase-vercel.md`.
@@ -66,33 +70,54 @@ owned by the Vercel deployment, not the browser.
 6. Deploy. First deploy generates the Prisma client (`postinstall` + `build` script); it does not
    touch the database.
 7. Add the domain, confirm HTTPS, and set `APP_URL` to that exact origin (no trailing slash).
-8. Vercel Cron is declared in `apps/web/vercel.json`:
-   - Hobby plan: daily run (`0 3 * * *`), which is the maximum for Hobby.
-   - Pro plan: change the schedule to `*/10 * * * *` for a ten-minute drain.
+8. Vercel Cron is declared in `apps/web/vercel.json` and calls `GET /api/cron/worker`, which drains
+   ingestion jobs, email, and reminders:
+   - Hobby plan: daily run (`0 3 * * *`), which is the maximum for Hobby; the judged demo uses
+     `after()` nudges and/or a Supabase `pg_cron`/`pg_net` call for minute-level progress.
+   - Pro plan: change the schedule to `*/10 * * * *` (or minute-level) for a short drain.
    - Vercel sends `Authorization: Bearer $CRON_SECRET` automatically when `CRON_SECRET` exists in
      the project environment. The route also accepts `POST` from any external scheduler.
 9. Confirm the deployment in **Deployments → Functions** shows `nodejs` runtime for
-   `/api/health` and `/api/cron/email`.
+   `/api/health` and `/api/cron/worker` (and the legacy `/api/cron/email` if retained).
 
 ### Required environment variables (Vercel)
 
 ```text
 APP_URL=https://<project>.vercel.app          # set after the first deploy; exact origin
-APP_VERSION=0.1.0-demo
+APP_VERSION=0.2.0
 NODE_ENV=production                            # Vercel sets this; do not override
 LOG_LEVEL=info
 DATABASE_URL=postgresql://...:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1
 DIRECT_URL=postgresql://...:5432/postgres?sslmode=require
 DATABASE_POOL_MAX=2                             # pg pool per serverless instance (default 10)
-AUTH_SECRET=<openssl rand -base64 32>          # required in a production runtime
-DEMO_MODE=true                                 # judged demo: persona sign-in, no real identities
+AUTH_SECRET=<openssl rand -base64 32>          # demo HMAC session; required in production runtime
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable key>
+SUPABASE_SERVICE_ROLE_KEY=<server-only secret>
+DEMO_MODE=true                                 # demo login still requires the DB demoLoginEnabled flag
 EMAIL_PROVIDER=resend                          # or console for a no-email dry run
-EMAIL_FROM="Hexa <no-reply@<verified-domain>>"
+EMAIL_FROM="PolicyPulse <no-reply@<verified-domain>>"
 RESEND_API_KEY=re_...
-CRON_SECRET=<openssl rand -hex 24>
+CRON_SECRET=<openssl rand -hex 24>             # protects /api/cron/worker
+MSFT_GRAPH_TENANT_ID=<tenant>
+MSFT_GRAPH_CLIENT_ID=<client>
+MSFT_GRAPH_CLIENT_SECRET=<secret>              # server-only
+MSFT_GRAPH_SITE_ID=<site>
+MSFT_GRAPH_DRIVE_ID=<drive>
+GEMINI_API_KEY=<server-only key>               # prod key only here, never in the repo
+GEMINI_AUTH_MODE=api-key                       # verified by the real smoke test
+INGESTION_SOURCE_URLS=<actual URLs, comma-separated>
 ```
 
-Optional: `REDIS_URL`, `SENTRY_DSN`, `SMTP_URL` (only with `EMAIL_PROVIDER=smtp`).
+Optional: `REDIS_URL`, `SENTRY_DSN`, `SMTP_URL` (only with `EMAIL_PROVIDER=smtp`),
+`GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` (Drive only).
+
+`INGESTION_SOURCE_URLS` is the **only** place actual public source URLs are entered. There is no
+hardcoded regulator URL. The seed/bootstrap imports them into `IngestionSource` rows (host-derived
+label, allowlist, disabled until the owner reviews); runtime and UI read the DB. Leave it empty to show
+"No sources yet." rather than inventing a source. The owner can edit/schedule/disable sources in the
+admin UI after bootstrap. Google/Microsoft OAuth is configured in the Supabase dashboard; the app only
+reads the provider toggles from `WorkspaceSettings`. Provider marks must be official or omitted.
 
 `AUTH_SECRET` is enforced at production runtime, not at build time: builds run without secrets so CI
 and local `npm run build` stay green. A missing `AUTH_SECRET` on the deployed runtime fails fast on
@@ -146,7 +171,7 @@ against the shared Supabase project.
 ```bash
 curl -i https://<project>.vercel.app/
 curl -i https://<project>.vercel.app/api/health
-curl -i -H "Authorization: Bearer $CRON_SECRET" https://<project>.vercel.app/api/cron/email
+curl -i -H "Authorization: Bearer $CRON_SECRET" https://<project>.vercel.app/api/cron/worker
 ```
 
 Then in a browser at 390px and 1440px:

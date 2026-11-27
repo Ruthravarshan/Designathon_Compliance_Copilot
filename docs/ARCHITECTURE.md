@@ -1,5 +1,10 @@
 # Architecture
 
+> **Status:** this document describes the v1 base. PolicyPulse v2 supersedes identity, ingestion,
+> storage, permissions, worker, and deployment details; build from
+> [05-solution-design.md](discovery/05-solution-design.md), ADRs 0003–0006, and
+> [handoffs](handoffs/README.md). Role names and “no live scraper” statements below are v1 history.
+
 The default is a modular monolith: one deployable Next.js app with a clean server layer, one
 Postgres database, and Redis available when the problem earns it. This is the fastest path to a
 production-shaped product in ten hours.

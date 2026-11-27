@@ -1,5 +1,9 @@
 # Website delivery gate — status record
 
+> **Scope:** this record verifies the v1 local demo. PolicyPulse v2 (SSO, ingestion, storage, Gemini,
+> DB RBAC, dark UI, deployment) is not yet built or deployed; re-verify every item after the lanes
+> merge. Public-launch items remain blocked as listed.
+
 > Source: `docs/WEBSITE-DELIVERY-CHECKLIST.md`. Updated at every phase boundary. An item is `Done`
 > only with evidence below. This is a **demo build**, not a public launch.
 

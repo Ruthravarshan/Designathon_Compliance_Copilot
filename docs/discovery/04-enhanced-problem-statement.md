@@ -1,6 +1,11 @@
 # 04 — Enhanced problem statement
 
-> Phase 04. Scoped, testable definition that matches what shipped in `apps/web`.
+> **Status:** v1 scope, kept as history. PolicyPulse v2 supersedes the roles
+> (`MEMBER`/`VIEWER` → `EMPLOYEE`/`AUDITOR`), the demo-only data boundary, and the product surface;
+> build from [00 revision 2](00-problem-statement.md#revision-2--policypulse-2026-11-27) and
+> [05](05-solution-design.md).
+
+> Phase 04. Scoped, testable definition that matches what shipped in `apps/web` (v1).
 
 ## Problem
 
