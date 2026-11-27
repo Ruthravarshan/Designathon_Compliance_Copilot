@@ -1,35 +1,65 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: light;
+  --pp-canvas: #f8f8f9;
+  --pp-surface: #ffffff;
+  --pp-surface-2: #eeeff2;
+  --pp-line: #cbd0e5;
+  --pp-fg: #040d43;
+  --pp-muted: #535983;
+  --pp-brand: #3c2cda;
+  --pp-brand-hover: #3224bd;
+  --pp-brand-ink: #ffffff;
+  --pp-accent: #3c2cda;
+  --pp-danger: #da2d2c;
+  --pp-shadow-card: 0 1px 2px rgba(4, 13, 67, 0.04), 0 8px 24px -16px rgba(4, 13, 67, 0.14);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --pp-canvas: #040d43;
+  --pp-surface: #07125e;
+  --pp-surface-2: color-mix(in oklab, #535983 18%, #040d43);
+  --pp-line: #535983;
+  --pp-fg: #eeeff2;
+  --pp-muted: #8088a7;
+  --pp-brand: #3c2cda;
+  --pp-brand-hover: #3224bd;
+  --pp-brand-ink: #ffffff;
+  --pp-accent: #14cbde;
+  --pp-danger: #da2d2c;
+  --pp-shadow-card: 0 1px 2px rgba(4, 13, 67, 0.3), 0 12px 28px -18px rgba(4, 13, 67, 0.65);
+}
+
 @theme inline {
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
-}
-
-@theme {
-  --color-canvas: #f8f8f9;
-  --color-surface: #ffffff;
-  --color-surface-2: #eeeff2;
-  --color-line: #cbd0e5;
-  --color-fg: #040d43;
-  --color-muted: #535983;
-  --color-brand: #3c2cda;
-  --color-brand-hover: #3224bd;
-  --color-brand-ink: #ffffff;
-  --color-danger: #da2d2c;
+  --color-canvas: var(--pp-canvas);
+  --color-surface: var(--pp-surface);
+  --color-surface-2: var(--pp-surface-2);
+  --color-line: var(--pp-line);
+  --color-fg: var(--pp-fg);
+  --color-muted: var(--pp-muted);
+  --color-brand: var(--pp-brand);
+  --color-brand-hover: var(--pp-brand-hover);
+  --color-brand-ink: var(--pp-brand-ink);
+  --color-accent: var(--pp-accent);
+  --color-danger: var(--pp-danger);
 }
 
 @layer base {
-  :root {
-    color-scheme: light;
-  }
-
   html {
     scroll-behavior: smooth;
+    background-color: var(--color-canvas);
+    color: var(--color-fg);
   }
 
   body {
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    font-size: 14px;
+    line-height: 1.6;
   }
 
   ::selection {
@@ -43,6 +73,7 @@
   }
 }
 
+/* Legacy v1 landing texture: do not use on PolicyPulse v2 product surfaces. */
 .grid-field {
   position: fixed;
   inset: 0;
@@ -79,6 +110,32 @@
 
 .skip-link:focus {
   top: 1rem;
+}
+
+.pp-card-shadow {
+  box-shadow: var(--pp-shadow-card);
+}
+
+@keyframes pp-shimmer {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+
+.pp-skeleton {
+  background-color: var(--color-surface-2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pp-skeleton {
+    animation: pp-shimmer 1.6s ease-in-out infinite;
+  }
 }
 
 @keyframes rise {
