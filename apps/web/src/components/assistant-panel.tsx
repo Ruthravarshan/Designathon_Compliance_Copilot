@@ -173,7 +173,7 @@ export function AssistantPanel({ grounded, model }: AssistantPanelProps) {
                 {turns.length === 0 ? "Ask the register" : "Ask a follow-up"}
               </label>
               <span className="hidden font-mono text-[10px] text-muted sm:inline">
-                Ctrl + Enter to submit
+                Enter to ask · Shift+Enter for a new line
               </span>
             </div>
             <Textarea
@@ -188,14 +188,15 @@ export function AssistantPanel({ grounded, model }: AssistantPanelProps) {
             />
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
-                {draft.length}/{MAX_QUESTION_LENGTH} · Enter to ask · Shift+Enter for a new line
+                {draft.length}/{MAX_QUESTION_LENGTH}
               </span>
               <div className="flex items-center gap-2">
                 {turns.length > 0 ? (
                   <button
                     type="button"
+                    disabled={pending}
                     onClick={clearThread}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-xs font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                    className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-xs font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-50"
                   >
                     <Trash size={13} weight="bold" aria-hidden="true" />
                     Clear thread
@@ -303,7 +304,12 @@ export function AssistantPanel({ grounded, model }: AssistantPanelProps) {
 
         {turns.length === 0 ? (
           <Card className="px-6 py-10 text-center">
-            <Books size={28} weight="bold" aria-hidden="true" className="mx-auto text-brand" />
+            <Books
+              size={28}
+              weight="bold"
+              aria-hidden="true"
+              className="mx-auto text-brand dark:text-support"
+            />
             <p className="mt-3 text-sm font-medium">
               {grounded
                 ? "Answers are written from your register, then checked."
@@ -391,10 +397,15 @@ function AnswerCard({ answer }: { answer: Answer }) {
     <Card className="overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2/60 px-5 py-3">
         <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
-          <Quotes size={14} weight="bold" aria-hidden="true" className="text-brand" />
+          <Quotes
+            size={14}
+            weight="bold"
+            aria-hidden="true"
+            className="text-brand dark:text-support"
+          />
           {answer.matched ? "Grounded answer" : "Refused"}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge tone={groundedAnswer ? "brand" : "outline"}>
             {groundedAnswer ? "Verified generation" : "Retrieval"}
           </Badge>
@@ -404,9 +415,9 @@ function AnswerCard({ answer }: { answer: Answer }) {
                 {answer.citations.length} citations
               </Badge>
               <Badge tone="outline">Confidence {formatPercent(answer.confidence)}</Badge>
-              <CopyButton value={answer.answer} label="Copy" />
             </>
           ) : null}
+          <CopyButton value={answer.answer} label="Copy" />
         </div>
       </div>
 
@@ -422,7 +433,7 @@ function AnswerCard({ answer }: { answer: Answer }) {
             </p>
             {answer.citations.map((citation, index) => (
               <div key={`${citation.id}-${index}`} className="rounded-xl bg-surface-2 px-4 py-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-brand">
+                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-brand dark:text-support">
                   [{index + 1}] {citation.label}
                 </p>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted">“{citation.quote}”</p>

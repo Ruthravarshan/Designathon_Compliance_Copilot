@@ -1,8 +1,9 @@
 # 09 — Release report
 
-> **Status:** this report covers the v1 deterministic build. PolicyPulse v2 (SSO, ingestion, storage,
-> Gemini, DB RBAC, migration, deployment) is specified but **not implemented, tested, or deployed**;
-> its evidence will be appended here when the lanes merge. Do not cite this report for v2 claims.
+> **Status:** this report records the v1 deterministic release run. PolicyPulse v2 (SSO, ingestion,
+> storage, Gemini, DB RBAC, migration, deployment) has since landed; its current evidence lives in
+> `docs/discovery/07-build-log.md`, including the grounded assistant rerun on 2026-11-28. This file
+> remains the record of the v1 gate — cite the build log, not this report, for v2 claims.
 
 > Phase 09 · 7:45–8:45 · Source: `agent-prompts/09-FINAL-TEST.md`
 > Feature freeze. Prove the frozen build works. Fix only blockers.
