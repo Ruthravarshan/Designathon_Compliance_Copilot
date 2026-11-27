@@ -18,10 +18,7 @@ export function isAllowedModel(value: string): value is AllowedModel {
 }
 
 function escapeDocumentText(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /**
@@ -30,10 +27,7 @@ function escapeDocumentText(text: string): string {
  */
 export function buildPrompt(pages: readonly PdfPage[]): string {
   const body = pages
-    .map(
-      (page) =>
-        `<page number="${page.pageNumber}">\n${escapeDocumentText(page.text)}\n</page>`,
-    )
+    .map((page) => `<page number="${page.pageNumber}">\n${escapeDocumentText(page.text)}\n</page>`)
     .join("\n\n");
 
   return [

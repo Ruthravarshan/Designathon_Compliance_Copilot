@@ -16,7 +16,8 @@ export const OBLIGATION_TYPES = [
   "OTHER",
 ] as const satisfies readonly ObligationType[];
 
-const nullableText = (max: number): z.ZodNullable<z.ZodString> => z.string().trim().max(max).nullable();
+const nullableText = (max: number): z.ZodNullable<z.ZodString> =>
+  z.string().trim().max(max).nullable();
 
 export const candidateQuoteSchema = z
   .object({

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { IngestionError } from "@/server/ingestion/errors";
-import { assertConnectionWorkspace, checksumOf, readConnectionConfig, safeObjectPath, sanitizePathSegment } from "./config";
+import {
+  assertConnectionWorkspace,
+  checksumOf,
+  readConnectionConfig,
+  safeObjectPath,
+  sanitizePathSegment,
+} from "./config";
 import type { StorageConnection } from "./types";
 
 const connection: StorageConnection = {
@@ -20,7 +26,9 @@ describe("storage path and config guards", () => {
   });
 
   it("builds a bounded path without dot segments", () => {
-    expect(safeObjectPath(["ws-1", "..", "2026", "ref-123"])).toBe("ws-1/unclassified/2026/ref-123");
+    expect(safeObjectPath(["ws-1", "..", "2026", "ref-123"])).toBe(
+      "ws-1/unclassified/2026/ref-123",
+    );
   });
 
   it("computes a stable sha256 checksum", () => {
@@ -31,7 +39,9 @@ describe("storage path and config guards", () => {
   });
 
   it("reads non-secret config and rejects malformed values", () => {
-    expect(readConnectionConfig({ bucket: "circulars", extra: "ignored" })).toEqual({ bucket: "circulars" });
+    expect(readConnectionConfig({ bucket: "circulars", extra: "ignored" })).toEqual({
+      bucket: "circulars",
+    });
     expect(() => readConnectionConfig({ bucket: 42 })).toThrow(IngestionError);
   });
 

@@ -114,7 +114,10 @@ describe("ingestion pipeline (golden path)", () => {
 
     expect(outcome.aiStatus).toBe("VERIFIED");
     expect(memory.state.llmCalls).toHaveLength(1);
-    expect(memory.state.llmCalls[0]).toMatchObject({ status: "VERIFIED", model: "gemini-2.5-flash" });
+    expect(memory.state.llmCalls[0]).toMatchObject({
+      status: "VERIFIED",
+      model: "gemini-2.5-flash",
+    });
     const persisted = memory.state.persistCalls[0];
     expect(persisted?.ai.status).toBe("VERIFIED");
     expect(persisted?.extraction.title).toBe("Circular");
@@ -217,7 +220,9 @@ describe("ingestion pipeline (fail closed)", () => {
   });
 
   it("fails when the job has neither a URL nor a stored item", async () => {
-    await expect(runPipeline(job({ storageItemId: undefined, url: undefined }), deps())).rejects.toMatchObject({
+    await expect(
+      runPipeline(job({ storageItemId: undefined, url: undefined }), deps()),
+    ).rejects.toMatchObject({
       ingestionCode: "BAD_REQUEST",
     });
     expect(memory.state.persistCalls).toHaveLength(0);

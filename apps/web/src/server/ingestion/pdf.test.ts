@@ -36,7 +36,10 @@ describe("PDF guard and parsing", () => {
           throw new Error("password required: internal secret");
         },
       }),
-    ).rejects.toMatchObject({ ingestionCode: "ENCRYPTED_PDF", message: expect.not.stringContaining("secret") });
+    ).rejects.toMatchObject({
+      ingestionCode: "ENCRYPTED_PDF",
+      message: expect.not.stringContaining("secret"),
+    });
     await expect(
       parsePdf(pdf, { extract: async () => ({ totalPages: 0, text: [] }) }),
     ).rejects.toMatchObject({ ingestionCode: "INVALID_PDF" });
@@ -44,7 +47,10 @@ describe("PDF guard and parsing", () => {
 
   it("keeps 1-based page numbers and caps pages and characters", async () => {
     const parsed = await parsePdf(makeTestPdf(["a"]), {
-      extract: async () => ({ totalPages: 5, text: [longText(1), longText(2), longText(3), "", ""] }),
+      extract: async () => ({
+        totalPages: 5,
+        text: [longText(1), longText(2), longText(3), "", ""],
+      }),
       maxPages: 3,
       maxChars: 200,
       minCharsPerPage: 40,
@@ -79,7 +85,10 @@ describe("PDF guard and parsing", () => {
   });
 
   it("uses the exact code when the parser reports an encrypted document", async () => {
-    const error = new IngestionError("ENCRYPTED_PDF", "The PDF is encrypted and cannot be verified.");
+    const error = new IngestionError(
+      "ENCRYPTED_PDF",
+      "The PDF is encrypted and cannot be verified.",
+    );
     await expect(
       parsePdf(makeTestPdf(["a"]), {
         meta: async () => {

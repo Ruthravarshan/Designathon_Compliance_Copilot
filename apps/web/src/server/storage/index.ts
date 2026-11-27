@@ -28,6 +28,9 @@ export function getStorageProvider(connection: StorageConnection): StorageProvid
         "Google Drive storage is not configured.",
       );
     default:
-      throw new IngestionError("INTEGRATION_NOT_CONFIGURED", "The storage provider is not configured.");
+      throw new IngestionError(
+        "INTEGRATION_NOT_CONFIGURED",
+        "The storage provider is not configured.",
+      );
   }
 }

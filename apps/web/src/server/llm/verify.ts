@@ -79,14 +79,15 @@ export function verifyExtraction(
       applicableTo: obligation.applicableTo,
       quotes,
       citationVerified:
-        quotes.length > 0 && quotes.some((quote) => quote.citationVerified) && quotes.every((quote) => quote.citationVerified),
+        quotes.length > 0 &&
+        quotes.some((quote) => quote.citationVerified) &&
+        quotes.every((quote) => quote.citationVerified),
     };
   });
 
   const allQuotesVerified = unverifiedQuotes === 0;
   const everyObligationCited = obligations.every((obligation) => obligation.citationVerified);
-  const citationVerified =
-    obligations.length > 0 && allQuotesVerified && everyObligationCited;
+  const citationVerified = obligations.length > 0 && allQuotesVerified && everyObligationCited;
   const needsReview =
     options.documentNeedsReview === true ||
     !citationVerified ||

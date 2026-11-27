@@ -37,7 +37,7 @@ export interface DataFieldSeed {
 export const DEMO_NOW = new Date("2026-11-10T09:00:00.000Z");
 
 export const DEMO_WORKSPACES = [
-  { slug: "hexa-demo", name: "Hexa Demo", role: "primary" as const },
+  { slug: "hexa-demo", name: "PolicyPulse Workspace", role: "primary" as const },
   { slug: "northwind-assurance", name: "Northwind Assurance", role: "isolation" as const },
 ];
 

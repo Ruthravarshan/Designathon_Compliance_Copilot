@@ -28,7 +28,11 @@ export function deterministicExtraction(pages: readonly PdfPage[]): FallbackResu
   let unverifiedQuotes = 0;
 
   for (const page of pages) {
-    const extracted = extractObligations({ sectionLabel: "", pageNumber: page.pageNumber, text: page.text });
+    const extracted = extractObligations({
+      sectionLabel: "",
+      pageNumber: page.pageNumber,
+      text: page.text,
+    });
     for (const item of extracted) {
       const matches = normalizedPages.filter((candidate) =>
         candidate.text.includes(normalizeForQuote(item.quote)),

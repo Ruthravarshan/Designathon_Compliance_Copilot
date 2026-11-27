@@ -24,14 +24,20 @@ export interface WorkerResult {
 }
 
 export function backoffMs(attempts: number, random: () => number): number {
-  return Math.min(MAX_BACKOFF_MS, 1_000 * 2 ** Math.max(0, attempts - 1)) + Math.floor(random() * 500);
+  return (
+    Math.min(MAX_BACKOFF_MS, 1_000 * 2 ** Math.max(0, attempts - 1)) + Math.floor(random() * 500)
+  );
 }
 
 export function isStaleLock(lockedAt: Date | null, now: Date): boolean {
   return lockedAt !== null && now.getTime() - lockedAt.getTime() >= STALE_LOCK_MS;
 }
 
-function markRunningStepFailed(steps: readonly RunStep[], code: string, now: () => Date): RunStep[] {
+function markRunningStepFailed(
+  steps: readonly RunStep[],
+  code: string,
+  now: () => Date,
+): RunStep[] {
   const running = steps.find((step) => step.status === "running");
   if (!running) {
     return [...steps];

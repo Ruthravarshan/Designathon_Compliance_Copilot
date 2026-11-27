@@ -9,7 +9,7 @@ export default function NotFound() {
         This route is not in the register.
       </h1>
       <p className="mt-4 max-w-[48ch] text-muted">
-        Check the URL, or return to the Compliance Copilot and open the workbench.
+        Check the URL, or return to PolicyPulse and open the workbench.
       </p>
       <div className="mt-8">
         <LinkButton href="/">

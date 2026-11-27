@@ -36,14 +36,16 @@ const WORKSPACE = "ws-1";
 const CONNECTION_ID = "conn-1";
 
 /** Test-only adapters. No product data, citations or storage success is fabricated. */
-export function createMemoryRuntime(options: {
-  workspaceId?: string;
-  supportEmail?: string;
-  llmEnabled?: boolean;
-  llmModel?: string | null;
-  allowedDomains?: readonly string[];
-  maxUploadBytes?: number;
-} = {}): MemoryRuntime {
+export function createMemoryRuntime(
+  options: {
+    workspaceId?: string;
+    supportEmail?: string;
+    llmEnabled?: boolean;
+    llmModel?: string | null;
+    allowedDomains?: readonly string[];
+    maxUploadBytes?: number;
+  } = {},
+): MemoryRuntime {
   const workspaceId = options.workspaceId ?? WORKSPACE;
   const connection: StorageConnection = {
     id: CONNECTION_ID,
@@ -126,7 +128,9 @@ export function createMemoryRuntime(options: {
       return state.settings.get(ws) ?? null;
     },
     async getConnection(ws, id) {
-      const found = id ? state.connections.get(id) : [...state.connections.values()].find((item) => item.isDefault);
+      const found = id
+        ? state.connections.get(id)
+        : [...state.connections.values()].find((item) => item.isDefault);
       return found && found.workspaceId === ws ? found : null;
     },
     async findFileByChecksum(ws, checksum) {
@@ -188,7 +192,9 @@ export function createMemoryRuntime(options: {
       for (const job of state.jobs.values()) {
         const ready =
           (job.status === "QUEUED" && job.nextAttemptAt.getTime() <= input.now.getTime()) ||
-          (job.status === "RUNNING" && job.lockedAt !== null && input.now.getTime() - job.lockedAt.getTime() >= 10 * 60_000);
+          (job.status === "RUNNING" &&
+            job.lockedAt !== null &&
+            input.now.getTime() - job.lockedAt.getTime() >= 10 * 60_000);
         if (ready && claimed.length < input.limit) {
           const next: JobRecord = { ...job, status: "RUNNING", lockedAt: input.now };
           state.jobs.set(job.id, next);
@@ -224,7 +230,11 @@ export function createMemoryRuntime(options: {
       pages: input.file.pages,
       storageConnectionId: input.storageConnectionId,
     });
-    return { documentId, needsReview: input.extraction.needsReview, findingCount: input.extraction.obligations.length };
+    return {
+      documentId,
+      needsReview: input.extraction.needsReview,
+      findingCount: input.extraction.obligations.length,
+    };
   };
 
   return { state, repository, provider, persist, objects };

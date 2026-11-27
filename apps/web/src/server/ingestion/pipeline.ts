@@ -50,7 +50,10 @@ interface CandidateFile {
   issuer: string | null;
 }
 
-async function readBounded(body: ReadableStream<Uint8Array>, maxBytes: number): Promise<Uint8Array> {
+async function readBounded(
+  body: ReadableStream<Uint8Array>,
+  maxBytes: number,
+): Promise<Uint8Array> {
   const reader = body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -94,7 +97,9 @@ async function collectFiles(
     const connection = requireConnection(
       await deps.repository.getConnection(job.workspaceId, payload.storageConnectionId),
     );
-    const stored = await (provider ?? getStorageProvider(connection)).read({ itemId: payload.storageItemId });
+    const stored = await (provider ?? getStorageProvider(connection)).read({
+      itemId: payload.storageItemId,
+    });
     const bytes = await readBounded(stored.body, maxBytes);
     if (!hasPdfMagic(bytes)) {
       throw new IngestionError("INVALID_PDF", "The stored file is not a PDF.");
@@ -165,7 +170,14 @@ async function extract(
 ): Promise<{
   extraction: VerifiedExtraction;
   aiStatus: "VERIFIED" | "FALLBACK" | "NEEDS_REVIEW";
-  llm: { model?: string; promptVersion?: string; latencyMs: number; promptTokens: number; completionTokens: number; status: "VERIFIED" | "FALLBACK" | "FAILED" };
+  llm: {
+    model?: string;
+    promptVersion?: string;
+    latencyMs: number;
+    promptTokens: number;
+    completionTokens: number;
+    status: "VERIFIED" | "FALLBACK" | "FAILED";
+  };
 }> {
   const model = settings.llmModel ?? "";
   if (settings.llmEnabled && isAllowedModel(model)) {
@@ -224,7 +236,10 @@ async function extract(
 }
 
 /** One job, one run: fetch → store → extract → verify → persist, all truthful. */
-export async function runPipeline(job: JobRecord, deps: PipelineDeps = {}): Promise<PipelineOutcome> {
+export async function runPipeline(
+  job: JobRecord,
+  deps: PipelineDeps = {},
+): Promise<PipelineOutcome> {
   const repository = deps.repository ?? getRuntime().repository;
   const persist = deps.persist ?? getRuntime().persist;
   const now = deps.now ?? (() => new Date());
@@ -233,7 +248,10 @@ export async function runPipeline(job: JobRecord, deps: PipelineDeps = {}): Prom
 
   const settings = await repository.getSettings(job.workspaceId);
   if (!settings?.supportEmail) {
-    throw new IngestionError("INTEGRATION_NOT_CONFIGURED", "A support email is required for ingestion.");
+    throw new IngestionError(
+      "INTEGRATION_NOT_CONFIGURED",
+      "A support email is required for ingestion.",
+    );
   }
   const maxBytes = deps.maxUploadBytes ?? settings.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
 
@@ -246,7 +264,13 @@ export async function runPipeline(job: JobRecord, deps: PipelineDeps = {}): Prom
     userAgent: userAgentFor(settings.supportEmail),
     ...deps.fetchOptions,
   };
-  const files = await collectFiles(job, { repository, now, hostLimiter }, fetchOptions, maxBytes, deps.provider);
+  const files = await collectFiles(
+    job,
+    { repository, now, hostLimiter },
+    fetchOptions,
+    maxBytes,
+    deps.provider,
+  );
   if (files.length === 0) {
     steps = finishStep(steps, "fetch", "failed", { code: "NO_DOCUMENTS_FOUND", now });
     throw new IngestionError("NO_DOCUMENTS_FOUND", "No reachable PDF documents were found.");
@@ -305,7 +329,12 @@ export async function runPipeline(job: JobRecord, deps: PipelineDeps = {}): Prom
     steps = beginStep(steps, "verify", now);
     const result = extracted.extraction;
     needsReview = needsReview || result.needsReview;
-    aiStatus = extracted.aiStatus === "FALLBACK" ? "FALLBACK" : result.needsReview ? "NEEDS_REVIEW" : "VERIFIED";
+    aiStatus =
+      extracted.aiStatus === "FALLBACK"
+        ? "FALLBACK"
+        : result.needsReview
+          ? "NEEDS_REVIEW"
+          : "VERIFIED";
     steps = finishStep(steps, "verify", result.citationVerified ? "done" : "skipped", { now });
 
     steps = beginStep(steps, "publish", now);

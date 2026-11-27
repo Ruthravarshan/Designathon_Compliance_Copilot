@@ -97,7 +97,10 @@ export function createGraphProvider(
       },
     );
     if (!response.ok) {
-      throw new IngestionError(graphErrorCode(response.status), "Microsoft Graph authentication failed.");
+      throw new IngestionError(
+        graphErrorCode(response.status),
+        "Microsoft Graph authentication failed.",
+      );
     }
 
     const parsed = tokenSchema.safeParse(await response.json());
@@ -162,7 +165,10 @@ export function createGraphProvider(
         }
         return { ok: true };
       } catch (error) {
-        return { ok: false, code: error instanceof IngestionError ? error.ingestionCode : "STORAGE_UNAVAILABLE" };
+        return {
+          ok: false,
+          code: error instanceof IngestionError ? error.ingestionCode : "STORAGE_UNAVAILABLE",
+        };
       }
     },
 
@@ -199,7 +205,10 @@ export function createGraphProvider(
         }
         const session = uploadSessionSchema.safeParse(await sessionResponse.json());
         if (!session.success) {
-          throw new IngestionError("STORAGE_UNAVAILABLE", "The storage provider could not start the upload.");
+          throw new IngestionError(
+            "STORAGE_UNAVAILABLE",
+            "The storage provider could not start the upload.",
+          );
         }
         // The session URL carries its own short-lived credential: never log it.
         response = await httpFetch(session.data.uploadUrl, {
@@ -215,11 +224,17 @@ export function createGraphProvider(
       }
 
       if (!response.ok) {
-        throw new IngestionError(graphErrorCode(response.status), "The storage provider rejected the upload.");
+        throw new IngestionError(
+          graphErrorCode(response.status),
+          "The storage provider rejected the upload.",
+        );
       }
       const parsed = itemSchema.safeParse(await response.json());
       if (!parsed.success || !parsed.data.webUrl) {
-        throw new IngestionError("STORAGE_UNAVAILABLE", "The storage provider returned an incomplete result.");
+        throw new IngestionError(
+          "STORAGE_UNAVAILABLE",
+          "The storage provider returned an incomplete result.",
+        );
       }
       return {
         itemId: parsed.data.id,
@@ -244,7 +259,10 @@ export function createGraphProvider(
         },
       );
       if (!response.ok) {
-        throw new IngestionError(graphErrorCode(response.status), "The stored file could not be read.");
+        throw new IngestionError(
+          graphErrorCode(response.status),
+          "The stored file could not be read.",
+        );
       }
       const bytes = new Uint8Array(await response.arrayBuffer());
       const body = new ReadableStream<Uint8Array>({
@@ -254,7 +272,9 @@ export function createGraphProvider(
         },
       });
       const contentLengthHeader = response.headers.get("content-length");
-      const contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : undefined;
+      const contentLength = contentLengthHeader
+        ? Number.parseInt(contentLengthHeader, 10)
+        : undefined;
       return {
         body,
         contentType: response.headers.get("content-type") ?? "application/pdf",

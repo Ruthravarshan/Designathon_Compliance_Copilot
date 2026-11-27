@@ -36,11 +36,29 @@ export function BrandLockup({
   }
 
   return (
-    <span className={cn("inline-flex items-baseline gap-1.5 select-none", className)}>
-      <span className="text-[18px] font-semibold tracking-[-0.025em] text-brand">{appName}</span>
-      {!compact ? (
-        <span className="text-[14px] font-normal tracking-[-0.01em] text-muted">by Hexaware</span>
-      ) : null}
+    <span className={cn("inline-flex items-center gap-2.5 select-none", className)}>
+      <span
+        aria-hidden="true"
+        className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-brand text-brand-ink"
+      >
+        <svg viewBox="0 0 20 20" fill="none" className="size-4">
+          <path
+            d="M2.5 10.5h3l2-5 3 9 2-4.5h5"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+      <span className="inline-flex items-baseline gap-1.5">
+        <span className="text-[17px] font-semibold tracking-[-0.025em] text-fg">{appName}</span>
+        {!compact ? (
+          <span className="hidden text-[12px] font-normal tracking-[-0.01em] text-muted sm:inline">
+            by Hexaware
+          </span>
+        ) : null}
+      </span>
     </span>
   );
 }

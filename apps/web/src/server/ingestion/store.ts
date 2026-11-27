@@ -1,4 +1,9 @@
-import { getStorageProvider, safeObjectPath, sanitizePathSegment, checksumOf } from "@/server/storage";
+import {
+  getStorageProvider,
+  safeObjectPath,
+  sanitizePathSegment,
+  checksumOf,
+} from "@/server/storage";
 import type { StorageConnection, StorageProvider, StoredObject } from "@/server/storage/types";
 import { IngestionError } from "./errors";
 import { getRuntime, type IngestionRepository } from "./runtime";
@@ -32,7 +37,11 @@ export interface StorePdfResult {
 export function displayFilename(filename: string): string {
   const base = filename.split(/[\\/]/).pop() ?? "";
   const clean = sanitizePathSegment(base).slice(0, MAX_FILENAME_LENGTH);
-  return clean === "" ? "circular.pdf" : clean.toLowerCase().endsWith(".pdf") ? clean : `${clean}.pdf`;
+  return clean === ""
+    ? "circular.pdf"
+    : clean.toLowerCase().endsWith(".pdf")
+      ? clean
+      : `${clean}.pdf`;
 }
 
 export function objectPath(input: {
@@ -82,7 +91,10 @@ export async function storePdf(
   }
 
   if (input.connection.workspaceId !== input.workspaceId) {
-    throw new IngestionError("BAD_REQUEST", "The storage connection does not belong to this workspace.");
+    throw new IngestionError(
+      "BAD_REQUEST",
+      "The storage connection does not belong to this workspace.",
+    );
   }
 
   const provider = input.provider ?? getStorageProvider(input.connection);

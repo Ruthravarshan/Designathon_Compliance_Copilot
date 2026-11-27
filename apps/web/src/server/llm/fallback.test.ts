@@ -22,7 +22,9 @@ describe("deterministic fallback", () => {
   });
 
   it("does not publish findings when no obligation is found", () => {
-    const result = deterministicExtraction([{ pageNumber: 1, text: "This page only contains a table of contents." }]);
+    const result = deterministicExtraction([
+      { pageNumber: 1, text: "This page only contains a table of contents." },
+    ]);
     expect(result.extraction.obligations).toHaveLength(0);
     expect(result.extraction.citationVerified).toBe(false);
     expect(result.extraction.needsReview).toBe(true);
