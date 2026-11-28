@@ -1,0 +1,9 @@
+# Example variables for GCP Terraform stack (reference blueprint only — NOT applied).
+# Supply sensitive values via TF_VAR_* environment variables or Secret Manager.
+
+project_id    = "example-policypulse-project"
+region        = "asia-south1"
+environment   = "prod"
+workload_name = "policypulse"
+image_tag     = "0.2.0"
+app_url       = "https://policypulse.example.com"
