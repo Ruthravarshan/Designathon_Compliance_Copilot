@@ -1,0 +1,18 @@
+# Local secrets: production values come from Vercel project env
+apps/web/.env
+apps/web/.env.*
+!.env.example
+
+# Local build and test artifacts
+apps/web/.next
+apps/web/.next-*
+apps/web/coverage
+apps/web/test-results
+apps/web/playwright-report
+apps/web/tsconfig.tsbuildinfo
+
+# Developer-only scripts (local tooling, not part of the deployed app)
+apps/web/scripts/*.ts
+
+# Local TLS bundle
+.certs

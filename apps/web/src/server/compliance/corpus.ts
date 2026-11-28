@@ -166,6 +166,74 @@ export const REAL_DOCUMENTS: DocumentSeed[] = [
     fixture: "prisma/fixtures/sebi-cscrf-2024.pdf",
     contentType: "application/pdf",
   },
+  {
+    key: "sebi-index-providers-2024",
+    regulator: "SEBI",
+    title: "SEBI (Index Providers) Regulations, 2024",
+    reference: "SEBI/LAD-NRO/GN/2024/167",
+    summary:
+      "SEBI's framework for index providers, notified by SEBI/LAD-NRO/GN/2024/167 on 8 March 2024 and consolidated up to the 28 November 2024 amendment. Sets governance, transparency, and accountability requirements for administrators and benchmarks.",
+    sourceUrl: "https://www.sebi.gov.in/sebi_data/attachdocs/aug-2026/1787044429049.pdf",
+    publishedAt: "2024-03-08T00:00:00.000Z",
+    effectiveAt: "2024-09-04T00:00:00.000Z",
+    fixture: "prisma/fixtures/sebi-index-providers-2024.pdf",
+    contentType: "application/pdf",
+  },
+  {
+    key: "sebi-kyc-kra-circular-2026",
+    regulator: "SEBI",
+    title:
+      "SEBI circular: Simplification of client on-boarding and rationalisation of risk management framework at KYC Registration Agencies",
+    reference: "SEBI/HO/38/14/25/2026-MIRSD-POD3",
+    summary:
+      "SEBI circular HO/38/14/(25)2026-MIRSD-POD3 dated 25 November 2026 simplifying client on-boarding and rationalising the risk management framework at KYC Registration Agencies. Applies to SEBI-registered intermediaries, exchanges, clearing corporations, and depositories; effective 24 December 2026.",
+    sourceUrl:
+      "https://www.sebi.gov.in/legal/circulars/nov-2026/simplification-of-client-on-boarding-and-rationalisation-of-risk-management-framework-at-kyc-registration-agencies_105839.html",
+    publishedAt: "2026-11-25T00:00:00.000Z",
+    effectiveAt: "2026-12-24T00:00:00.000Z",
+    fixture: "prisma/fixtures/sebi-kyc-kra-circular-2026.pdf",
+    contentType: "application/pdf",
+  },
+  {
+    key: "irdai-iac-regulations-2000",
+    regulator: "IRDAI",
+    title:
+      "IRDAI (Insurance Advisory Committee) Regulations, 2000 (as amended up to 1 October 2025)",
+    reference: "IRDAI/Reg/2/209/2025",
+    summary:
+      "The IRDAI (Insurance Advisory Committee) Regulations, 2000, consolidated as amended up to 1 October 2025 by IRDAI/Reg/2/209/2025. Governs the constitution, meetings, and procedures of the Authority's Insurance Advisory Committee.",
+    sourceUrl: "https://irdai.gov.in/web/guest/regulations",
+    publishedAt: "2025-10-01T00:00:00.000Z",
+    effectiveAt: "2025-10-01T00:00:00.000Z",
+    fixture: "prisma/fixtures/irdai-iac-regulations-2000.pdf",
+    contentType: "application/pdf",
+  },
+  {
+    key: "rbi-lab-supervisory-directions-2026",
+    regulator: "RBI",
+    title: "RBI (Local Area Banks – Miscellaneous) Supervisory Directions, 2026",
+    reference: "RBI/DoS/2026-27/450",
+    summary:
+      "Reserve Bank of India (Local Area Banks – Miscellaneous) Supervisory Directions, 2026, issued under RBI/DoS/2026-27/450 on 31 July 2026 and updated to 1 October 2026. Covers fair practices, inoperative accounts, fraud prevention, the protected disclosure scheme, and vigilance for local area banks.",
+    sourceUrl: "https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx",
+    publishedAt: "2026-07-31T00:00:00.000Z",
+    effectiveAt: "2026-07-31T00:00:00.000Z",
+    fixture: "prisma/fixtures/rbi-lab-supervisory-directions-2026.pdf",
+    contentType: "application/pdf",
+  },
+  {
+    key: "rbi-kyc-amendment-directions-2025",
+    regulator: "RBI",
+    title: "RBI (Commercial Banks – Know Your Customer) Amendment Directions, 2025",
+    reference: "RBI/2025-26/166",
+    summary:
+      "Reserve Bank of India (Commercial Banks – Know Your Customer) Amendment Directions, 2025, issued under RBI/2025-26/166 and DOR.AML.REC.370/14.01.002/2025-26 on 29 December 2025. Amends the KYC Directions, 2025 with immediate effect, including Central KYC Registry responsibilities.",
+    sourceUrl: "https://www.rbi.org.in/Scripts/NotificationUser.aspx",
+    publishedAt: "2025-12-29T00:00:00.000Z",
+    effectiveAt: "2025-12-29T00:00:00.000Z",
+    fixture: "prisma/fixtures/rbi-kyc-amendment-directions-2025.pdf",
+    contentType: "application/pdf",
+  },
 ];
 
 function record(

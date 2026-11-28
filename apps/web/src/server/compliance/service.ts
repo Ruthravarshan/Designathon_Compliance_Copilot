@@ -36,6 +36,10 @@ import {
   type DocumentStoragePointer,
 } from "@/server/compliance/files";
 
+// A 600-clause regulator PDF is hundreds of sequential writes; Prisma's 5s
+// default aborts real documents, so the ingest unit gets its own budget.
+const INGEST_TRANSACTION = { maxWait: 30_000, timeout: 300_000 } as const;
+
 function round(value: number): number {
   return Math.round(value * 100) / 100;
 }
@@ -990,7 +994,7 @@ export async function ingestDocument(
     );
 
     return document.id;
-  });
+  }, INGEST_TRANSACTION);
 
   logger.info(
     { documentId, clauses: clauses.length, obligations: obligationCount },

@@ -58,4 +58,9 @@ artifacts/
 
 # Local-only discovery notes (never commit secrets or customer data)
 docs/discovery/private/
+docs/Ref_docs/
 .next-*/
+.certs/
+
+# Local tooling locks
+Submission/.qoder-office-pptx-locks/

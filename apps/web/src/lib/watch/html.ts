@@ -1,6 +1,8 @@
 const BLOCK_TAGS =
   /<\/?(?:p|div|br|li|ul|ol|tr|td|th|table|h[1-6]|section|article|header|footer|blockquote|pre)\b[^>]*>/gi;
-const DROP_ELEMENTS = /<(script|style|noscript|svg|form|button|nav|aside)\b[^>]*>[\s\S]*?<\/\1>/gi;
+// Legacy regulator sites (RBI's ASP.NET pages) wrap the whole document in one
+// <form>, so dropping forms would discard the circular itself.
+const DROP_ELEMENTS = /<(script|style|noscript|svg|button|nav|aside)\b[^>]*>[\s\S]*?<\/\1>/gi;
 const GENERIC_TITLES = new Set([
   "master directions",
   "circulars",
@@ -42,10 +44,10 @@ export function htmlToText(html: string): string {
     .replace(DROP_ELEMENTS, " ")
     .replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, " ");
 
-  const mainStart = withoutDrop.search(
-    /id\s*=\s*["'](?:mainsection|divArchiveMain|main-content)["']/i,
+  const mainTag = /<[a-z][^>]*\bid\s*=\s*["'](?:mainsection|divArchiveMain|main-content)["']/i.exec(
+    withoutDrop,
   );
-  const scoped = mainStart >= 0 ? withoutDrop.slice(mainStart) : withoutDrop;
+  const scoped = mainTag ? withoutDrop.slice(mainTag.index) : withoutDrop;
 
   const withBreaks = scoped.replace(BLOCK_TAGS, "\n\n");
   const text = decodeEntities(withBreaks.replace(/<[^>]*>/g, " "));

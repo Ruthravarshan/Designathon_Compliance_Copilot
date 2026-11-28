@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { after } from "next/server";
 import { z } from "zod";
 import { env } from "@/lib/env";
 import { AppError } from "@/lib/errors";
@@ -91,18 +92,29 @@ export async function enqueueEmail<K extends EmailEvent>(
     },
   });
 
-  // Drain asynchronously so a user-facing event sends without blocking the
-  // request; the outbox row remains the durable record if this attempt fails.
+  // Drain after the response so a user-facing event sends without blocking it.
+  // `after()` keeps the serverless invocation alive; a bare floating promise
+  // can be frozen the moment the response returns, leaving mail queued until
+  // the next cron run. Outside a request scope (scripts, tests) it throws, so
+  // fall back to the floating promise there. The outbox row stays durable
+  // either way.
   if (env.EMAIL_PROVIDER !== "console") {
-    void processEmailQueue(5).catch((error: unknown) => {
-      logger.warn(
-        {
-          event: input.event,
-          errorName: error instanceof Error ? error.name : "UnknownError",
-        },
-        "email auto-drain failed; the outbox row stays queued",
-      );
-    });
+    const drain = () =>
+      processEmailQueue(5).catch((error: unknown) => {
+        logger.warn(
+          {
+            event: input.event,
+            errorName: error instanceof Error ? error.name : "UnknownError",
+          },
+          "email auto-drain failed; the outbox row stays queued",
+        );
+      });
+
+    try {
+      after(drain);
+    } catch {
+      void drain();
+    }
   }
 
   return { status: "queued", id: message.id };

@@ -2,6 +2,19 @@ import { describe, expect, it } from "vitest";
 import { deriveSummary, deriveTitle, htmlToText } from "./html";
 
 describe("htmlToText", () => {
+  it("keeps page text inside a legacy site-wide form wrapper", () => {
+    const html = `
+      <html><body>
+        <form id="form1" runat="server">
+          <div id="mainsection">
+            <p>Agency banks must report commissions annually.</p>
+          </div>
+        </form>
+      </body></html>`;
+
+    expect(htmlToText(html)).toBe("Agency banks must report commissions annually.");
+  });
+
   it("drops script/style/nav and keeps paragraph text with entities decoded", () => {
     const html = `
       <html><head><title>t</title><style>.x{}</style></head>
