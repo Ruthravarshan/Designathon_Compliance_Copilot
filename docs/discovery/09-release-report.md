@@ -5,7 +5,6 @@
 > `docs/discovery/07-build-log.md`, including the grounded assistant rerun on 2026-11-28. This file
 > remains the record of the v1 gate — cite the build log, not this report, for v2 claims.
 
-> Phase 09 · 7:45–8:45 · Source: `agent-prompts/09-FINAL-TEST.md`
 > Feature freeze. Prove the frozen build works. Fix only blockers.
 
 ## Freeze
@@ -113,4 +112,4 @@ gate itself is waived.
 - [ ] The fallback recording is playable — **pending**: operator records the video.
 - [x] Only blockers were fixed after the freeze.
 
-Next: `agent-prompts/10-DEMO-PITCH.md` → `docs/discovery/10-demo-script.md`
+Next: demo + pitch → `docs/discovery/10-demo-script.md`

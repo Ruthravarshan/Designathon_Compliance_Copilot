@@ -92,7 +92,6 @@ for optional tools are fine.
 - [ ] Deployment target is authenticated and a test deploy works.
 - [ ] A screen recorder is installed and tested.
 - [ ] The problem statement is saved in `docs/discovery/00-problem-statement.md`.
-- [ ] `agent-prompts/MASTER-WORKFLOW.md` is open.
 
 ## Troubleshooting
 

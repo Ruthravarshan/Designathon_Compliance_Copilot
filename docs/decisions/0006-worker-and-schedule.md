@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-27
-- Deciders: Owner, Qoder backend, OpenCode ingestion
+- Deciders: Owner, backend lane, ingestion lane
 
 ## Context
 

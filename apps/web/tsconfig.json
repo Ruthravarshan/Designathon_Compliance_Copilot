@@ -20,7 +20,6 @@
     "**/*.ts",
     "**/*.tsx",
     ".next-build/types/**/*.ts",
-    ".next-qoder/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts"
   ],

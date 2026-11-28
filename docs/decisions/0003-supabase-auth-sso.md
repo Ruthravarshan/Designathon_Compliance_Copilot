@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-27
-- Deciders: Owner, Qoder backend
+- Deciders: Owner, backend lane
 - Supersedes: ADR 0002, decision 5 (identity stays demo-cookie auth only)
 
 ## Context

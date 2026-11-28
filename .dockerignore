@@ -13,7 +13,4 @@ THIRD-PARTY-NOTICES.md
 !.env.example
 *.log
 docs
-prompts
 README.md
-AGENTS.md
-CLAUDE.md

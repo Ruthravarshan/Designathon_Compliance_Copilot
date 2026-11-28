@@ -10,8 +10,8 @@ import { runIngestionJobs as runJobs, type WorkerDeps } from "./worker";
 import type { IngestionJobPayload } from "./types";
 
 /**
- * Frozen surface imported by Qoder's routes. Only these three functions are
- * contractual; every extra export is a lane-internal seam.
+ * Frozen surface imported by the app's routes. Only these three functions are
+ * contractual; every extra export is an internal seam.
  *
  *   queueUrlIngest(input): Promise<{ runId, jobId }>
  *   queueUploadedPdf(input): Promise<{ runId?, jobId?, documentId?, duplicate }>

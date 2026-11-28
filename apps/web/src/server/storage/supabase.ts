@@ -102,7 +102,7 @@ export function createSupabaseProvider(
         throw new IngestionError("STORAGE_UNAVAILABLE", "The private bucket rejected the upload.");
       }
       // Signed URLs are short-lived and must never be exposed to the browser.
-      // Qoder links the persisted file through the authorized app proxy instead.
+      // The app links the persisted file through the authorized proxy instead.
       return {
         itemId: input.path,
         webUrl: "",

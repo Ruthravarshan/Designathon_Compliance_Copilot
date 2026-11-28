@@ -5,10 +5,9 @@ the Hexaware brand system: a public circular or uploaded PDF becomes a stored, c
 that the right people see, acknowledge, or reject with a mandatory note — and every decision is
 audited.
 
-> **Build status (2026-11-27):** the v2 product is fully specified and handed off in
-> [docs/handoffs/](docs/handoffs/), but it is **not implemented or deployed yet**. This checkout still
-> runs the v1 deterministic workbench while the three lanes build. Claims below marked “v2” are the
-> target; evidence will live in [07-build-log.md](docs/discovery/07-build-log.md) and
+> **Build status (2026-11-28):** the v2 workspace in this checkout is the shipped build — real
+> identity and DB-driven RBAC, live ingestion, verify-first extraction, email at every step, and dark
+> mode. Evidence lives in [07-build-log.md](docs/discovery/07-build-log.md) and
 > [09-release-report.md](docs/discovery/09-release-report.md). No mock or unobserved result is claimed.
 
 ## What PolicyPulse will do
@@ -54,17 +53,13 @@ never appear in the demo workspace. The v2 design is in
 [05-solution-design.md](docs/discovery/05-solution-design.md) and
 [06-visual-direction.md](docs/discovery/06-visual-direction.md).
 
-## Parallel build — start here
+## How it was built
 
-| Lane | Owner | Handoff | Scope |
-| --- | --- | --- | --- |
-| Contracts, auth, RBAC, APIs, worker, deploy | Qoder | [QODER-BACKEND.md](docs/handoffs/QODER-BACKEND.md) | schema, server, API, integration |
-| All UI, login, admin, dark, responsive | Antigravity | [ANTIGRAVITY-UI.md](docs/handoffs/ANTIGRAVITY-UI.md) | routes, components, styles, UI e2e |
-| Ingestion, storage, Gemini, queue jobs | OpenCode | [OPENCODE-INGESTION.md](docs/handoffs/OPENCODE-INGESTION.md) | fetch, PDF, Graph/Supabase, verification |
-
-Read [docs/handoffs/README.md](docs/handoffs/README.md) first for frozen contracts, file ownership,
-branches, secrets, the no-mock rule, and the merge protocol. Qoder is the integration owner. No lane
-pushes; `main` stays frozen until the operator asks for a merge.
+Three parallel workstreams under frozen contracts: backend (schema, auth, RBAC, APIs, worker,
+deploy), UI (routes, components, dark mode, responsive), and ingestion (fetch, PDF, storage,
+extraction). Contracts and ADRs landed first so the streams merged without rewriting each other's
+code; one integration owner ran the release gate. Slices and acceptance criteria:
+[05-solution-design.md](docs/discovery/05-solution-design.md).
 
 ## Quickstart (v1 app in this checkout)
 
@@ -189,8 +184,7 @@ integration or demo data outside the labelled demo workspace.
 
 ## Documentation
 
-- Build plan: [docs/handoffs/](docs/handoffs/) · design
-  [05](docs/discovery/05-solution-design.md) · visual direction
+- Design: [05](docs/discovery/05-solution-design.md) · visual direction
   [06](docs/discovery/06-visual-direction.md).
 - Brand/visual: [BRAND.md](docs/BRAND.md), [DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md).
 - Security/scalability/quality: [SECURITY.md](docs/SECURITY.md),

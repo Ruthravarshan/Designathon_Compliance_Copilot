@@ -143,8 +143,8 @@ longer the whole product.
   working until SharePoint is configured. Never fake an upload.
 - Email: Mailpit locally; Resend/SMTP in production. A schedule that runs at least once a minute is
   required for demo-visible acknowledgements (Supabase pg_cron or Vercel Pro).
-- Three parallel workers (Qoder backend, Antigravity UI, OpenCode ingestion) with file ownership and
-  an integration owner. Contract freeze is mandatory before parallel edits.
+- Three parallel workstreams (backend, UI, ingestion) with file ownership and an integration owner.
+  Contract freeze is mandatory before parallel edits.
 
 ### Unknowns and owner-provided blockers
 
@@ -171,7 +171,7 @@ longer the whole product.
 - [x] New requirements, constraints, blockers, and scope are captured.
 - [x] The original brief is preserved.
 - [x] Phases 05 and 06 are updated before v2 product code.
-- [x] Three lane handoffs exist in `docs/handoffs/` with file ownership and acceptance checks.
+- [x] Three workstreams are defined in `05-solution-design.md` with file ownership and acceptance checks.
 - [x] Actual source URLs enter only through `INGESTION_SOURCE_URLS`; no invented source or document.
 
 Next: `05-solution-design.md` (v2) → `06-visual-direction.md` (v2) → build in lanes.

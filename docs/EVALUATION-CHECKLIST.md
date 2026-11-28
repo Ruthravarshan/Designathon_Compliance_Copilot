@@ -133,8 +133,7 @@ and risk in `docs/discovery/09-release-report.md`.
 - [ ] Deployed smoke: home, health, golden path.
 - [ ] Demo rehearsed twice, timed; fallback recording playable.
 - [ ] Release report written with any waivers (reason, risk, owner).
-- [ ] `npm run prepare:submission` run; `agent-prompts/` deleted and all references stripped.
-- [ ] The submitted commit contains no runbook folder or dangling prompt reference.
+- [ ] Internal scaffolding (prompt/runbook folders, tool-specific handoffs) removed with no dangling references.
 
 ## How to run the gate
 

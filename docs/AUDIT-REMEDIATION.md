@@ -19,8 +19,8 @@
 | Build | `NEXT_DIST_DIR=.next-audit npm run build` | PASS; 41 routes; largest first-load JS 143 kB (< 250 kB target) |
 
 The default `.next` build intermittently fails in this workspace with transient
-`ENOENT` errors during page-data collection because more than one agent/dev
-server shares the checkout. An isolated `NEXT_DIST_DIR` builds cleanly; no source
+`ENOENT` errors during page-data collection because more than one dev server
+shares the checkout. An isolated `NEXT_DIST_DIR` builds cleanly; no source
 change was required. `tsconfig.json` was restored after Next auto-edited it.
 
 ## Fixed — security

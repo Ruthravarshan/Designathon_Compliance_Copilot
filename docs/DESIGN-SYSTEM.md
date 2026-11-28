@@ -3,8 +3,8 @@
 The goal is an interface that looks intentional, not generated. Every visual choice must be
 defensible from the brief, the audience, and the content.
 
-Load `design-taste-frontend` before phase 06. If the brief needs generated references, load
-`imagegen-frontend-web` or `imagegen-frontend-mobile`. State the fallback if a skill is unavailable.
+Every visual decision must trace to the brief, the audience, and this document. Generated reference
+images are optional; when they are unavailable, `BRAND.md` and this document govern.
 
 ## 1. Design read (required)
 
@@ -236,21 +236,11 @@ Before declaring the UI done:
 - [ ] Copy self-audit passed.
 - [ ] Lighthouse run recorded.
 
-## 12. Skill map
+## 12. Reference material
 
-| Need                          | Skill                                  |
-| ----------------------------- | -------------------------------------- |
-| Base frontend taste           | `design-taste-frontend`                |
-| Section reference images      | `imagegen-frontend-web`                |
-| Mobile screen references      | `imagegen-frontend-mobile`             |
-| Advanced scroll motion        | `gpt-taste`                            |
-| Premium agency polish         | `high-end-visual-design`               |
-| Minimal editorial direction   | `minimalist-ui`                        |
-| Brutalist / terminal direction| `industrial-brutalist-ui`              |
-| Brand system and logo board   | `brandkit`                             |
-| Screenshots supplied          | `screenshot-to-code`                   |
-| Redesign of an existing app   | `redesign-existing-projects`           |
-| Exhaustive code generation    | `full-output-enforcement`              |
+Real screenshots of the running app are the primary reference; generated reference images are
+optional and, when used, are reduced to the tokens above. No synthetic screenshot ships in place of
+a real page.
 
 ## 13. Transactional email
 

@@ -63,4 +63,4 @@ docs/Ref_docs/
 .certs/
 
 # Local tooling locks
-Submission/.qoder-office-pptx-locks/
+*.pptx-locks/

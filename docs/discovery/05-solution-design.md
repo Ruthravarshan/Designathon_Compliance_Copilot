@@ -6,8 +6,8 @@
 > deployable worker path. The v1 deterministic engine is retained as the citation verifier and
 > fallback, not as a fake AI.
 
-Lane handoffs: [README](../handoffs/README.md), [Qoder backend](../handoffs/QODER-BACKEND.md),
-[Antigravity UI](../handoffs/ANTIGRAVITY-UI.md), [OpenCode ingestion](../handoffs/OPENCODE-INGESTION.md).
+Work was split across backend, UI, and ingestion lanes with one integration owner; slices and
+acceptance criteria are in [Work slices and lane ownership](#work-slices-and-lane-ownership).
 
 ## Current state and delta
 
@@ -339,12 +339,12 @@ outbox status and a safe error code; no recipient addresses or provider payloads
 
 | Slice | Owner | Done when |
 | --- | --- | --- |
-| Contracts + schema/migrations + seed | Qoder | UI and ingestion can compile against stable types; seed includes roles, demo users, departments, settings |
-| Auth + RBAC + settings + admin APIs | Qoder | SSO/demo/guest work; owner changes matrix; employee/manager/auditor scopes proven |
-| Core APIs + file proxy + policy changes + assignments + emails | Qoder | Golden path works with real DB; rejection notes; outbox events |
-| UI system, login, shell, all pages, dark/responsive/perf | Antigravity | Every route is real, permission-aware, complete states; no mock data |
-| Ingestion + storage + Gemini + worker | OpenCode | Real URL/PDF ingest → storage → verified extraction → citations; failures visible |
-| Integration + gate + deploy smoke | Qoder (integration owner) | `npm run check`, e2e, real deploy smoke, no high/critical findings |
+| Contracts + schema/migrations + seed | Backend lane | UI and ingestion can compile against stable types; seed includes roles, demo users, departments, settings |
+| Auth + RBAC + settings + admin APIs | Backend lane | SSO/demo/guest work; owner changes matrix; employee/manager/auditor scopes proven |
+| Core APIs + file proxy + policy changes + assignments + emails | Backend lane | Golden path works with real DB; rejection notes; outbox events |
+| UI system, login, shell, all pages, dark/responsive/perf | UI lane | Every route is real, permission-aware, complete states; no mock data |
+| Ingestion + storage + Gemini + worker | Ingestion lane | Real URL/PDF ingest → storage → verified extraction → citations; failures visible |
+| Integration + gate + deploy smoke | Integration owner | `npm run check`, e2e, real deploy smoke, no high/critical findings |
 
 ## Acceptance criteria
 
@@ -374,7 +374,7 @@ outbox status and a safe error code; no recipient addresses or provider payloads
 | Supabase/Graph/OAuth credentials arrive late | SSO, SharePoint, guest, deploy blocked | Build against interfaces; real adapters fail closed; prioritize demo login + Supabase Storage fallback |
 | Gemini key mode/quota unknown | Extraction fails during demo | Verify at spike; queue/backoff; deterministic fallback; owner-visible AI status |
 | Free-tier Gemini data use | Compliance/privacy concern | Send only public circulars by default; internal Q&A opt-in; disclose; paid/Vertex for production |
-| Three agents conflict | Merge pain, broken contracts | File ownership, contract freeze, branches/worktrees, Qoder integrates |
+| Parallel lanes conflict | Merge pain, broken contracts | File ownership, contract freeze, branches/worktrees, integration owner merges |
 | SharePoint permission model | 403 in demo | Site-scoped `Sites.Selected` or documented `Sites.ReadWrite.All`; test connection before demo |
 | Scraped pages block bots/SSRF false positives | No ingested docs | Manual PDF/URL path is first-class; allowlist and robots respected; don't bypass |
 | No mock rule misunderstood as no tests | Untestable externals | Test doubles allowed only under test/e2e; runtime never fakes data |
@@ -384,4 +384,4 @@ Gate: architecture, data, API, RBAC, ingestion, storage, email, performance, dep
 criteria are defined. `06-visual-direction.md` is updated; product code may start now that both
 artifacts exist. Real source URLs are supplied through `INGESTION_SOURCE_URLS` and never hardcoded.
 
-Next: [handoffs](../handoffs/README.md) → lane kickoff.
+Next: build → `07-build-log.md`.

@@ -79,13 +79,13 @@
 - Rewrote `docs/DEPLOYMENT.md` with Supabase pooler details, env matrix, cron, smoke, and rollback.
 - Re-ran the release gate after these config-only changes.
 
-## 2026-11-27 — PolicyPulse v2 plan and handoffs (no v2 product code)
+## 2026-11-27 — PolicyPulse v2 plan and workstream handoffs (no v2 product code)
 
 - Captured the tightened v2 scope in [00 revision 2](00-problem-statement.md#revision-2--policypulse-2026-11-27),
   [05](05-solution-design.md), and [06](06-visual-direction.md); added
   [ADRs 0003–0006](../decisions/) for identity, LLM, storage, and the worker.
-- Created [handoffs](../handoffs/README.md): one frozen-contract README plus Qoder (backend),
-  Antigravity (UI), and OpenCode (ingestion) lane files with file ownership and merge order.
+- Created workstream specs: one frozen-contract README plus backend, UI, and ingestion lane files
+  with file ownership and merge order.
 - Actual public source URLs enter only through `INGESTION_SOURCE_URLS`; a bootstrap upserts
   `IngestionSource` rows disabled until owner review. No URL, circular, or document is invented, and
   the v1 excerpt corpus is not presented as v2 fetched evidence.
@@ -98,7 +98,7 @@
 # v1 local gate was green; after deployment:
 curl -i https://<project>.vercel.app/api/health
 
-# v2: operator supplies credentials + INGESTION_SOURCE_URLS, then Qoder lands contracts/v2.
+# v2: operator supplies credentials + INGESTION_SOURCE_URLS, then the backend lane lands contracts/v2.
 ```
 
 ## Top three risks
@@ -110,7 +110,7 @@ curl -i https://<project>.vercel.app/api/health
 
 Next: `08-hardening-report.md`
 
-## 2026-11-27 — Gmail OAuth sender (Qoder lane)
+## 2026-11-27 — Gmail OAuth sender (backend lane)
 
 - Added `GmailAccount` (workspace-unique) with encrypted access/refresh tokens, status, scope,
   expiry, last error, and connector; idempotent SQL in `prisma/sql/002-gmail-account.sql` and

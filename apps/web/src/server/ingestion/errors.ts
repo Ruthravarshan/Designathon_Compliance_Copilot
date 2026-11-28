@@ -74,9 +74,9 @@ export interface IngestionErrorOptions {
 }
 
 /**
- * Extends AppError so Qoder's envelope handles it. The shared ErrorCode union is
- * owned by Qoder; these ingestion-specific codes are announced to that lane and
- * bridged here without weakening the local type.
+ * Extends AppError so the shared error envelope handles it. The ErrorCode union
+ * is owned by the backend; these ingestion-specific codes are bridged here
+ * without weakening the local type.
  */
 export class IngestionError extends AppError {
   readonly ingestionCode: IngestionErrorCode;

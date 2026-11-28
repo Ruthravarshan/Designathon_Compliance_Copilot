@@ -2,7 +2,7 @@ import { IngestionError } from "./errors";
 import type { IngestionJobPayload, IngestionStatus, RunStep } from "./types";
 import type { StorageConnection } from "@/server/storage/types";
 
-/** Normalized reads of Qoder's v2 models. No provider text or secrets live here. */
+/** Normalized reads of the v2 models. No provider text or secrets live here. */
 export interface SourceRecord {
   id: string;
   workspaceId: string;
@@ -167,9 +167,9 @@ export interface IngestionRuntime {
 }
 
 /**
- * Qoder lands the v2 Prisma models and `persistIngestedCircular`, then registers
- * adapters here (once, at server bootstrap). Until then both defaults fail
- * closed: no run, job, document, citation or success is fabricated.
+ * The backend lands the v2 Prisma models and `persistIngestedCircular`, then
+ * registers adapters here (once, at server bootstrap). Until then both defaults
+ * fail closed: no run, job, document, citation or success is fabricated.
  */
 function notWired(what: string): never {
   throw new IngestionError(

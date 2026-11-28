@@ -3,9 +3,9 @@
 > Phase 06. Supersedes the v1 direction. The product is **PolicyPulse**, a role-scoped compliance
 > workspace. There is no marketing proof page and no illustrative product render: every surface is a
 > real, data-backed screen. Reference assets are the live build plus the official Hexaware pack, which
-> is still pending. `design-taste-frontend` and the frontend-specific image skills were not available
-> in this runtime; no generic image was generated to avoid inventing UI. Fallback is
-> `docs/DESIGN-SYSTEM.md` + `docs/BRAND.md`, stated in the gate.
+> is still pending. No generated reference image was produced in this runtime; nothing synthetic was
+> created to avoid inventing UI. `docs/DESIGN-SYSTEM.md` + `docs/BRAND.md` govern the visuals, stated
+> in the gate.
 
 ## Design read
 
@@ -148,9 +148,8 @@ surface 8.4:1.
 
 No reference image was generated. `docs/discovery/assets/` stays empty until the owner supplies the
 official logo; the wordmark fallback above applies. Screenshots are captured from the running build
-after the routes exist, never mocked. Skill fallback: `design-taste-frontend` and the frontend image
-skills were unavailable, so `DESIGN-SYSTEM.md` + `BRAND.md` govern; generic image generation was not
-used because a synthetic product UI would violate the real-pages rule.
+after the routes exist, never mocked. `DESIGN-SYSTEM.md` + `BRAND.md` govern; no synthetic product UI
+was generated because it would violate the real-pages rule.
 
 ## Gate
 
@@ -160,6 +159,6 @@ used because a synthetic product UI would violate the real-pages rule.
 - [x] Real pages only; no proof surface; no mock content rule recorded.
 - [x] Responsive, motion, performance, and accessibility budgets set.
 - [x] Every data surface has loading/empty/error/unauthorized states.
-- [x] Logo fallback and unavailable-skill fallback stated.
+- [x] Logo fallback and reference-image fallback stated.
 
 Next: `07-build-log.md` (build may begin: 05 + 06 exist)

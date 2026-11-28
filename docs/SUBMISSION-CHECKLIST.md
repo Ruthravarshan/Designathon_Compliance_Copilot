@@ -74,17 +74,15 @@ Submit with buffer. Portals fail, uploads stall, and links break.
 - [ ] Submission form opened early.
 - [ ] Submission confirmed with a screenshot or receipt.
 
-## Pre-submission cleanup: remove the agent runbook
+## Pre-submission cleanup: remove internal scaffolding
 
-The runbook lives in the single top-level folder `agent-prompts/` so it can be removed in one step.
-It is development tooling, not a submitted deliverable.
+Development tooling (phase prompts, lane handoffs, runbooks) is not a submitted deliverable.
 
-- [ ] Run `npm run prepare:submission`. It deletes `agent-prompts/` and strips every dangling
-      reference from the surviving docs and the page copy.
-- [ ] The command reports zero remaining references. Evidence: `artifacts/submission-cleanup.txt`.
+- [ ] The repo contains no prompt/runbook folders or tool-specific handoff files.
+- [ ] No doc links to removed scaffolding; a search for those folder names returns nothing.
 - [ ] `npm run check` is green after cleanup.
-- [ ] Commit the deletions and push. The submitted repo must not contain `agent-prompts/`.
-- [ ] Do not run the cleanup before the build is finished; the runbook is needed for phases 00–10.
+- [ ] Commit the deletions and push.
+- [ ] Do not run the cleanup before the build is finished.
 
 ## Final sign-off
 

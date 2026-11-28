@@ -31,7 +31,7 @@ Change these together so the app, tests, logs, and docs stay consistent.
 | Docker build | `Dockerfile` | Image name and workspace references |
 | Compose project | `docker-compose.yml` | Project name, container names, volume names |
 | Seed data | `apps/web/prisma/seed.ts` | Demo user, workspace, welcome subject |
-| Docs | `README.md`, `AGENTS.md`, `docs/*` | Titles, examples, deploy commands |
+| Docs | `README.md`, `docs/*` | Titles, examples, deploy commands |
 | CI | `.github/workflows/ci.yml` | Only if the package scope changed |
 
 ## Keep versus change
